@@ -313,12 +313,26 @@ def confirm_pending_action(conversation: str) -> dict:
 		return {"error": str(error), "conversation": conversation_payload(doc)}
 
 	doc.pending_action_json = ""
+	action_result = {
+		"action": pending_action.get("action"),
+		"summary": pending_action.get("summary"),
+		"doctype": pending_action.get("doctype"),
+		"name": pending_action.get("name"),
+	}
+	if isinstance(result, dict):
+		action_result["name"] = result.get("name") or result.get("new_name") or action_result["name"]
+		action_result["message"] = result.get("message")
+	action_result = {key: value for key, value in action_result.items() if value not in (None, "")}
+
 	content = _("Confirmed action: {0}").format(pending_action.get("summary") or pending_action.get("action"))
-	content += "\n\n```json\n" + frappe.as_json(result, indent=2) + "\n```"
+	if action_result.get("doctype") and action_result.get("name"):
+		content += "\n\n" + _("Document: {0} {1}").format(action_result["doctype"], action_result["name"])
+	elif action_result.get("message"):
+		content += "\n\n" + str(action_result["message"])
 	messages.append(make_message("assistant", content, confirmed_action=True))
 	save_messages(doc, messages)
 
-	return {"result": result, "conversation": conversation_payload(doc)}
+	return {"result": action_result, "conversation": conversation_payload(doc)}
 
 
 @frappe.whitelist(methods=["POST"])
