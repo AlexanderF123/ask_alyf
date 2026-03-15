@@ -11,7 +11,7 @@ from frappe.utils.data import cint
 
 from ask_alyf.ask_alyf.agent import run_message
 from ask_alyf.ask_alyf.tools import execute_action, get_settings
-from ask_alyf.ask_alyf.utils import chunk_text, dumps, loads, parse_newline_list
+from ask_alyf.ask_alyf.utils import chunk_text, dumps, loads
 
 
 def has_app_permission() -> bool:
@@ -51,11 +51,23 @@ def can_access_ask_alyf() -> bool:
 	except Exception:
 		return True
 
-	allowed_roles = set(parse_newline_list(settings.allowed_roles))
+	allowed_roles = get_allowed_roles(settings)
 	if not allowed_roles:
 		return True
 
 	return bool(allowed_roles.intersection(set(frappe.get_roles())))
+
+
+def get_allowed_roles(settings) -> set[str]:
+	rows = settings.get("allowed_roles") or []
+
+	allowed_roles = set()
+	for row in rows:
+		role = row.get("role") if isinstance(row, dict) else getattr(row, "role", None)
+		if role and isinstance(role, str) and role.strip():
+			allowed_roles.add(role.strip())
+
+	return allowed_roles
 
 
 def can_use_edit_mode() -> bool:
