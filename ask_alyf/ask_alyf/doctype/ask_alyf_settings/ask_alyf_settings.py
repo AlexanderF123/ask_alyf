@@ -28,9 +28,10 @@ class AskALYFSettings(Document):
 	from typing import TYPE_CHECKING
 
 	if TYPE_CHECKING:
+		from frappe.core.doctype.has_role.has_role import HasRole
 		from frappe.types import DF
 
-		allowed_roles: DF.SmallText | None
+		allowed_roles: DF.Table[HasRole]
 		api_key: DF.Password | None
 		base_url: DF.Data | None
 		enable_edit_mode: DF.Check
