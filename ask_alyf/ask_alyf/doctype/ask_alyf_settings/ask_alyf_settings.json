@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "Prompt",
+ "creation": "2026-03-15 15:33:33.652450",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "llm_provider",
+  "base_url",
+  "api_key",
+  "model",
+  "enable_edit_mode",
+  "allowed_roles",
+  "excluded_doctypes",
+  "system_prompt"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "default": "OpenAI",
+   "fieldname": "llm_provider",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "LLM Provider",
+   "options": "OpenAI\nOpenAI Compatible",
+   "reqd": 1
+  },
+  {
+   "description": "Optional for OpenAI. Required for OpenAI-compatible providers.",
+   "fieldname": "base_url",
+   "fieldtype": "Data",
+   "label": "Base URL"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "API Key"
+  },
+  {
+   "description": "Start typing to choose a model. Available models are loaded from the configured provider.",
+   "fieldname": "model",
+   "fieldtype": "Autocomplete",
+   "in_list_view": 1,
+   "label": "Model"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_edit_mode",
+   "fieldtype": "Check",
+   "label": "Enable Edit Mode"
+  },
+  {
+   "description": "One role per line. Leave empty to allow all desk users.",
+   "fieldname": "allowed_roles",
+   "fieldtype": "Small Text",
+   "label": "Allowed Roles"
+  },
+  {
+   "description": "One DocType per line. These DocTypes stay read-only in edit mode.",
+   "fieldname": "excluded_doctypes",
+   "fieldtype": "Small Text",
+   "label": "Excluded DocTypes"
+  },
+  {
+   "fieldname": "system_prompt",
+   "fieldtype": "Code",
+   "label": "System Prompt",
+   "options": "Text"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-03-15 21:03:39.515441",
+ "modified_by": "Administrator",
+ "module": "Ask ALYF",
+ "name": "Ask ALYF Settings",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

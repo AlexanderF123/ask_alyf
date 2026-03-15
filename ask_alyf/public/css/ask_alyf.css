@@ -1,0 +1,359 @@
+.ask_alyf-root {
+	position: fixed;
+	right: 1.5rem;
+	bottom: 1.5rem;
+	z-index: 1000;
+	font-family: var(--font-stack);
+}
+
+.ask_alyf-hidden {
+	display: none !important;
+}
+
+.ask_alyf-bubble {
+	width: 3rem;
+	height: 3rem;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--border-color);
+	border-radius: 0.85rem;
+	background: white;
+	color: black;
+	box-shadow: 0 12px 24px rgba(60, 72, 88, 0.18);
+	font-size: 1.1rem;
+}
+
+.ask_alyf-bubble-logo {
+	width: 1.7rem;
+	height: 1.7rem;
+	object-fit: contain;
+	display: block;
+}
+
+.ask_alyf-panel {
+	width: min(28rem, calc(100vw - 2rem));
+	height: min(42rem, calc(100vh - 5rem));
+	min-width: min(20rem, calc(100vw - 2rem));
+	min-height: min(24rem, calc(100vh - 2rem));
+	max-width: calc(100vw - 2rem);
+	max-height: calc(100vh - 2rem);
+	margin-top: 0.75rem;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	background: var(--bg-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+	overflow: hidden;
+}
+
+.ask_alyf-resize-handle {
+	position: absolute;
+	top: 0.5rem;
+	left: 0.5rem;
+	width: 0.95rem;
+	height: 0.95rem;
+	border-top: 2px solid var(--border-color);
+	border-left: 2px solid var(--border-color);
+	border-top-left-radius: 0.3rem;
+	cursor: nwse-resize;
+	touch-action: none;
+	z-index: 2;
+}
+
+.ask_alyf-resize-handle:hover {
+	border-color: var(--primary);
+}
+
+.ask_alyf-root.ask_alyf-resizing,
+.ask_alyf-root.ask_alyf-resizing * {
+	user-select: none;
+	cursor: nwse-resize !important;
+}
+
+.ask_alyf-header,
+.ask_alyf-toolbar,
+.ask_alyf-composer,
+.ask_alyf-config-warning {
+	padding: 0.85rem 1rem;
+}
+
+.ask_alyf-header,
+.ask_alyf-toolbar,
+.ask_alyf-composer {
+	border-bottom: 1px solid var(--border-color);
+}
+
+.ask_alyf-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.ask_alyf-title {
+	font-size: 1rem;
+	font-weight: 700;
+}
+
+.ask_alyf-subtitle {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+}
+
+.ask_alyf-actions {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	flex-shrink: 1;
+}
+
+.ask_alyf-header-button {
+	border: 1px solid var(--border-color);
+	background: var(--bg-color);
+	color: var(--text-color);
+	border-radius: 999px;
+	min-height: 2rem;
+	padding: 0.35rem 0.75rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	transition:
+		background-color 160ms ease,
+		border-color 160ms ease,
+		box-shadow 160ms ease,
+		transform 120ms ease;
+}
+
+.ask_alyf-header-button:hover {
+	background: color-mix(in srgb, var(--primary), var(--bg-color) 92%);
+	border-color: color-mix(in srgb, var(--primary), var(--border-color) 55%);
+}
+
+.ask_alyf-header-button:focus-visible {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary), transparent 75%);
+}
+
+.ask_alyf-header-button:active {
+	transform: translateY(1px);
+}
+
+.ask_alyf-toolbar {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: end;
+	gap: 0.75rem;
+}
+
+.ask_alyf-conversation-field,
+.ask_alyf-conversation-field .awesomplete,
+.ask_alyf-conversation-field .awesomplete input,
+.ask_alyf-input {
+	width: 100%;
+}
+
+.ask_alyf-toolbar .frappe-control,
+.ask_alyf-toolbar .form-group {
+	margin-bottom: 0;
+}
+
+.ask_alyf-toolbar .control-label {
+	margin-bottom: 0.3rem;
+	font-size: 0.72rem;
+	color: var(--text-muted);
+}
+
+.ask_alyf-mode-field .checkbox {
+	margin: 0.2rem 0 0;
+}
+
+.ask_alyf-mode-field .checkbox label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.ask_alyf-mode-field input[type="checkbox"] {
+	margin-top: 0;
+}
+
+.ask_alyf-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+}
+
+.ask_alyf-config-warning {
+	background: rgba(255, 199, 0, 0.14);
+	color: var(--text-color);
+	font-size: 0.85rem;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.ask_alyf-messages {
+	padding: 1rem;
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 8rem;
+	gap: 0.75rem;
+	background: color-mix(in srgb, var(--bg-color), black 2%);
+}
+
+.ask_alyf-message {
+	display: flex;
+}
+
+.ask_alyf-user {
+	justify-content: flex-end;
+}
+
+.ask_alyf-status-message {
+	justify-content: center;
+}
+
+.ask_alyf-message-body,
+.ask_alyf-proposal {
+	max-width: 85%;
+	padding: 0.75rem 0.9rem;
+	border-radius: 1rem;
+	border: 1px solid var(--border-color);
+	background: white;
+}
+
+[data-theme="dark"] .ask_alyf-message-body,
+[data-theme="dark"] .ask_alyf-proposal {
+	background: var(--gray-900);
+}
+
+.ask_alyf-user .ask_alyf-message-body {
+	background: color-mix(in srgb, var(--primary), white 88%);
+}
+
+.ask_alyf-status-message .ask_alyf-message-body {
+	max-width: 100%;
+	padding: 0.15rem 0;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 0.85rem;
+	font-style: italic;
+	text-align: center;
+}
+
+.ask_alyf-message-actions {
+	margin-top: 0.35rem;
+}
+
+.ask_alyf-link-button,
+.ask_alyf-icon-button {
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	padding: 0.15rem 0.35rem;
+}
+
+.ask_alyf-proposal {
+	align-self: flex-start;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.ask_alyf-proposal-title {
+	font-weight: 700;
+}
+
+.ask_alyf-proposal-actions {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.ask_alyf-confirm,
+.ask_alyf-reject,
+.ask_alyf-send {
+	border: none;
+	border-radius: 999px;
+	padding: 0.5rem 0.9rem;
+}
+
+.ask_alyf-confirm,
+.ask_alyf-send {
+	background: var(--primary);
+	color: white;
+}
+
+.ask_alyf-reject {
+	background: var(--gray-100);
+	color: var(--text-color);
+}
+
+[data-theme="dark"] .ask_alyf-reject {
+	background: var(--gray-800);
+}
+
+.ask_alyf-composer {
+	flex-shrink: 0;
+	padding: 0.85rem 1rem;
+	border-top: 1px solid var(--border-color);
+	border-bottom: none;
+}
+
+.ask_alyf-input-shell {
+	position: relative;
+}
+
+.ask_alyf-input {
+	resize: none;
+	min-height: 4rem;
+	max-height: 10.5rem;
+	padding: 0.75rem 8.5rem 0.75rem 0.75rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	line-height: 1.35;
+	overflow-y: hidden;
+}
+
+.ask_alyf-composer-actions {
+	position: absolute;
+	right: 0.45rem;
+	bottom: 0.7rem;
+	display: flex;
+	gap: 0.35rem;
+	align-items: center;
+}
+
+.ask_alyf-composer .ask_alyf-icon-button,
+.ask_alyf-composer .ask_alyf-send {
+	height: 2rem;
+	min-height: 2rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+}
+
+.ask_alyf-composer .ask_alyf-icon-button {
+	border: 1px solid var(--border-color);
+	background: var(--bg-color);
+}
+
+.ask_alyf-composer .ask_alyf-send {
+	padding-inline: 0.8rem;
+}
+
+.ask_alyf-loading .ask_alyf-send {
+	opacity: 0.6;
+	pointer-events: none;
+}
