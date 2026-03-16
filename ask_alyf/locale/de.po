@@ -1,0 +1,328 @@
+# German translations for Ask ALYF.
+# Copyright (C) 2026 ALYF GmbH
+# This file is distributed under the same license as the Ask ALYF project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Ask ALYF VERSION\n"
+"Report-Msgid-Bugs-To: hallo@alyf.de\n"
+"POT-Creation-Date: 2026-03-16 01:45+0053\n"
+"PO-Revision-Date: 2026-03-16 01:45+0053\n"
+"Last-Translator: hallo@alyf.de\n"
+"Language: de\n"
+"Language-Team: hallo@alyf.de\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ask_alyf/ask_alyf/tools.py:423
+msgid "Action field 'args' must be an object."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:412
+msgid "Action field 'doctype' is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:416
+msgid "Action field 'values' must be an object."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:405
+msgid "Action field '{0}' must be an object."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:51
+#: ask_alyf/public/js/ask_alyf.bundle.js:323
+#: ask_alyf/public/js/ask_alyf.bundle.js:425
+msgid "Agent"
+msgstr ""
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
+msgid "Ask ALYF Conversation"
+msgstr "ALYF-Fragen-Konversation"
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Ask ALYF Settings"
+msgstr "ALYF-Fragen-Einstellungen"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:53
+msgid "Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
+msgstr "ALYF-Fragen ist eine KI und kann Fehler machen, einschließlich mit Zahlen und Informationen über Menschen."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:232
+msgid "Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
+msgstr "ALYF-Fragen ist sichtbar, aber es wurde noch kein API-Schlüssel/Modell in ALYF-Fragen-Einstellungen konfiguriert."
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:66
+msgid "Base URL is required for OpenAI-compatible providers."
+msgstr "Basis-URL ist für OpenAI-kompatible Anbieter erforderlich."
+
+#: ask_alyf/ask_alyf/api.py:356
+msgid "Cancelled the pending action."
+msgstr "Ausstehende Aktion abgebrochen."
+
+#: ask_alyf/ask_alyf/tools.py:195
+msgid "Code reads are restricted to the bench directory."
+msgstr "Code-Lesen ist auf das Bench-Verzeichnis beschränkt."
+
+#: ask_alyf/ask_alyf/tools.py:159
+msgid "Code search is restricted to the apps directory."
+msgstr "Die Code-Suche ist auf das Apps-Verzeichnis beschränkt."
+
+#: ask_alyf/ask_alyf/agent.py:544
+msgid "Configure a model in Ask ALYF Settings before sending messages."
+msgstr "Konfigurieren Sie ein Modell in den ALYF-Fragen-Einstellungen, bevor Sie Nachrichten senden."
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:63
+msgid "Configure an API key first, then fetch available models."
+msgstr "Konfigurieren Sie zuerst eine API-Schlüssel, bevor Sie verfügbare Modelle abrufen."
+
+#: ask_alyf/ask_alyf/agent.py:538
+msgid "Configure an API key in Ask ALYF Settings before sending messages."
+msgstr "Konfigurieren Sie einen API-Schlüssel in den ALYF-Fragen-Einstellungen, bevor Sie Nachrichten senden."
+
+#: ask_alyf/ask_alyf/api.py:337
+msgid "Confirmed action: {0}"
+msgstr "Aktion bestätigt: {0}"
+
+#: ask_alyf/ask_alyf/api.py:320
+msgid "Could not confirm action: {0}"
+msgstr "Konnte Aktion nicht bestätigen: {0}"
+
+#: ask_alyf/ask_alyf/tools.py:350
+msgid "Deleted {0} {1}"
+msgstr "{0} {1} wurde gelöscht "
+
+#: ask_alyf/ask_alyf/tools.py:47
+msgid "DocType '{0}' is excluded from edit mode."
+msgstr "DocType '{0}' ist aus dem Agentenmodus ausgeschlossen."
+
+#: ask_alyf/ask_alyf/api.py:339
+msgid "Document: {0} {1}"
+msgstr "Dokument: {0} {1}"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:45
+msgid "ERPNext assistant"
+msgstr "ERPNext-Assistent"
+
+#: ask_alyf/ask_alyf/api.py:88
+msgid "Edit mode is disabled or not available for your user."
+msgstr "Agentenmodus ist deaktiviert oder nicht für Sie verfügbar."
+
+#. Label of the enable_edit_mode (Check) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Enable Edit Mode"
+msgstr "Agentenmodus erlauben"
+
+#. Label of the excluded_doctypes (Small Text) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Excluded DocTypes"
+msgstr "Ausgeschlossene DocTypes"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:466
+msgid "Failed to open conversation."
+msgstr "Konversation konnte nicht geöffnet werden."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:700
+msgid "Failed to send message."
+msgstr "Nachricht konnte nicht gesendet werden."
+
+#: ask_alyf/ask_alyf/tools.py:447
+msgid "Field '{0}' in {1} is a child table ({2}) and must be a list of row objects."
+msgstr "Feld '{0}' in {1} ist eine Untertabelle ({2}) und muss eine Liste von Zeilenobjekten sein."
+
+#: ask_alyf/ask_alyf/tools.py:453
+msgid "Field '{0}' row #{1} in {2} must be an object."
+msgstr "Feld '{0}' Zeile #{1} in {2} muss ein Objekt sein."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:47
+msgid "History"
+msgstr "Verlauf"
+
+#: ask_alyf/ask_alyf/api.py:276
+msgid "I hit an error while processing that request. Please try again."
+msgstr "Ich bin beim Verarbeiten der Anfrage auf einen Fehler gestoßen. Bitte versuchen Sie es erneut."
+
+#: ask_alyf/ask_alyf/api.py:273
+msgid "I prepared the requested action. Please review it and confirm if it looks correct."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:291
+msgid "Invalid action payload."
+msgstr "Ungültige Aktion-Nutzlast."
+
+#. Label of the llm_provider (Select) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LLM Provider"
+msgstr "LLM-Anbieter"
+
+#. Label of the last_context_json (Code) field in DocType 'Ask ALYF
+#. Conversation'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
+msgid "Last Context JSON"
+msgstr "Letzter Kontext JSON"
+
+#. Label of the last_message_at (Datetime) field in DocType 'Ask ALYF
+#. Conversation'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
+msgid "Last Message At"
+msgstr "Letzte Nachricht am"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:455
+msgid "Loading conversation..."
+msgstr "Lade Konversation..."
+
+#. Label of the messages_json (Code) field in DocType 'Ask ALYF Conversation'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
+msgid "Messages JSON"
+msgstr "Nachrichten JSON"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:325
+msgid "Mode: {0}"
+msgstr "Modus: {0}"
+
+#. Label of the model (Autocomplete) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Model"
+msgstr "Modell"
+
+#: ask_alyf/ask_alyf/api.py:123 ask_alyf/ask_alyf/api.py:192
+#: ask_alyf/ask_alyf/api.py:220
+msgid "New Conversation"
+msgstr "Neue Konversation"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:45
+msgid "New chat"
+msgstr "Neuer Chat"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:403
+msgid "No conversations yet."
+msgstr "Noch keine Konversationen."
+
+#: ask_alyf/ask_alyf/tools.py:265
+msgid "No documentation URL was found for app '{0}'."
+msgstr "Für App '{0}' wurde keine Dokumentations-URL gefunden."
+
+#: ask_alyf/ask_alyf/tools.py:282
+msgid "No pyproject.toml was found for app '{0}'."
+msgstr "Für App '{0}' wurde kein pyproject.toml gefunden."
+
+#: ask_alyf/ask_alyf/tools.py:236
+msgid "No repository URL was found for app '{0}'."
+msgstr "Für App '{0}' wurde keine Repository-URL gefunden."
+
+#. Description of the 'Excluded DocTypes' (Small Text) field in DocType 'Ask
+#. ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "One DocType per line. These DocTypes stay read-only in edit mode."
+msgstr "Ein DocType pro Zeile. Diese DocTypes können im Agenten-Modus nicht bearbeitet werden."
+
+#. Description of the 'Allowed Roles' (Table) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "One role per line. Leave empty to allow all desk users."
+msgstr "Eine Rolle pro Zeile. Lassen Sie es leer, um alle Desk-Benutzer zu erlauben."
+
+#: ask_alyf/ask_alyf/tools.py:220
+msgid "Only Administrator and System Manager can run SQL queries."
+msgstr "Nur Administrator und System-Manager können SQL-Abfragen ausführen."
+
+#: ask_alyf/ask_alyf/tools.py:241
+msgid "Only GitHub repositories are supported for release lookup."
+msgstr "Nur GitHub-Repositories werden für die Release-Suche unterstützt."
+
+#: ask_alyf/ask_alyf/tools.py:223
+msgid "Only a single read-only SQL statement is allowed."
+msgstr "Nur eine einzelne lesende SQL-Anweisung ist erlaubt."
+
+#: ask_alyf/ask_alyf/tools.py:226
+msgid "Only read-only SQL statements are allowed."
+msgstr "Nur lesende SQL-Anweisungen sind erlaubt."
+
+#. Option for the 'LLM Provider' (Select) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "OpenAI"
+msgstr "OpenAI"
+
+#. Option for the 'LLM Provider' (Select) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "OpenAI Compatible"
+msgstr "OpenAI-kompatibel"
+
+#. Description of the 'Base URL' (Data) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Optional for OpenAI. Required for OpenAI-compatible providers."
+msgstr "Optional für OpenAI. Erforderlich für OpenAI-kompatible Anbieter."
+
+#. Label of the pending_action_json (Code) field in DocType 'Ask ALYF
+#. Conversation'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
+msgid "Pending Action JSON"
+msgstr "Ausstehende Aktion JSON"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:788
+msgid "Pending action"
+msgstr "Ausstehende Aktion"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:790
+msgid "Reject"
+msgstr "Ablehnen"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:666
+msgid "Sending..."
+msgstr "Sende..."
+
+#. Description of the 'Model' (Autocomplete) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Start typing to choose a model. Available models are loaded from the configured provider."
+msgstr "Tippen Sie, um ein Modell auszuwählen. Verfügbare Modelle werden aus dem konfigurierten Anbieter geladen."
+
+#. Label of the system_prompt (Code) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "System Prompt"
+msgstr "System-Prompt"
+
+#: ask_alyf/ask_alyf/api.py:313
+msgid "There is no pending action to confirm."
+msgstr "Es gibt keine ausstehende Aktion zur Bestätigung."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:193
+msgid "Thinking..."
+msgstr "Denke..."
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:87
+msgid "Unsupported LLM provider: {0}"
+msgstr "Nicht unterstützter LLM-Anbieter: {0}"
+
+#: ask_alyf/ask_alyf/tools.py:387
+msgid "Unsupported action '{0}'."
+msgstr "Nicht unterstützte Aktion: '{0}'."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:368
+msgid "Untitled conversation"
+msgstr "Unbenannte Konversation"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:843
+msgid "Voice input language: {0}"
+msgstr "Eingabe-Sprache: {0}"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:696
+msgid "Waiting for response..."
+msgstr "Warten auf Antwort..."
+
+#: ask_alyf/ask_alyf/api.py:158 ask_alyf/ask_alyf/api.py:170
+#: ask_alyf/ask_alyf/api.py:187 ask_alyf/ask_alyf/api.py:210
+msgid "You do not have access to Ask ALYF."
+msgstr "Sie haben keinen Zugriff auf ALYF-Fragen."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:817
+msgid "Your browser does not support voice input."
+msgstr "Ihr Browser unterstützt keine Sprach-Eingabe."
+
