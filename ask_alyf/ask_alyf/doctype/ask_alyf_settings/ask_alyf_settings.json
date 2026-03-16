@@ -54,7 +54,6 @@
    "label": "Model"
   },
   {
-   "description": "One role per line. Leave empty to allow all desk users.",
    "fieldname": "allowed_roles",
    "fieldtype": "Table",
    "hidden": 1,
