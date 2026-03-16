@@ -302,7 +302,11 @@ def process_message_job(
 
 @frappe.whitelist(methods=["POST"])
 def confirm_pending_action(conversation: str, mode: str = "Read-Only") -> dict:
+	if not can_access_ask_alyf():
+		frappe.throw(_("You do not have access to Ask ALYF."))
+
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
+	doc.check_permission("write")
 	pending_action = loads(doc.pending_action_json, None)
 	if not pending_action:
 		frappe.throw(_("There is no pending action to confirm."))
@@ -343,7 +347,11 @@ def confirm_pending_action(conversation: str, mode: str = "Read-Only") -> dict:
 
 @frappe.whitelist(methods=["POST"])
 def reject_pending_action(conversation: str, mode: str = "Read-Only") -> dict:
+	if not can_access_ask_alyf():
+		frappe.throw(_("You do not have access to Ask ALYF."))
+
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
+	doc.check_permission("write")
 	if not doc.pending_action_json:
 		return {"conversation": conversation_payload(doc)}
 
