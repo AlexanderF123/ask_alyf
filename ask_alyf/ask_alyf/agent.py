@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+from uuid import uuid4
 
 import frappe
 from any_agent import AgentConfig, AgentFramework, AnyAgent
@@ -16,7 +17,7 @@ class ask_alyfRuntime:
 	user: str
 	mode: str
 	request_context: dict[str, Any]
-	pending_action: dict[str, Any] | None = None
+	pending_operation: dict[str, Any] | None = None
 
 	def emit_status(self, text: str):
 		frappe.publish_realtime(
@@ -32,16 +33,18 @@ class ask_alyfToolset:
 
 	def _proposal(
 		self,
-		action: str,
+		kind: str,
+		tool: str,
 		summary: str,
 		reason: str = "",
 		*,
 		validation_error_status: str,
 		prepared_status: str,
+		requires_confirmation: bool = True,
 		**payload: Any,
 	) -> dict[str, Any]:
-		"""Create a pending action proposal for Agent mode confirmation."""
-		validation_error = tools.validate_pending_action_payload(action, payload)
+		"""Create a pending operation proposal."""
+		validation_error = tools.validate_pending_operation_payload(kind, tool, payload)
 		if validation_error:
 			self.runtime.emit_status(validation_error_status)
 			return {
@@ -51,18 +54,66 @@ class ask_alyfToolset:
 			}
 
 		proposal = {
-			"action": action,
+			"kind": kind,
+			"tool": tool,
 			"summary": summary,
 			"reason": reason,
-			**payload,
+			"requires_confirmation": bool(requires_confirmation),
+			"payload": payload,
+			"call_id": uuid4().hex,
 		}
-		self.runtime.pending_action = proposal
+		self.runtime.pending_operation = proposal
 		self.runtime.emit_status(prepared_status)
 		return {
 			"success": True,
-			"requires_confirmation": True,
+			"requires_confirmation": bool(requires_confirmation),
 			"proposal": proposal,
 		}
+
+	def _backend_proposal(
+		self,
+		tool: str,
+		summary: str,
+		reason: str = "",
+		*,
+		validation_error_status: str,
+		prepared_status: str,
+		**payload: Any,
+	) -> dict[str, Any]:
+		return self._proposal(
+			tools.OPERATION_KIND_BACKEND,
+			tool,
+			summary,
+			reason,
+			validation_error_status=validation_error_status,
+			prepared_status=prepared_status,
+			requires_confirmation=True,
+			**payload,
+		)
+
+	def _frontend_proposal(
+		self,
+		tool: str,
+		summary: str,
+		reason: str = "",
+		*,
+		validation_error_status: str,
+		prepared_status: str,
+		requires_confirmation: bool | None = None,
+		**payload: Any,
+	) -> dict[str, Any]:
+		if requires_confirmation is None:
+			requires_confirmation = tools.get_frontend_action_requires_confirmation(tool)
+		return self._proposal(
+			tools.OPERATION_KIND_FRONTEND,
+			tool,
+			summary,
+			reason,
+			validation_error_status=validation_error_status,
+			prepared_status=prepared_status,
+			requires_confirmation=requires_confirmation,
+			**payload,
+		)
 
 	def get_list(
 		self,
@@ -358,7 +409,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"insert",
 			_("Create {0}").format(doctype),
 			reason,
@@ -387,7 +438,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"save",
 			_("Update {0} {1}").format(doctype, name),
 			reason,
@@ -418,7 +469,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"set_value",
 			_("Set {0} on {1} {2}").format(fieldname, doctype, name),
 			reason,
@@ -441,7 +492,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"submit",
 			_("Submit {0} {1}").format(doctype, name),
 			reason,
@@ -462,7 +513,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"cancel",
 			_("Cancel {0} {1}").format(doctype, name),
 			reason,
@@ -483,7 +534,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"amend",
 			_("Amend {0} {1}").format(doctype, name),
 			reason,
@@ -504,7 +555,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"delete",
 			_("Delete {0} {1}").format(doctype, name),
 			reason,
@@ -534,7 +585,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"rename_doc",
 			_("Rename {0} {1} to {2}").format(doctype, name, new_name),
 			reason,
@@ -564,7 +615,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"attach_file",
 			_("Attach {0} to {1} {2}").format(file_url, doctype, name),
 			reason,
@@ -591,7 +642,7 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal(
+		return self._backend_proposal(
 			"run_method",
 			_("Call {0}").format(method),
 			reason,
@@ -599,6 +650,141 @@ class ask_alyfToolset:
 			prepared_status=_("Prepared method call proposal."),
 			method=method,
 			args=args or {},
+		)
+
+	def set_route(self, route: list[str], reason: str = "") -> dict[str, Any]:
+		"""Propose navigating to a Desk route on the frontend.
+
+		Args:
+			route: Route parts used by frappe.set_route.
+			reason: Optional explanation of why this navigation helps the user.
+
+		Returns:
+			A pending frontend operation proposal.
+		"""
+		route_label = "/".join(part for part in (route or []) if isinstance(part, str))
+		return self._frontend_proposal(
+			"set_route",
+			_("Navigate to {0}").format(route_label or _("target route")),
+			reason,
+			validation_error_status=_("Route action needs correction."),
+			prepared_status=_("Prepared route action."),
+			route=route,
+		)
+
+	def new_doc(
+		self,
+		doctype: str,
+		route_options: dict[str, Any] | None = None,
+		reason: str = "",
+	) -> dict[str, Any]:
+		"""Propose opening a new document form in the frontend.
+
+		Args:
+			doctype: The target DocType for frappe.new_doc.
+			route_options: Optional route options to prefill form values.
+			reason: Optional explanation of why this action helps the user.
+
+		Returns:
+			A pending frontend operation proposal.
+		"""
+		return self._frontend_proposal(
+			"new_doc",
+			_("Open new {0}").format(doctype),
+			reason,
+			validation_error_status=_("New document action needs correction."),
+			prepared_status=_("Prepared new document action."),
+			doctype=doctype,
+			route_options=route_options or {},
+		)
+
+	def scroll_to_field(self, fieldname: str, reason: str = "") -> dict[str, Any]:
+		"""Propose scrolling to a field on the active form.
+
+		Args:
+			fieldname: The fieldname to scroll to.
+			reason: Optional explanation of why this action helps the user.
+
+		Returns:
+			A pending frontend operation proposal.
+		"""
+		return self._frontend_proposal(
+			"scroll_to_field",
+			_("Scroll to field {0}").format(fieldname),
+			reason,
+			validation_error_status=_("Scroll action needs correction."),
+			prepared_status=_("Prepared scroll action."),
+			fieldname=fieldname,
+		)
+
+	def frm_set_value(
+		self,
+		fieldname: str,
+		value: Any,
+		doctype: str | None = None,
+		docname: str | None = None,
+		reason: str = "",
+	) -> dict[str, Any]:
+		"""Propose setting a field value on the active frontend form.
+
+		Args:
+			fieldname: The target fieldname.
+			value: The value to apply.
+			doctype: Optional expected active form DocType.
+			docname: Optional expected active form document name.
+			reason: Optional explanation of why this action helps the user.
+
+		Returns:
+			A pending frontend operation proposal.
+		"""
+		payload: dict[str, Any] = {"fieldname": fieldname, "value": value}
+		if doctype:
+			payload["doctype"] = doctype
+		if docname:
+			payload["docname"] = docname
+
+		return self._frontend_proposal(
+			"frm_set_value",
+			_("Set field {0} on current form").format(fieldname),
+			reason,
+			validation_error_status=_("Set field action needs correction."),
+			prepared_status=_("Prepared set field action."),
+			**payload,
+		)
+
+	def frm_add_child(
+		self,
+		fieldname: str,
+		values: dict[str, Any] | None = None,
+		doctype: str | None = None,
+		docname: str | None = None,
+		reason: str = "",
+	) -> dict[str, Any]:
+		"""Propose adding a child table row on the active frontend form.
+
+		Args:
+			fieldname: The child table fieldname.
+			values: Optional row values for the new child row.
+			doctype: Optional expected active form DocType.
+			docname: Optional expected active form document name.
+			reason: Optional explanation of why this action helps the user.
+
+		Returns:
+			A pending frontend operation proposal.
+		"""
+		payload: dict[str, Any] = {"fieldname": fieldname, "values": values or {}}
+		if doctype:
+			payload["doctype"] = doctype
+		if docname:
+			payload["docname"] = docname
+
+		return self._frontend_proposal(
+			"frm_add_child",
+			_("Add a row to {0} on current form").format(fieldname),
+			reason,
+			validation_error_status=_("Add child row action needs correction."),
+			prepared_status=_("Prepared add child row action."),
+			**payload,
 		)
 
 
@@ -662,6 +848,8 @@ Always follow these rules:
 Agent mode rules:
 - Agent mode is currently {self.runtime.mode}.
 - Write tools do not execute immediately. They only create a pending action proposal.
+- Frontend action tools can navigate or adjust the current form in the browser.
+- Frontend actions with `requires_confirmation` must be confirmed before the browser executes them.
 - Before insert or save, call get_meta for the target DocType and follow field types exactly.
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
 - Only call a write tool when the user clearly wants to create, update, submit, cancel, amend, rename, delete, attach, or invoke a method that changes data.
@@ -688,6 +876,9 @@ Agent mode rules:
 			self.toolset.list_accessible_reports,
 			self.toolset.get_current_user_roles,
 			self.toolset.translate_ui_labels,
+			self.toolset.set_route,
+			self.toolset.new_doc,
+			self.toolset.scroll_to_field,
 			self.toolset.search_code,
 			self.toolset.read_code_file,
 			self.toolset.read_file_record,
@@ -710,6 +901,8 @@ Agent mode rules:
 					self.toolset.rename_doc,
 					self.toolset.attach_file,
 					self.toolset.run_whitelisted_method,
+					self.toolset.frm_set_value,
+					self.toolset.frm_add_child,
 				]
 			)
 
@@ -719,7 +912,7 @@ Agent mode rules:
 		trace = self.agent.run(build_prompt(message, conversation_history))
 		return {
 			"response": str(trace.final_output or "").strip(),
-			"pending_action": self.runtime.pending_action,
+			"pending_operation": self.runtime.pending_operation,
 		}
 
 
