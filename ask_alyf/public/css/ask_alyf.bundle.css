@@ -145,7 +145,7 @@
 
 .ask_alyf-toolbar {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-columns: minmax(0, 1fr);
 	align-items: end;
 	gap: 0.75rem;
 }
@@ -166,23 +166,6 @@
 	margin-bottom: 0.3rem;
 	font-size: 0.72rem;
 	color: var(--text-muted);
-}
-
-.ask_alyf-mode-field .checkbox {
-	margin: 0.2rem 0 0;
-}
-
-.ask_alyf-mode-field .checkbox label {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-	font-size: 0.85rem;
-	color: var(--text-muted);
-	white-space: nowrap;
-}
-
-.ask_alyf-mode-field input[type="checkbox"] {
-	margin-top: 0;
 }
 
 .ask_alyf-toggle {
@@ -310,6 +293,13 @@
 	border-bottom: none;
 }
 
+.ask_alyf-disclaimer {
+	margin-top: 0.45rem;
+	font-size: 0.72rem;
+	line-height: 1.35;
+	color: var(--text-muted);
+}
+
 .ask_alyf-input-shell {
 	position: relative;
 }
@@ -318,11 +308,85 @@
 	resize: none;
 	min-height: 4rem;
 	max-height: 10.5rem;
-	padding: 0.75rem 8.5rem 0.75rem 0.75rem;
+	padding: 0.5rem 0.5rem 2.5rem 0.5rem;
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius);
 	line-height: 1.35;
 	overflow-y: hidden;
+}
+
+.ask_alyf-mode-dropdown {
+	position: absolute;
+	left: 0.45rem;
+	bottom: 0.7rem;
+	z-index: 2;
+}
+
+.ask_alyf-mode-trigger {
+	border: 1px solid var(--border-color);
+	background: var(--bg-color);
+	color: var(--text-color);
+	border-radius: 999px;
+	min-height: 2rem;
+	padding: 0.35rem 0.65rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.ask_alyf-mode-trigger:focus-visible {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary), transparent 75%);
+}
+
+.ask_alyf-mode-trigger-chevron {
+	font-size: 0.72rem;
+}
+
+.ask_alyf-mode-menu {
+	position: absolute;
+	left: 0;
+	bottom: calc(100% + 0.35rem);
+	min-width: 100%;
+	padding: 0.2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	background: var(--bg-color);
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+.ask_alyf-mode-option {
+	border: none;
+	background: transparent;
+	color: var(--text-color);
+	border-radius: calc(var(--border-radius) - 2px);
+	padding: 0.35rem 0.55rem;
+	font-size: 0.78rem;
+	font-weight: 500;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.ask_alyf-mode-option:hover {
+	background: color-mix(in srgb, var(--primary), var(--bg-color) 92%);
+}
+
+.ask_alyf-mode-option.is-selected {
+	background: color-mix(in srgb, var(--primary), var(--bg-color) 86%);
+	font-weight: 600;
+}
+
+.ask_alyf-mode-option.is-disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
 }
 
 .ask_alyf-composer-actions {
