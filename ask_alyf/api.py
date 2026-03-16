@@ -1,7 +1,7 @@
 from ask_alyf.ask_alyf.api import (
 	bootstrap,
 	can_access_ask_alyf,
-	can_use_edit_mode,
+	can_use_agent_mode,
 	confirm_pending_action,
 	get_ask_alyf_boot_payload,
 	has_app_permission,
@@ -15,7 +15,7 @@ from ask_alyf.ask_alyf.api import (
 __all__ = [
 	"bootstrap",
 	"can_access_ask_alyf",
-	"can_use_edit_mode",
+	"can_use_agent_mode",
 	"confirm_pending_action",
 	"get_ask_alyf_boot_payload",
 	"has_app_permission",

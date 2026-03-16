@@ -4,10 +4,10 @@ Helps you understand ERPNext
 
 ### Features
 
-This app adds a chat bubble to the ERPNext interface where you can talk to an agent that knows everything about your ERPNext instance. It has two modes: Read-Only and Edit-Mode.
+This app adds a chat bubble to the ERPNext interface where you can talk to an agent that knows everything about your ERPNext instance. It has two modes: Ask and Agent.
 
-- Read-Only mode: Ask questions about your ERPNext instance — data, configuration, code, docs — and the agent answers.
-- Edit-Mode: Ask the agent to create, update, submit, cancel, or delete documents for you. Every mutation requires explicit user confirmation before execution.
+- Ask mode: Ask questions about your ERPNext instance — data, configuration, code, docs — and the agent answers.
+- Agent mode: Ask the agent to create, update, submit, cancel, or delete documents for you. Every mutation requires explicit user confirmation before execution.
 
 The agent supports multi-turn tool calls (chaining multiple operations in one response) and renders responses as Markdown (tables, code blocks, bold, etc.). Responses are streamed to the chat bubble via socket.io.
 
@@ -17,7 +17,7 @@ Input can be text or voice. Voice input is transcribed to text before being sent
 
 All data-access tools wrap `frappe.client` functions, which enforce the same permission checks as the REST API. The agent can only do what the logged-in user can already do via the API.
 
-#### Read-Only mode
+#### Ask mode
 
 Data retrieval (from `frappe.client`):
 
@@ -52,9 +52,9 @@ SQL (Administrator and System Manager only):
 
 - run read-only SQL queries — same capability as the existing **System Console**
 
-#### Edit mode
+#### Agent mode
 
-Everything from Read-Only mode, plus:
+Everything from Ask mode, plus:
 
 - `insert` — create a new document
 - `save` — update an existing document
@@ -79,7 +79,7 @@ Everything from Read-Only mode, plus:
 - **Confirmation before mutations**: Every write operation (create, update, delete, submit, cancel, amend, rename) requires explicit user confirmation before execution. The agent proposes the action, the user approves or rejects.
 - **No bulk operations**: The agent cannot use `insert_many`, `bulk_update`, or batch deletes. Every mutation is a single confirmed operation.
 - **Framework constraints respected**: The agent does not bypass framework validation. For example, it cannot delete a submitted document without cancelling it first, and it cannot delete cancelled documents that have linked submitted entries.
-- **Configurable DocType exclusions**: Admins can exclude specific DocTypes from Edit mode via **Ask ALYF Settings**.
+- **Configurable DocType exclusions**: Admins can exclude specific DocTypes from Agent mode via **Ask ALYF Settings**.
 
 ### Security
 
@@ -92,7 +92,7 @@ SQL queries are restricted to read-only and only available to users with the Adm
 Conversations are persisted in an **Ask ALYF Conversation** DocType. This provides:
 
 - conversation continuity across page reloads
-- an audit trail of what the agent did, especially for Edit-mode actions
+- an audit trail of what the agent did, especially for Agent mode actions
 - data for usage analytics and debugging
 
 ### Configuration
@@ -102,9 +102,9 @@ Conversations are persisted in an **Ask ALYF Conversation** DocType. This provid
 - LLM provider
 - API key
 - model name
-- enable / disable Edit mode (site-wide kill switch)
+- enable / disable Agent mode (site-wide kill switch)
 - roles that can use the agent
-- DocTypes excluded from Edit mode
+- DocTypes excluded from Agent mode
 
 ### Error Handling
 

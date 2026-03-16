@@ -13,6 +13,9 @@ from ask_alyf.ask_alyf.agent import run_message
 from ask_alyf.ask_alyf.tools import execute_action, get_settings
 from ask_alyf.ask_alyf.utils import chunk_text, dumps, loads
 
+MODE_ASK = "Ask"
+MODE_AGENT = "Agent"
+
 
 def has_app_permission() -> bool:
 	return can_access_ask_alyf()
@@ -21,11 +24,11 @@ def has_app_permission() -> bool:
 def get_ask_alyf_boot_payload() -> dict:
 	settings_available = frappe.db.exists("DocType", "Ask ALYF Settings")
 	configured = False
-	edit_mode_enabled = False
+	agent_mode_enabled = False
 
 	try:
 		settings = get_settings()
-		edit_mode_enabled = bool(settings.allow_agent_mode)
+		agent_mode_enabled = bool(settings.allow_agent_mode)
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		configured = bool(api_key and (settings.model or "").strip())
 	except Exception:
@@ -34,8 +37,8 @@ def get_ask_alyf_boot_payload() -> dict:
 	return {
 		"allowed": can_access_ask_alyf(),
 		"configured": configured,
-		"edit_mode_enabled": edit_mode_enabled,
-		"default_mode": "Read-Only",
+		"agent_mode_enabled": agent_mode_enabled,
+		"default_mode": MODE_ASK,
 		"site_name": frappe.local.site,
 		"user": frappe.session.user,
 		"settings_available": bool(settings_available),
@@ -67,7 +70,7 @@ def get_allowed_roles(settings) -> set[str]:
 	return allowed_roles
 
 
-def can_use_edit_mode() -> bool:
+def can_use_agent_mode() -> bool:
 	if not can_access_ask_alyf():
 		return False
 
@@ -80,12 +83,12 @@ def can_use_edit_mode() -> bool:
 
 
 def normalize_mode(mode: str | None) -> str:
-	if mode == "Edit-Mode":
-		if not can_use_edit_mode():
-			frappe.throw(_("Edit mode is disabled or not available for your user."))
-		return "Edit-Mode"
+	if mode == MODE_AGENT:
+		if not can_use_agent_mode():
+			frappe.throw(_("Agent mode is disabled or not available for your user."))
+		return MODE_AGENT
 
-	return "Read-Only"
+	return MODE_ASK
 
 
 def make_message(role: str, content: str, **metadata) -> dict:
@@ -199,7 +202,7 @@ def start_new_conversation() -> dict:
 @frappe.whitelist(methods=["POST"])
 def send_message(
 	message: str,
-	mode: str = "Read-Only",
+	mode: str = MODE_ASK,
 	conversation: str | None = None,
 	context: str | dict | None = None,
 ) -> dict:
@@ -301,7 +304,7 @@ def process_message_job(
 
 
 @frappe.whitelist(methods=["POST"])
-def confirm_pending_action(conversation: str, mode: str = "Read-Only") -> dict:
+def confirm_pending_action(conversation: str, mode: str = MODE_ASK) -> dict:
 	if not can_access_ask_alyf():
 		frappe.throw(_("You do not have access to Ask ALYF."))
 
@@ -346,7 +349,7 @@ def confirm_pending_action(conversation: str, mode: str = "Read-Only") -> dict:
 
 
 @frappe.whitelist(methods=["POST"])
-def reject_pending_action(conversation: str, mode: str = "Read-Only") -> dict:
+def reject_pending_action(conversation: str, mode: str = MODE_ASK) -> dict:
 	if not can_access_ask_alyf():
 		frappe.throw(_("You do not have access to Ask ALYF."))
 

@@ -51,7 +51,7 @@ def get_excluded_doctypes() -> set[str]:
 
 def ensure_editable_doctype(doctype: str):
 	if doctype in get_excluded_doctypes():
-		frappe.throw(_("DocType '{0}' is excluded from edit mode.").format(doctype))
+		frappe.throw(_("DocType '{0}' is excluded from Agent mode.").format(doctype))
 
 
 def get_list(

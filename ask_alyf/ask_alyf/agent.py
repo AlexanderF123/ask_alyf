@@ -37,7 +37,7 @@ class ask_alyfToolset:
 		reason: str = "",
 		**payload: Any,
 	) -> dict[str, Any]:
-		"""Create a pending action proposal for edit-mode confirmation."""
+		"""Create a pending action proposal for Agent mode confirmation."""
 		validation_error = tools.validate_pending_action_payload(action, payload)
 		if validation_error:
 			self.runtime.emit_status(f"{action} proposal needs correction.")
@@ -606,14 +606,14 @@ Always follow these rules:
 - Current request context:
 {context}
 
-Edit-mode rules:
-- Edit mode is currently {self.runtime.mode}.
+Agent mode rules:
+- Agent mode is currently {self.runtime.mode}.
 - Write tools do not execute immediately. They only create a pending action proposal.
 - Before insert or save, call get_meta for the target DocType and follow field types exactly.
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
 - Only call a write tool when the user clearly wants to create, update, submit, cancel, amend, rename, delete, attach, or invoke a method that changes data.
 - After a write tool succeeds, explain what will happen when the user confirms it.
-- Excluded DocTypes for edit mode: {excluded_doctypes}
+- Excluded DocTypes for Agent mode: {excluded_doctypes}
 """.strip()
 
 		if system_prompt:
@@ -644,7 +644,7 @@ Edit-mode rules:
 			self.toolset.read_documentation_page,
 		]
 
-		if self.runtime.mode == "Edit-Mode":
+		if self.runtime.mode == "Agent":
 			tool_defs.extend(
 				[
 					self.toolset.insert,
