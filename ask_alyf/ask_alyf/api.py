@@ -145,6 +145,61 @@ def save_messages(conversation, messages: list[dict]):
 	conversation.save()
 
 
+def summarize_executed_action(
+	conversation,
+	mode: str,
+	messages: list[dict[str, Any]],
+	pending_operation: dict[str, Any],
+	*,
+	status: str,
+	result_payload: dict[str, Any] | None = None,
+	error: str | None = None,
+) -> str | None:
+	request_context = loads(conversation.last_context_json, {})
+	if not isinstance(request_context, dict):
+		request_context = {}
+
+	operation_payload = pending_operation.get("payload")
+	operation_payload = operation_payload if isinstance(operation_payload, dict) else {}
+	system_payload: dict[str, Any] = {
+		"status": status,
+		"operation": {
+			"kind": pending_operation.get("kind"),
+			"tool": pending_operation.get("tool"),
+			"summary": pending_operation.get("summary"),
+			"payload": operation_payload,
+		},
+	}
+	if result_payload:
+		system_payload["result"] = result_payload
+	if error:
+		system_payload["error"] = error
+
+	system_message = (
+		"The user already approved this action and it has been executed. "
+		"Use this system context to explain what happened next. "
+		"Do not ask for confirmation again and do not propose a new action.\n"
+		f"{dumps(system_payload)}"
+	)
+	history_with_result = list(messages)
+	history_with_result.append({"role": "system", "content": system_message})
+
+	try:
+		summary_result = run_message(
+			conversation_name=conversation.name,
+			message="Summarize the action result for the user in a concise helpful way.",
+			mode=mode,
+			request_context=request_context,
+			conversation_history=history_with_result,
+		)
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "Ask ALYF Action Summary Error")
+		return None
+
+	response = (summary_result.get("response") or "").strip()
+	return response or None
+
+
 def conversation_payload(conversation) -> dict:
 	return {
 		"name": conversation.name,
@@ -355,13 +410,23 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 		action_result["message"] = result.get("message")
 	action_result = {key: value for key, value in action_result.items() if value not in (None, "")}
 
-	content = _("Confirmed operation: {0}").format(
-		pending_operation.get("summary") or pending_operation.get("tool")
+	content = summarize_executed_action(
+		doc,
+		normalized_mode,
+		messages,
+		pending_operation,
+		status="success",
+		result_payload=action_result,
 	)
-	if action_result.get("doctype") and action_result.get("name"):
-		content += "\n\n" + _("Document: {0} {1}").format(action_result["doctype"], action_result["name"])
-	elif action_result.get("message"):
-		content += "\n\n" + str(action_result["message"])
+	if not content:
+		content = _("Confirmed operation: {0}").format(
+			pending_operation.get("summary") or pending_operation.get("tool")
+		)
+		if action_result.get("doctype") and action_result.get("name"):
+			content += "\n\n" + _("Document: {0} {1}").format(action_result["doctype"], action_result["name"])
+		elif action_result.get("message"):
+			content += "\n\n" + str(action_result["message"])
+
 	messages.append(make_message("assistant", content, confirmed_action=True, mode=normalized_mode))
 	save_messages(doc, messages)
 
@@ -433,14 +498,24 @@ def frontend_action_result(
 		result_payload = result
 
 	summary = pending_operation.get("summary") or pending_operation.get("tool") or _("frontend action")
-	if status_value == "success":
-		content = _("Executed frontend action: {0}").format(summary)
-	elif status_value == "rejected":
-		content = _("Cancelled frontend action: {0}").format(summary)
-	else:
-		content = _("Frontend action failed: {0}").format(summary)
-		if error:
-			content += "\n\n" + _("Reason: {0}").format(error)
+	content = summarize_executed_action(
+		doc,
+		normalized_mode,
+		get_messages(doc),
+		pending_operation,
+		status=status_value,
+		result_payload=result_payload,
+		error=error,
+	)
+	if not content:
+		if status_value == "success":
+			content = _("Executed frontend action: {0}").format(summary)
+		elif status_value == "rejected":
+			content = _("Cancelled frontend action: {0}").format(summary)
+		else:
+			content = _("Frontend action failed: {0}").format(summary)
+			if error:
+				content += "\n\n" + _("Reason: {0}").format(error)
 
 	message_metadata = {
 		"frontend_action_result": True,

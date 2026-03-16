@@ -88,15 +88,28 @@ class UnitTestAskALYFConversation(UnitTestCase):
 				"ask_alyf.ask_alyf.api.execute_pending_operation",
 				return_value={"name": "TODO-0001", "message": "Updated"},
 			) as execute_operation:
-				response = api.confirm_pending_operation(conversation=conversation.name, mode=api.MODE_ASK)
+				with patch(
+					"ask_alyf.ask_alyf.api.run_message",
+					return_value={
+						"response": "The ToDo TODO-0001 was updated successfully.",
+						"pending_operation": None,
+					},
+				) as summarize_call:
+					response = api.confirm_pending_operation(
+						conversation=conversation.name, mode=api.MODE_ASK
+					)
 
 		execute_operation.assert_called_once_with(pending_operation)
+		summarize_call.assert_called_once()
+		system_message = summarize_call.call_args.kwargs["conversation_history"][-1]
+		self.assertEqual(system_message["role"], "system")
+		self.assertIn('"status": "success"', system_message["content"])
 		self.assertIsNone(response["conversation"]["pending_operation"])
 
 		conversation.reload()
 		messages = loads(conversation.messages_json, [])
 		self.assertTrue(messages)
-		self.assertIn("Confirmed operation", messages[-1]["content"])
+		self.assertEqual(messages[-1]["content"], "The ToDo TODO-0001 was updated successfully.")
 
 	def test_frontend_action_result_clears_pending_operation(self):
 		pending_operation = {
@@ -110,18 +123,30 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		conversation = self.make_conversation(messages=[], pending_operation=pending_operation)
 
 		with patch("ask_alyf.ask_alyf.api.can_access_ask_alyf", return_value=True):
-			response = api.frontend_action_result(
-				conversation=conversation.name,
-				call_id="call-frontend-1",
-				status="success",
-				mode=api.MODE_ASK,
-				result={"route": ["List", "Sales Invoice"]},
-			)
+			with patch(
+				"ask_alyf.ask_alyf.api.run_message",
+				return_value={
+					"response": "Opened the Sales Invoice list view in your browser.",
+					"pending_operation": None,
+				},
+			) as summarize_call:
+				response = api.frontend_action_result(
+					conversation=conversation.name,
+					call_id="call-frontend-1",
+					status="success",
+					mode=api.MODE_ASK,
+					result={"route": ["List", "Sales Invoice"]},
+				)
 
+		summarize_call.assert_called_once()
+		system_message = summarize_call.call_args.kwargs["conversation_history"][-1]
+		self.assertEqual(system_message["role"], "system")
+		self.assertIn('"status": "success"', system_message["content"])
 		self.assertIsNone(response["conversation"]["pending_operation"])
 
 		conversation.reload()
 		messages = loads(conversation.messages_json, [])
 		self.assertTrue(messages)
+		self.assertEqual(messages[-1]["content"], "Opened the Sales Invoice list view in your browser.")
 		self.assertEqual(messages[-1]["metadata"].get("frontend_action_status"), "success")
 		self.assertTrue(messages[-1]["metadata"].get("frontend_action_result"))
