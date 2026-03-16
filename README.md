@@ -35,6 +35,7 @@ Schema and permissions:
 - get list of DocTypes the current user can read or write
 - get list of reports the current user can access
 - get current user's roles
+- `translate_ui_labels` — translate UI labels/terms so responses use the same wording the user sees in their language
 
 Code and documentation:
 

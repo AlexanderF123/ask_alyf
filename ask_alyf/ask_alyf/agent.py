@@ -229,6 +229,29 @@ class ask_alyfToolset:
 		"""
 		return tools.get_current_user_roles()
 
+	def translate_ui_labels(
+		self,
+		labels: list[str],
+		language: str | None = None,
+	) -> dict[str, Any]:
+		"""Translate UI labels so responses match what the user sees on screen.
+
+		Use this whenever request context language is not English before mentioning
+		button names, tab names, DocType labels, field labels, menu items, or status labels.
+
+		Args:
+			labels: English UI labels to translate.
+			language: Optional target language code (defaults to request context language).
+
+		Returns:
+			A dictionary with the resolved language and translated labels.
+		"""
+		self.runtime.emit_status("Translating UI labels...")
+		request_language = self.runtime.request_context.get("lang") or self.runtime.request_context.get(
+			"locale"
+		)
+		return tools.translate_ui_labels(labels=labels, language=language or request_language)
+
 	def search_code(self, query: str, relative_path: str = "", limit: int = 20) -> list[dict[str, Any]]:
 		"""Search the bench apps codebase for matching text.
 
@@ -578,6 +601,7 @@ Always follow these rules:
 - Use the available read tools whenever the user asks about instance data, permissions, metadata, code, files, or reports.
 - Be concise, accurate, and explicit about uncertainty.
 - Respect the current user's permissions. If a tool says something is not allowed, explain that plainly.
+- If request context `lang` is not English, always call `translate_ui_labels` before using user-facing UI terms (DocType names, field labels, button labels, tabs, menus, and status labels) in your response.
 - Render responses as Markdown when that helps.
 - Current request context:
 {context}
@@ -610,6 +634,7 @@ Edit-mode rules:
 			self.toolset.list_accessible_doctypes,
 			self.toolset.list_accessible_reports,
 			self.toolset.get_current_user_roles,
+			self.toolset.translate_ui_labels,
 			self.toolset.search_code,
 			self.toolset.read_code_file,
 			self.toolset.read_file_record,

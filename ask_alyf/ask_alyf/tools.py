@@ -18,6 +18,7 @@ READ_ONLY_SQL_RE = re.compile(r"^\s*(with|select|show|explain|describe|desc)\b",
 FORBIDDEN_SQL_RE = re.compile(
 	r"\b(insert|update|delete|drop|truncate|alter|create|grant|revoke|replace)\b", re.IGNORECASE
 )
+ENGLISH_LANGUAGE_CODES = {"en", "en-us", "en-gb"}
 
 
 def coerce_int(value: Any, default: int, *, minimum: int | None = None) -> int:
@@ -154,6 +155,64 @@ def list_accessible_reports() -> list[dict[str, Any]]:
 
 def get_current_user_roles() -> list[str]:
 	return frappe.get_roles()
+
+
+def get_language_candidates(language: str | None) -> list[str]:
+	lang_value = (language or "").strip()
+	if not lang_value:
+		lang_value = (getattr(frappe.local, "lang", "") or "").strip() or "en"
+
+	normalized = lang_value.replace("_", "-")
+	candidates: list[str] = []
+	for candidate in (normalized, normalized.lower()):
+		if candidate and candidate not in candidates:
+			candidates.append(candidate)
+
+	if "-" in normalized:
+		base_lang = normalized.split("-", 1)[0].lower()
+		if base_lang and base_lang not in candidates:
+			candidates.append(base_lang)
+
+	return candidates or ["en"]
+
+
+def translate_ui_labels(labels: list[str] | str, language: str | None = None) -> dict[str, Any]:
+	if isinstance(labels, str):
+		labels = [labels]
+	elif not isinstance(labels, list):
+		frappe.throw(_("Labels must be provided as a list of strings."))
+
+	cleaned_labels: list[str] = []
+	for label in labels:
+		if not isinstance(label, str):
+			frappe.throw(_("Each label must be a string."))
+		label = label.strip()
+		if label:
+			cleaned_labels.append(label)
+
+	if not cleaned_labels:
+		frappe.throw(_("Provide at least one label to translate."))
+
+	candidates = get_language_candidates(language)
+	resolved_language = candidates[0]
+	translations: dict[str, str] = {}
+
+	for label in dict.fromkeys(cleaned_labels):
+		translated_label = frappe._(label, lang=resolved_language)
+		if translated_label == label:
+			for candidate in candidates[1:]:
+				candidate_translation = frappe._(label, lang=candidate)
+				if candidate_translation != label:
+					translated_label = candidate_translation
+					break
+
+		translations[label] = translated_label
+
+	return {
+		"language": resolved_language,
+		"is_english": resolved_language.lower() in ENGLISH_LANGUAGE_CODES,
+		"translations": translations,
+	}
 
 
 def search_code(query: str, relative_path: str = "", limit: int = 20) -> list[dict[str, Any]]:
