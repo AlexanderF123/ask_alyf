@@ -1,0 +1,23 @@
+{
+ "allow_roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "creation": "2026-03-16 02:24:25.801074",
+ "docstatus": 0,
+ "doctype": "Module Onboarding",
+ "idx": 0,
+ "is_complete": 0,
+ "modified": "2026-03-16 02:24:25.801074",
+ "modified_by": "Administrator",
+ "module": "Ask ALYF",
+ "name": "Ask ALYF Onboarding",
+ "owner": "Administrator",
+ "steps": [
+  {
+   "step": "Update Ask ALYF Settings"
+  }
+ ],
+ "title": "Ask ALYF Onboarding"
+}
