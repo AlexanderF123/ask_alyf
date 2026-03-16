@@ -35,12 +35,15 @@ class ask_alyfToolset:
 		action: str,
 		summary: str,
 		reason: str = "",
+		*,
+		validation_error_status: str,
+		prepared_status: str,
 		**payload: Any,
 	) -> dict[str, Any]:
 		"""Create a pending action proposal for Agent mode confirmation."""
 		validation_error = tools.validate_pending_action_payload(action, payload)
 		if validation_error:
-			self.runtime.emit_status(f"{action} proposal needs correction.")
+			self.runtime.emit_status(validation_error_status)
 			return {
 				"success": False,
 				"requires_confirmation": False,
@@ -54,7 +57,7 @@ class ask_alyfToolset:
 			**payload,
 		}
 		self.runtime.pending_action = proposal
-		self.runtime.emit_status(f"Prepared {action} proposal.")
+		self.runtime.emit_status(prepared_status)
 		return {
 			"success": True,
 			"requires_confirmation": True,
@@ -83,7 +86,7 @@ class ask_alyfToolset:
 		Returns:
 			A list of matching documents.
 		"""
-		self.runtime.emit_status("Fetching list...")
+		self.runtime.emit_status(_("Fetching list..."))
 		return tools.get_list(
 			doctype=doctype,
 			fields=fields,
@@ -107,7 +110,7 @@ class ask_alyfToolset:
 		Returns:
 			The number of matching documents.
 		"""
-		self.runtime.emit_status("Counting documents...")
+		self.runtime.emit_status(_("Counting documents..."))
 		return tools.get_count(doctype=doctype, filters=filters)
 
 	def get(
@@ -126,7 +129,7 @@ class ask_alyfToolset:
 		Returns:
 			The matching document.
 		"""
-		self.runtime.emit_status("Fetching document...")
+		self.runtime.emit_status(_("Fetching document..."))
 		return tools.get_document(doctype=doctype, name=name, filters=filters)
 
 	def get_value(
@@ -145,7 +148,7 @@ class ask_alyfToolset:
 		Returns:
 			The requested value or values.
 		"""
-		self.runtime.emit_status("Fetching value...")
+		self.runtime.emit_status(_("Fetching value..."))
 		return tools.get_value(doctype=doctype, fieldname=fieldname, filters=filters)
 
 	def get_single_value(self, doctype: str, field: str) -> Any:
@@ -158,7 +161,7 @@ class ask_alyfToolset:
 		Returns:
 			The field value.
 		"""
-		self.runtime.emit_status("Fetching single value...")
+		self.runtime.emit_status(_("Fetching single value..."))
 		return tools.get_single_value(doctype=doctype, field=field)
 
 	def get_meta(self, doctype: str) -> dict[str, Any]:
@@ -170,7 +173,7 @@ class ask_alyfToolset:
 		Returns:
 			A metadata dictionary for the DocType.
 		"""
-		self.runtime.emit_status("Loading metadata...")
+		self.runtime.emit_status(_("Loading metadata..."))
 		return tools.get_meta(doctype=doctype)
 
 	def has_permission(self, doctype: str, docname: str, perm_type: str = "read") -> dict[str, bool]:
@@ -184,7 +187,7 @@ class ask_alyfToolset:
 		Returns:
 			A dictionary containing the boolean permission result.
 		"""
-		self.runtime.emit_status("Checking permissions...")
+		self.runtime.emit_status(_("Checking permissions..."))
 		return tools.has_permission(doctype=doctype, docname=docname, perm_type=perm_type)
 
 	def get_doc_permissions(self, doctype: str, docname: str) -> dict[str, Any]:
@@ -197,7 +200,7 @@ class ask_alyfToolset:
 		Returns:
 			The evaluated permission dictionary.
 		"""
-		self.runtime.emit_status("Evaluating permissions...")
+		self.runtime.emit_status(_("Evaluating permissions..."))
 		return tools.get_doc_permissions(doctype=doctype, docname=docname)
 
 	def list_accessible_doctypes(self, permission_type: str = "read") -> list[str]:
@@ -209,7 +212,7 @@ class ask_alyfToolset:
 		Returns:
 			A list of DocType names.
 		"""
-		self.runtime.emit_status("Listing accessible DocTypes...")
+		self.runtime.emit_status(_("Listing accessible DocTypes..."))
 		return tools.list_accessible_doctypes(permission_type=permission_type)
 
 	def list_accessible_reports(self) -> list[dict[str, Any]]:
@@ -218,7 +221,7 @@ class ask_alyfToolset:
 		Returns:
 			A list of report metadata dictionaries.
 		"""
-		self.runtime.emit_status("Listing accessible reports...")
+		self.runtime.emit_status(_("Listing accessible reports..."))
 		return tools.list_accessible_reports()
 
 	def get_current_user_roles(self) -> list[str]:
@@ -246,7 +249,7 @@ class ask_alyfToolset:
 		Returns:
 			A dictionary with the resolved language and translated labels.
 		"""
-		self.runtime.emit_status("Translating UI labels...")
+		self.runtime.emit_status(_("Translating UI labels..."))
 		request_language = self.runtime.request_context.get("lang") or self.runtime.request_context.get(
 			"locale"
 		)
@@ -263,7 +266,7 @@ class ask_alyfToolset:
 		Returns:
 			A list of code search matches.
 		"""
-		self.runtime.emit_status("Searching code...")
+		self.runtime.emit_status(_("Searching code..."))
 		return tools.search_code(query=query, relative_path=relative_path, limit=limit)
 
 	def read_code_file(self, path: str, start_line: int = 1, end_line: int = 200) -> dict[str, Any]:
@@ -277,7 +280,7 @@ class ask_alyfToolset:
 		Returns:
 			The selected file content and line range.
 		"""
-		self.runtime.emit_status("Reading code file...")
+		self.runtime.emit_status(_("Reading code file..."))
 		return tools.read_code_file(path=path, start_line=start_line, end_line=end_line)
 
 	def read_file_record(self, file_url: str | None = None, file_name: str | None = None) -> dict[str, Any]:
@@ -290,7 +293,7 @@ class ask_alyfToolset:
 		Returns:
 			The file metadata and content.
 		"""
-		self.runtime.emit_status("Reading file...")
+		self.runtime.emit_status(_("Reading file..."))
 		return tools.read_file_record(file_url=file_url, file_name=file_name)
 
 	def run_read_only_sql(self, query: str) -> list[dict[str, Any]]:
@@ -302,7 +305,7 @@ class ask_alyfToolset:
 		Returns:
 			The SQL result rows.
 		"""
-		self.runtime.emit_status("Running SQL query...")
+		self.runtime.emit_status(_("Running SQL query..."))
 		return tools.run_read_only_sql(query=query)
 
 	def get_app_version(self, app_name: str) -> str:
@@ -314,7 +317,7 @@ class ask_alyfToolset:
 		Returns:
 			The app version string.
 		"""
-		self.runtime.emit_status("Reading app version...")
+		self.runtime.emit_status(_("Reading app version..."))
 		return tools.get_app_version(app_name=app_name)
 
 	def read_github_releases(self, app_name: str, limit: int = 5) -> list[dict[str, Any]]:
@@ -327,7 +330,7 @@ class ask_alyfToolset:
 		Returns:
 			A list of release dictionaries.
 		"""
-		self.runtime.emit_status("Reading GitHub releases...")
+		self.runtime.emit_status(_("Reading GitHub releases..."))
 		return tools.read_github_releases(app_name=app_name, limit=limit)
 
 	def read_documentation_page(self, app_name: str, relative_path: str = "") -> dict[str, Any]:
@@ -340,7 +343,7 @@ class ask_alyfToolset:
 		Returns:
 			A documentation payload containing the page content.
 		"""
-		self.runtime.emit_status("Reading documentation...")
+		self.runtime.emit_status(_("Reading documentation..."))
 		return tools.read_documentation_page(app_name=app_name, relative_path=relative_path)
 
 	def insert(self, doctype: str, values: dict[str, Any], reason: str = "") -> dict[str, Any]:
@@ -355,7 +358,15 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal("insert", f"Create {doctype}", reason, doctype=doctype, values=values)
+		return self._proposal(
+			"insert",
+			_("Create {0}").format(doctype),
+			reason,
+			validation_error_status=_("Create proposal needs correction."),
+			prepared_status=_("Prepared create proposal."),
+			doctype=doctype,
+			values=values,
+		)
 
 	def save(
 		self,
@@ -378,8 +389,10 @@ class ask_alyfToolset:
 		"""
 		return self._proposal(
 			"save",
-			f"Update {doctype} {name}",
+			_("Update {0} {1}").format(doctype, name),
 			reason,
+			validation_error_status=_("Update proposal needs correction."),
+			prepared_status=_("Prepared update proposal."),
 			doctype=doctype,
 			name=name,
 			values=values,
@@ -407,8 +420,10 @@ class ask_alyfToolset:
 		"""
 		return self._proposal(
 			"set_value",
-			f"Set {fieldname} on {doctype} {name}",
+			_("Set {0} on {1} {2}").format(fieldname, doctype, name),
 			reason,
+			validation_error_status=_("Set value proposal needs correction."),
+			prepared_status=_("Prepared set value proposal."),
 			doctype=doctype,
 			name=name,
 			fieldname=fieldname,
@@ -426,7 +441,15 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal("submit", f"Submit {doctype} {name}", reason, doctype=doctype, name=name)
+		return self._proposal(
+			"submit",
+			_("Submit {0} {1}").format(doctype, name),
+			reason,
+			validation_error_status=_("Submit proposal needs correction."),
+			prepared_status=_("Prepared submit proposal."),
+			doctype=doctype,
+			name=name,
+		)
 
 	def cancel(self, doctype: str, name: str, reason: str = "") -> dict[str, Any]:
 		"""Propose cancelling a document.
@@ -439,7 +462,15 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal("cancel", f"Cancel {doctype} {name}", reason, doctype=doctype, name=name)
+		return self._proposal(
+			"cancel",
+			_("Cancel {0} {1}").format(doctype, name),
+			reason,
+			validation_error_status=_("Cancel proposal needs correction."),
+			prepared_status=_("Prepared cancel proposal."),
+			doctype=doctype,
+			name=name,
+		)
 
 	def amend(self, doctype: str, name: str, reason: str = "") -> dict[str, Any]:
 		"""Propose amending a cancelled document.
@@ -452,7 +483,15 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal("amend", f"Amend {doctype} {name}", reason, doctype=doctype, name=name)
+		return self._proposal(
+			"amend",
+			_("Amend {0} {1}").format(doctype, name),
+			reason,
+			validation_error_status=_("Amend proposal needs correction."),
+			prepared_status=_("Prepared amend proposal."),
+			doctype=doctype,
+			name=name,
+		)
 
 	def delete(self, doctype: str, name: str, reason: str = "") -> dict[str, Any]:
 		"""Propose deleting a document.
@@ -465,7 +504,15 @@ class ask_alyfToolset:
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
-		return self._proposal("delete", f"Delete {doctype} {name}", reason, doctype=doctype, name=name)
+		return self._proposal(
+			"delete",
+			_("Delete {0} {1}").format(doctype, name),
+			reason,
+			validation_error_status=_("Delete proposal needs correction."),
+			prepared_status=_("Prepared delete proposal."),
+			doctype=doctype,
+			name=name,
+		)
 
 	def rename_doc(
 		self,
@@ -489,8 +536,10 @@ class ask_alyfToolset:
 		"""
 		return self._proposal(
 			"rename_doc",
-			f"Rename {doctype} {name} to {new_name}",
+			_("Rename {0} {1} to {2}").format(doctype, name, new_name),
 			reason,
+			validation_error_status=_("Rename proposal needs correction."),
+			prepared_status=_("Prepared rename proposal."),
 			doctype=doctype,
 			name=name,
 			new_name=new_name,
@@ -517,8 +566,10 @@ class ask_alyfToolset:
 		"""
 		return self._proposal(
 			"attach_file",
-			f"Attach {file_url} to {doctype} {name}",
+			_("Attach {0} to {1} {2}").format(file_url, doctype, name),
 			reason,
+			validation_error_status=_("Attach file proposal needs correction."),
+			prepared_status=_("Prepared attach file proposal."),
 			doctype=doctype,
 			name=name,
 			file_url=file_url,
@@ -542,8 +593,10 @@ class ask_alyfToolset:
 		"""
 		return self._proposal(
 			"run_method",
-			f"Call {method}",
+			_("Call {0}").format(method),
 			reason,
+			validation_error_status=_("Method call proposal needs correction."),
+			prepared_status=_("Prepared method call proposal."),
 			method=method,
 			args=args or {},
 		)
