@@ -52,9 +52,6 @@ def can_access_ask_alyf() -> bool:
 		return True
 
 	allowed_roles = get_allowed_roles(settings)
-	if not allowed_roles:
-		return True
-
 	return bool(allowed_roles.intersection(set(frappe.get_roles())))
 
 
