@@ -25,7 +25,7 @@ def get_ask_alyf_boot_payload() -> dict:
 
 	try:
 		settings = get_settings()
-		edit_mode_enabled = bool(settings.enable_edit_mode)
+		edit_mode_enabled = bool(settings.allow_agent_mode)
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		configured = bool(api_key and (settings.model or "").strip())
 	except Exception:
@@ -79,7 +79,7 @@ def can_use_edit_mode() -> bool:
 	except Exception:
 		return False
 
-	return bool(settings.enable_edit_mode)
+	return bool(settings.allow_agent_mode)
 
 
 def normalize_mode(mode: str | None) -> str:

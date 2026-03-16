@@ -31,10 +31,10 @@ class AskALYFSettings(Document):
 		from frappe.core.doctype.has_role.has_role import HasRole
 		from frappe.types import DF
 
+		allow_agent_mode: DF.Check
 		allowed_roles: DF.Table[HasRole]
 		api_key: DF.Password | None
 		base_url: DF.Data | None
-		enable_edit_mode: DF.Check
 		enabled: DF.Check
 		excluded_doctypes: DF.SmallText | None
 		llm_provider: DF.Literal["OpenAI", "OpenAI Compatible"]

@@ -13,7 +13,7 @@
   "base_url",
   "api_key",
   "model",
-  "enable_edit_mode",
+  "allow_agent_mode",
   "roles_html",
   "allowed_roles",
   "excluded_doctypes",
@@ -54,12 +54,6 @@
    "label": "Model"
   },
   {
-   "default": "0",
-   "fieldname": "enable_edit_mode",
-   "fieldtype": "Check",
-   "label": "Enable Edit Mode"
-  },
-  {
    "description": "One role per line. Leave empty to allow all desk users.",
    "fieldname": "allowed_roles",
    "fieldtype": "Table",
@@ -83,13 +77,19 @@
    "fieldname": "roles_html",
    "fieldtype": "HTML",
    "label": "Allowed Roles"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_agent_mode",
+   "fieldtype": "Check",
+   "label": "Allow Agent Mode"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-15 21:38:20.844051",
+ "modified": "2026-03-16 02:28:46.456315",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",
