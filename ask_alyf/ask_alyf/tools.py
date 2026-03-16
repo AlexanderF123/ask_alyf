@@ -13,8 +13,6 @@ from frappe import _, client
 from frappe.utils import get_bench_path
 from frappe.utils.data import cint
 
-from ask_alyf.ask_alyf.utils import parse_newline_list
-
 CODE_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx", ".md", ".json", ".yml", ".yaml", ".toml"}
 READ_ONLY_SQL_RE = re.compile(r"^\s*(with|select|show|explain|describe|desc)\b", re.IGNORECASE)
 FORBIDDEN_SQL_RE = re.compile(
@@ -39,7 +37,15 @@ def get_settings():
 
 def get_excluded_doctypes() -> set[str]:
 	settings = get_settings()
-	return set(parse_newline_list(settings.excluded_doctypes))
+
+	parsed_doctypes: set[str] = set()
+	for row in settings.excluded_doctypes or []:
+		doctype = (row.excluded_doctype or "").strip()
+
+		if doctype:
+			parsed_doctypes.add(doctype)
+
+	return parsed_doctypes
 
 
 def ensure_editable_doctype(doctype: str):
