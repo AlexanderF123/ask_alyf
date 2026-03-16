@@ -1,0 +1,22 @@
+{
+ "app": "ask_alyf",
+ "bg_color": "gray",
+ "creation": "2026-03-16 02:17:16.092390",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "App",
+ "idx": 0,
+ "label": "Ask ALYF",
+ "link_to": "Ask ALYF",
+ "link_type": "Workspace Sidebar",
+ "logo_url": "/assets/ask_alyf/img/logo.png",
+ "modified": "2026-03-16 02:18:22.152266",
+ "modified_by": "Administrator",
+ "name": "Ask ALYF",
+ "owner": "Administrator",
+ "restrict_removal": 0,
+ "roles": [],
+ "sidebar": "Ask ALYF",
+ "standard": 1
+}
