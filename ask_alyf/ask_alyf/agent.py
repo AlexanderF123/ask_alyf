@@ -845,14 +845,14 @@ Always follow these rules:
 - Current request context:
 {context}
 
-Agent mode rules:
-- Agent mode is currently {self.runtime.mode}.
-- Write tools do not execute immediately. They only create a pending action proposal.
+Mode awareness and behavior:
+- The current mode is `{self.runtime.mode}` and is authoritative for this turn.
+- `Ask` mode is strictly read-only: write tools are unavailable, so if intent is mutation (create, update, submit, cancel, amend, rename, delete, attach, or a write method), immediately recommend switching to `Agent` mode and do not claim anything was done or queued.
+- `Agent` mode supports mutation workflows with write tools while still handling read-only questions with read tools, and every write action becomes a pending proposal that requires explicit user confirmation before execution.
 - Frontend action tools can navigate or adjust the current form in the browser.
 - Frontend actions with `requires_confirmation` must be confirmed before the browser executes them.
 - Before insert or save, call get_meta for the target DocType and follow field types exactly.
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
-- Only call a write tool when the user clearly wants to create, update, submit, cancel, amend, rename, delete, attach, or invoke a method that changes data.
 - After a write tool succeeds, explain what will happen when the user confirms it.
 - Excluded DocTypes for Agent mode: {excluded_doctypes}
 """.strip()
