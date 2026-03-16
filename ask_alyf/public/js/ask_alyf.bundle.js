@@ -17,6 +17,7 @@
 				mode: "Ask",
 			};
 			this.pendingStreamMessageId = null;
+			this.renderedMessageKeys = new Set();
 			this.handledFrontendCallIds = new Set();
 			this.resizeState = null;
 			this.voiceRecognition = null;
@@ -128,6 +129,7 @@
 			this.warningEl = root.querySelector(".ask_alyf-config-warning");
 			this.inputEl = root.querySelector(".ask_alyf-input");
 			this.bubbleEl = root.querySelector(".ask_alyf-bubble");
+			this.sendEl = root.querySelector(".ask_alyf-send");
 			this.micEl = root.querySelector(".ask_alyf-mic");
 			this.micEl.setAttribute("aria-pressed", "false");
 			this.resizeHandleEl = root.querySelector(".ask_alyf-resize-handle");
@@ -244,6 +246,7 @@
 			this.state.conversation = conversation;
 			this.state.messages = conversation.messages || [];
 			this.state.pendingOperation = conversation.pending_operation || null;
+			this.cacheRenderedMessageKeys(this.state.messages);
 			this.syncModeControl();
 			this.renderHistoryList();
 			this.renderMessages();
@@ -484,6 +487,7 @@
 			this.bubbleEl.classList.toggle("ask_alyf-hidden", open);
 			this.closeModeMenu();
 			if (open) {
+				this.playPanelEnterAnimation();
 				this.autoResizeInput();
 				if (this.state.activeTab === "chat") {
 					this.inputEl.focus();
@@ -497,6 +501,9 @@
 		setLoading(value) {
 			this.state.loading = value;
 			this.root.classList.toggle("ask_alyf-loading", value);
+			if (this.sendEl) {
+				this.sendEl.setAttribute("aria-busy", value ? "true" : "false");
+			}
 		}
 
 		setStatus(text) {
@@ -739,6 +746,16 @@
 			return operation?.kind === "frontend_action";
 		}
 
+		operationRequiresConfirmation(operation) {
+			if (!operation || typeof operation !== "object") {
+				return false;
+			}
+			if (!Object.prototype.hasOwnProperty.call(operation, "requires_confirmation")) {
+				return true;
+			}
+			return Boolean(operation.requires_confirmation);
+		}
+
 		getPendingOperationSummary(operation) {
 			if (!operation) {
 				return "";
@@ -851,11 +868,11 @@
 
 		async executeFrontendAction(operation) {
 			if (!this.isFrontendAction(operation)) {
-				return;
+				return false;
 			}
 			if (!operation.call_id) {
 				frappe.msgprint(__("Frontend action is missing a call ID."));
-				return;
+				return false;
 			}
 
 			this.handledFrontendCallIds.add(operation.call_id);
@@ -865,6 +882,7 @@
 					operation.payload || {}
 				);
 				await this.reportFrontendActionResult(operation, "success", actionResult);
+				return true;
 			} catch (error) {
 				const errorMessage = error?.message || __("Failed to execute frontend action.");
 				try {
@@ -873,6 +891,7 @@
 					// Keep the widget responsive even if status reporting fails.
 				}
 				frappe.msgprint(errorMessage);
+				return false;
 			}
 		}
 
@@ -881,7 +900,7 @@
 			if (!this.isFrontendAction(operation)) {
 				return;
 			}
-			if (operation.requires_confirmation) {
+			if (this.operationRequiresConfirmation(operation)) {
 				return;
 			}
 			if (!operation.call_id || this.handledFrontendCallIds.has(operation.call_id)) {
@@ -896,9 +915,15 @@
 				return;
 			}
 
+			this.state.pendingOperation = null;
+			this.renderMessages();
 			try {
 				if (this.isFrontendAction(operation)) {
-					await this.executeFrontendAction(operation);
+					const actionCompleted = await this.executeFrontendAction(operation);
+					if (!actionCompleted) {
+						this.state.pendingOperation = operation;
+						this.renderMessages();
+					}
 					return;
 				}
 
@@ -910,6 +935,8 @@
 				this.applyConversation(response.message.conversation);
 				this.refreshConversationList();
 			} catch (error) {
+				this.state.pendingOperation = operation;
+				this.renderMessages();
 				frappe.msgprint(error.message || __("Failed to confirm pending operation."));
 			}
 		}
@@ -920,6 +947,8 @@
 				return;
 			}
 
+			this.state.pendingOperation = null;
+			this.renderMessages();
 			try {
 				if (this.isFrontendAction(operation)) {
 					if (operation.call_id) {
@@ -937,16 +966,25 @@
 				this.applyConversation(response.message.conversation);
 				this.refreshConversationList();
 			} catch (error) {
+				this.state.pendingOperation = operation;
+				this.renderMessages();
 				frappe.msgprint(error.message || __("Failed to reject pending operation."));
 			}
 		}
 
 		renderMessages() {
+			const previousMessageKeys = this.renderedMessageKeys;
+			const nextMessageKeys = new Set();
 			this.messagesEl.innerHTML = "";
 
-			this.state.messages.forEach((message) => {
+			this.state.messages.forEach((message, index) => {
 				const wrapper = document.createElement("div");
 				wrapper.className = `ask_alyf-message ask_alyf-${message.role}`;
+				const messageKey = this.getMessageRenderKey(message, index);
+				nextMessageKeys.add(messageKey);
+				if (!previousMessageKeys.has(messageKey)) {
+					wrapper.classList.add("ask_alyf-message-enter");
+				}
 
 				const body = document.createElement("div");
 				body.className = "ask_alyf-message-body";
@@ -962,6 +1000,9 @@
 			if (this.state.status) {
 				const statusWrapper = document.createElement("div");
 				statusWrapper.className = "ask_alyf-message ask_alyf-status-message";
+				if (this.state.loading) {
+					statusWrapper.classList.add("ask_alyf-status-loading");
+				}
 
 				const statusBody = document.createElement("div");
 				statusBody.className = "ask_alyf-message-body";
@@ -971,13 +1012,14 @@
 				this.messagesEl.appendChild(statusWrapper);
 			}
 
-			if (this.state.pendingOperation) {
+			const pendingOperation = this.state.pendingOperation;
+			if (pendingOperation && this.operationRequiresConfirmation(pendingOperation)) {
 				const proposal = document.createElement("div");
 				proposal.className = "ask_alyf-proposal";
 				proposal.innerHTML = `
 					<div class="ask_alyf-proposal-title">${__("Pending operation")}</div>
 					<div class="ask_alyf-proposal-summary">${this.escapeHtml(
-						this.getPendingOperationSummary(this.state.pendingOperation)
+						this.getPendingOperationSummary(pendingOperation)
 					)}</div>
 					<div class="ask_alyf-proposal-actions">
 						<button class="ask_alyf-confirm btn btn-primary btn-sm" type="button">${__("Confirm")}</button>
@@ -993,7 +1035,31 @@
 				this.messagesEl.appendChild(proposal);
 			}
 
+			this.renderedMessageKeys = nextMessageKeys;
 			this.scrollToBottom();
+		}
+
+		playPanelEnterAnimation() {
+			if (!this.panel) {
+				return;
+			}
+			this.panel.classList.remove("ask_alyf-panel-pop");
+			// Trigger reflow so the entrance animation restarts each open.
+			void this.panel.offsetWidth;
+			this.panel.classList.add("ask_alyf-panel-pop");
+		}
+
+		getMessageRenderKey(message, index) {
+			if (message?.id) {
+				return `id:${message.id}`;
+			}
+			return `fallback:${message?.role || "message"}:${index}`;
+		}
+
+		cacheRenderedMessageKeys(messages = []) {
+			this.renderedMessageKeys = new Set(
+				messages.map((message, index) => this.getMessageRenderKey(message, index))
+			);
 		}
 
 		scrollToBottom() {
