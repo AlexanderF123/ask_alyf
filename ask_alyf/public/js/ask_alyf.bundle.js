@@ -60,6 +60,11 @@
 							<button class="ask_alyf-header-button ask_alyf-new-chat btn btn-secondary btn-sm" type="button" title="${__(
 								"Start a new conversation"
 							)}" aria-label="${__("New chat")}">${__("New chat")}</button>
+							<a class="ask_alyf-header-button ask_alyf-support-phone btn btn-secondary btn-sm ask_alyf-hidden" href="#" role="button" title="${__(
+								"Call support"
+							)}" aria-label="${__(
+				"Call support"
+			)}"><i class="fa fa-phone" aria-hidden="true"></i></a>
 							<button class="ask_alyf-header-button ask_alyf-close btn btn-secondary btn-sm" type="button" title="${__(
 								"Close"
 							)}" aria-label="${__("Close")}">&times;</button>
@@ -142,6 +147,7 @@
 			this.modeTriggerLabelEl = root.querySelector(".ask_alyf-mode-trigger-label");
 			this.modeMenuEl = root.querySelector(".ask_alyf-mode-menu");
 			this.modeOptionEls = Array.from(root.querySelectorAll(".ask_alyf-mode-option"));
+			this.supportPhoneEl = root.querySelector(".ask_alyf-support-phone");
 			this.tabEls.forEach((tabEl) => {
 				tabEl.addEventListener("click", (event) => this.onTabClick(event));
 			});
@@ -153,6 +159,7 @@
 			});
 			document.addEventListener("click", this.boundDocumentClick);
 			this.syncModeControl();
+			this.syncSupportPhoneAction(frappe?.boot?.ask_alyf || {});
 
 			root.querySelector(".ask_alyf-bubble").addEventListener("click", () =>
 				this.toggle(true)
@@ -230,11 +237,13 @@
 					conversation: this.state.conversation?.name,
 				},
 			});
+			const askAlyfBoot = response.message.ask_alyf || {};
 			this.applyConversation(response.message.conversation);
 			this.setModeToAskDefault();
+			this.syncSupportPhoneAction(askAlyfBoot);
 			await this.refreshConversationList();
 
-			if (!response.message.ask_alyf.configured) {
+			if (!askAlyfBoot.configured) {
 				this.warningEl.classList.remove("ask_alyf-hidden");
 				this.warningEl.textContent = __(
 					"Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
@@ -310,6 +319,49 @@
 		isAgentModeEnabled() {
 			const askAlyfSettings = frappe?.boot?.ask_alyf || {};
 			return Boolean(askAlyfSettings.agent_mode_enabled);
+		}
+
+		syncSupportPhoneAction(askAlyfBoot = {}) {
+			if (!this.supportPhoneEl) {
+				return;
+			}
+
+			const supportPhoneNumber = (askAlyfBoot.support_phone_number || "").toString().trim();
+			const supportPhoneUriFromBoot = (askAlyfBoot.support_phone_uri || "")
+				.toString()
+				.trim();
+			const supportPhoneUri = supportPhoneUriFromBoot.startsWith("tel:")
+				? supportPhoneUriFromBoot
+				: this.getSupportPhoneUri(supportPhoneNumber);
+
+			if (!supportPhoneUri) {
+				this.supportPhoneEl.classList.add("ask_alyf-hidden");
+				this.supportPhoneEl.removeAttribute("href");
+				return;
+			}
+
+			const phoneButtonLabel = supportPhoneNumber
+				? __("Call support: {0}", [supportPhoneNumber])
+				: __("Call support");
+			this.supportPhoneEl.href = supportPhoneUri;
+			this.supportPhoneEl.title = phoneButtonLabel;
+			this.supportPhoneEl.setAttribute("aria-label", phoneButtonLabel);
+			this.supportPhoneEl.classList.remove("ask_alyf-hidden");
+		}
+
+		getSupportPhoneUri(phoneNumber) {
+			const normalizedPhoneNumber = (phoneNumber || "").toString().trim();
+			if (!normalizedPhoneNumber) {
+				return "";
+			}
+
+			const digitsOnly = normalizedPhoneNumber.replace(/\D/g, "");
+			if (!digitsOnly) {
+				return "";
+			}
+
+			const prefix = normalizedPhoneNumber.startsWith("+") ? "+" : "";
+			return `tel:${prefix}${digitsOnly}`;
 		}
 
 		onModeTriggerClick(event) {
