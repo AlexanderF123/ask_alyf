@@ -108,37 +108,8 @@
 	flex-shrink: 1;
 }
 
-.ask_alyf-header-button {
-	border: 1px solid var(--border-color);
-	background: var(--bg-color);
-	color: var(--text-color);
-	border-radius: 999px;
-	min-height: 2rem;
-	padding: 0.35rem 0.75rem;
-	font-size: 0.78rem;
-	font-weight: 600;
-	line-height: 1;
+.ask_alyf-actions .btn {
 	white-space: nowrap;
-	transition:
-		background-color 160ms ease,
-		border-color 160ms ease,
-		box-shadow 160ms ease,
-		transform 120ms ease;
-}
-
-.ask_alyf-header-button:hover {
-	background: color-mix(in srgb, var(--primary), var(--bg-color) 92%);
-	border-color: color-mix(in srgb, var(--primary), var(--border-color) 55%);
-}
-
-.ask_alyf-header-button:focus-visible {
-	outline: none;
-	border-color: var(--primary);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary), transparent 75%);
-}
-
-.ask_alyf-header-button:active {
-	transform: translateY(1px);
 }
 
 .ask_alyf-tabs-list.form-tabs-list {
@@ -190,25 +161,12 @@
 }
 
 .ask_alyf-history-item {
-	border: 1px solid var(--border-color);
-	background: var(--bg-color);
-	color: var(--text-color);
-	border-radius: var(--border-radius);
-	padding: 0.6rem 0.7rem;
+	width: 100%;
 	text-align: left;
 	display: flex;
 	flex-direction: column;
+	align-items: flex-start;
 	gap: 0.2rem;
-}
-
-.ask_alyf-history-item:hover {
-	border-color: color-mix(in srgb, var(--primary), var(--border-color) 55%);
-	background: color-mix(in srgb, var(--primary), var(--bg-color) 96%);
-}
-
-.ask_alyf-history-item.is-active {
-	border-color: color-mix(in srgb, var(--primary), var(--border-color) 45%);
-	background: color-mix(in srgb, var(--primary), var(--bg-color) 93%);
 }
 
 .ask_alyf-history-item-title {
@@ -219,7 +177,8 @@
 
 .ask_alyf-history-item-meta {
 	font-size: 0.72rem;
-	color: var(--text-muted);
+	color: currentColor;
+	opacity: 0.75;
 	line-height: 1.2;
 }
 
@@ -275,12 +234,10 @@
 	margin-top: 0.35rem;
 }
 
-.ask_alyf-link-button,
 .ask_alyf-icon-button {
-	border: none;
-	background: transparent;
-	color: var(--text-muted);
-	padding: 0.15rem 0.35rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .ask_alyf-proposal {
@@ -297,29 +254,6 @@
 .ask_alyf-proposal-actions {
 	display: flex;
 	gap: 0.5rem;
-}
-
-.ask_alyf-confirm,
-.ask_alyf-reject,
-.ask_alyf-send {
-	border: none;
-	border-radius: 999px;
-	padding: 0.5rem 0.9rem;
-}
-
-.ask_alyf-confirm,
-.ask_alyf-send {
-	background: var(--primary);
-	color: white;
-}
-
-.ask_alyf-reject {
-	background: var(--gray-100);
-	color: var(--text-color);
-}
-
-[data-theme="dark"] .ask_alyf-reject {
-	background: var(--gray-800);
 }
 
 .ask_alyf-composer {
@@ -359,25 +293,10 @@
 }
 
 .ask_alyf-mode-trigger {
-	border: 1px solid var(--border-color);
-	background: var(--bg-color);
-	color: var(--text-color);
-	border-radius: 999px;
-	min-height: 2rem;
-	padding: 0.35rem 0.65rem;
 	display: inline-flex;
 	align-items: center;
 	gap: 0.4rem;
-	font-size: 0.78rem;
-	font-weight: 600;
-	line-height: 1;
 	white-space: nowrap;
-}
-
-.ask_alyf-mode-trigger:focus-visible {
-	outline: none;
-	border-color: var(--primary);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary), transparent 75%);
 }
 
 .ask_alyf-mode-trigger-chevron {
@@ -400,24 +319,15 @@
 }
 
 .ask_alyf-mode-option {
-	border: none;
-	background: transparent;
-	color: var(--text-color);
-	border-radius: calc(var(--border-radius) - 2px);
-	padding: 0.35rem 0.55rem;
-	font-size: 0.78rem;
-	font-weight: 500;
+	width: 100%;
+	display: inline-flex;
+	align-items: center;
 	text-align: left;
-	white-space: nowrap;
+	justify-content: flex-start;
 }
 
-.ask_alyf-mode-option:hover {
-	background: color-mix(in srgb, var(--primary), var(--bg-color) 92%);
-}
-
-.ask_alyf-mode-option.is-selected {
-	background: color-mix(in srgb, var(--primary), var(--bg-color) 86%);
-	font-weight: 600;
+.ask_alyf-mode-option + .ask_alyf-mode-option {
+	margin-top: 0.2rem;
 }
 
 .ask_alyf-mode-option.is-disabled {
@@ -436,21 +346,9 @@
 
 .ask_alyf-composer .ask_alyf-icon-button,
 .ask_alyf-composer .ask_alyf-send {
-	height: 2rem;
-	min-height: 2rem;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 999px;
-}
-
-.ask_alyf-composer .ask_alyf-icon-button {
-	border: 1px solid var(--border-color);
-	background: var(--bg-color);
-}
-
-.ask_alyf-composer .ask_alyf-send {
-	padding-inline: 0.8rem;
 }
 
 .ask_alyf-loading .ask_alyf-send {
