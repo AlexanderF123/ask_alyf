@@ -101,7 +101,7 @@ def make_message(role: str, content: str, **metadata) -> dict:
 	}
 
 
-def get_or_create_conversation(conversation_name: str | None = None, mode: str = "Read-Only"):
+def get_or_create_conversation(conversation_name: str | None = None):
 	if conversation_name:
 		doc = frappe.get_doc("Ask ALYF Conversation", conversation_name)
 		doc.check_permission("read")
@@ -122,7 +122,6 @@ def get_or_create_conversation(conversation_name: str | None = None, mode: str =
 			"doctype": "Ask ALYF Conversation",
 			"title": _("New Conversation"),
 			"user": frappe.session.user,
-			"mode": mode,
 			"status": "Active",
 			"messages_json": "[]",
 		}
@@ -145,7 +144,6 @@ def conversation_payload(conversation) -> dict:
 	return {
 		"name": conversation.name,
 		"title": conversation.title,
-		"mode": conversation.mode,
 		"status": conversation.status,
 		"route": conversation.route,
 		"messages": get_messages(conversation),
@@ -175,7 +173,7 @@ def list_conversations(limit: int = 20) -> list[dict]:
 	conversations = frappe.get_all(
 		"Ask ALYF Conversation",
 		filters={"user": frappe.session.user},
-		fields=["name", "title", "mode", "status", "modified", "last_message_at"],
+		fields=["name", "title", "status", "modified", "last_message_at"],
 		order_by="modified desc",
 		limit=limit,
 	)
@@ -184,7 +182,7 @@ def list_conversations(limit: int = 20) -> list[dict]:
 
 
 @frappe.whitelist(methods=["POST"])
-def start_new_conversation(mode: str = "Read-Only") -> dict:
+def start_new_conversation() -> dict:
 	if not can_access_ask_alyf():
 		frappe.throw(_("You do not have access to Ask ALYF."))
 
@@ -193,7 +191,6 @@ def start_new_conversation(mode: str = "Read-Only") -> dict:
 			"doctype": "Ask ALYF Conversation",
 			"title": _("New Conversation"),
 			"user": frappe.session.user,
-			"mode": normalize_mode(mode),
 			"status": "Active",
 			"messages_json": "[]",
 		}
@@ -214,16 +211,15 @@ def send_message(
 
 	normalized_mode = normalize_mode(mode)
 	context_data = frappe.parse_json(context) if isinstance(context, str) else (context or {})
-	doc = get_or_create_conversation(conversation_name=conversation, mode=normalized_mode)
+	doc = get_or_create_conversation(conversation_name=conversation)
 
 	messages = get_messages(doc)
-	user_message = make_message("user", message)
+	user_message = make_message("user", message, mode=normalized_mode)
 	messages.append(user_message)
 
 	if doc.title == _("New Conversation"):
 		doc.title = message[:72]
 
-	doc.mode = normalized_mode
 	doc.route = context_data.get("route")
 	doc.last_context_json = dumps(context_data)
 	doc.pending_action_json = ""
@@ -280,7 +276,7 @@ def process_message_job(
 		response = str(error).strip() or _("I hit an error while processing that request. Please try again.")
 		pending_action = None
 
-	assistant_message = make_message("assistant", response, pending_action=bool(pending_action))
+	assistant_message = make_message("assistant", response, mode=mode, pending_action=bool(pending_action))
 	messages.append(assistant_message)
 	doc.pending_action_json = dumps(pending_action) if pending_action else ""
 	save_messages(doc, messages)
@@ -308,19 +304,20 @@ def process_message_job(
 
 
 @frappe.whitelist(methods=["POST"])
-def confirm_pending_action(conversation: str) -> dict:
+def confirm_pending_action(conversation: str, mode: str = "Read-Only") -> dict:
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	pending_action = loads(doc.pending_action_json, None)
 	if not pending_action:
 		frappe.throw(_("There is no pending action to confirm."))
 
 	messages = get_messages(doc)
+	normalized_mode = normalize_mode(mode)
 	try:
 		result = execute_action(pending_action)
 	except Exception as error:
 		frappe.log_error(frappe.get_traceback(), "Ask ALYF Confirm Action Error")
 		content = _("Could not confirm action: {0}").format(str(error))
-		messages.append(make_message("assistant", content))
+		messages.append(make_message("assistant", content, mode=normalized_mode))
 		save_messages(doc, messages)
 		return {"error": str(error), "conversation": conversation_payload(doc)}
 
@@ -341,20 +338,28 @@ def confirm_pending_action(conversation: str) -> dict:
 		content += "\n\n" + _("Document: {0} {1}").format(action_result["doctype"], action_result["name"])
 	elif action_result.get("message"):
 		content += "\n\n" + str(action_result["message"])
-	messages.append(make_message("assistant", content, confirmed_action=True))
+	messages.append(make_message("assistant", content, confirmed_action=True, mode=normalized_mode))
 	save_messages(doc, messages)
 
 	return {"result": action_result, "conversation": conversation_payload(doc)}
 
 
 @frappe.whitelist(methods=["POST"])
-def reject_pending_action(conversation: str) -> dict:
+def reject_pending_action(conversation: str, mode: str = "Read-Only") -> dict:
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	if not doc.pending_action_json:
 		return {"conversation": conversation_payload(doc)}
 
+	normalized_mode = normalize_mode(mode)
 	doc.pending_action_json = ""
 	messages = get_messages(doc)
-	messages.append(make_message("assistant", _("Cancelled the pending action."), rejected_action=True))
+	messages.append(
+		make_message(
+			"assistant",
+			_("Cancelled the pending action."),
+			rejected_action=True,
+			mode=normalized_mode,
+		)
+	)
 	save_messages(doc, messages)
 	return {"conversation": conversation_payload(doc)}

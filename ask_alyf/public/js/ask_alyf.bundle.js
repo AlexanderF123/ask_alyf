@@ -14,7 +14,7 @@
 				messages: [],
 				pendingAction: null,
 				status: "",
-				mode: localStorage.getItem("ask_alyf-mode") || "Read-Only",
+				mode: "Read-Only",
 			};
 			this.pendingStreamMessageId = null;
 			this.resizeState = null;
@@ -225,6 +225,7 @@
 				},
 			});
 			this.applyConversation(response.message.conversation);
+			this.setModeToAskDefault();
 			await this.refreshConversationList();
 
 			if (!response.message.ask_alyf.configured) {
@@ -239,10 +240,6 @@
 			this.state.conversation = conversation;
 			this.state.messages = conversation.messages || [];
 			this.state.pendingAction = conversation.pending_action || null;
-			this.state.mode = conversation.mode || this.state.mode;
-			if (this.state.mode === "Edit-Mode" && !frappe.boot.ask_alyf.edit_mode_enabled) {
-				this.state.mode = "Read-Only";
-			}
 			this.syncModeControl();
 			this.renderHistoryList();
 			this.renderMessages();
@@ -279,6 +276,7 @@
 
 			this.setActiveTab("chat");
 			if (conversationName === this.state.conversation?.name) {
+				this.setModeToAskDefault();
 				this.inputEl?.focus();
 				return;
 			}
@@ -294,7 +292,11 @@
 			}
 
 			this.state.mode = selectedMode;
-			localStorage.setItem("ask_alyf-mode", this.state.mode);
+			this.syncModeControl();
+		}
+
+		setModeToAskDefault() {
+			this.state.mode = "Read-Only";
 			this.syncModeControl();
 		}
 
@@ -317,7 +319,6 @@
 			const isEditModeAllowed = Boolean(frappe.boot.ask_alyf.edit_mode_enabled);
 			if (!isEditModeAllowed && this.state.mode === "Edit-Mode") {
 				this.state.mode = "Read-Only";
-				localStorage.setItem("ask_alyf-mode", this.state.mode);
 			}
 
 			const modeLabel = this.state.mode === "Edit-Mode" ? __("Agent") : __("Ask");
@@ -422,11 +423,8 @@
 
 				const metaEl = document.createElement("div");
 				metaEl.className = "ask_alyf-history-item-meta";
-				const modeLabel = conversation.mode === "Edit-Mode" ? __("Agent") : __("Ask");
 				const timestampLabel = this.formatConversationTimestamp(conversation);
-				metaEl.textContent = timestampLabel
-					? `${modeLabel} | ${timestampLabel}`
-					: modeLabel;
+				metaEl.textContent = timestampLabel || "";
 
 				itemEl.appendChild(titleEl);
 				itemEl.appendChild(metaEl);
@@ -460,6 +458,7 @@
 					args: { conversation: conversationName },
 				});
 				this.applyConversation(response.message.conversation);
+				this.setModeToAskDefault();
 				this.setStatus("");
 			} catch (error) {
 				this.setStatus("");
@@ -718,12 +717,10 @@
 			const response = await frappe.call({
 				method: "ask_alyf.api.start_new_conversation",
 				type: "POST",
-				args: {
-					mode: this.state.mode,
-				},
 			});
 			this.setActiveTab("chat");
 			this.applyConversation(response.message);
+			this.setModeToAskDefault();
 			this.refreshConversationList();
 			this.setStatus("");
 		}
@@ -734,7 +731,7 @@
 			const response = await frappe.call({
 				method: "ask_alyf.api.confirm_pending_action",
 				type: "POST",
-				args: { conversation: this.state.conversation.name },
+				args: { conversation: this.state.conversation.name, mode: this.state.mode },
 			});
 			this.applyConversation(response.message.conversation);
 			this.refreshConversationList();
@@ -746,7 +743,7 @@
 			const response = await frappe.call({
 				method: "ask_alyf.api.reject_pending_action",
 				type: "POST",
-				args: { conversation: this.state.conversation.name },
+				args: { conversation: this.state.conversation.name, mode: this.state.mode },
 			});
 			this.applyConversation(response.message.conversation);
 			this.refreshConversationList();

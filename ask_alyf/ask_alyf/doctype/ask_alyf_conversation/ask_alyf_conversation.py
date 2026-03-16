@@ -13,7 +13,6 @@ class AskALYFConversation(Document):
 		last_context_json: DF.Code | None
 		last_message_at: DF.Datetime | None
 		messages_json: DF.Code | None
-		mode: DF.Literal["Read-Only", "Edit-Mode"]
 		pending_action_json: DF.Code | None
 		route: DF.Data | None
 		status: DF.Literal["Active", "Closed"]
