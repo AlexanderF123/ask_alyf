@@ -20,6 +20,7 @@
 			this.preventConversationAutocompleteReopen = false;
 			this.boundResizeMove = (event) => this.resizePanel(event);
 			this.boundResizeEnd = (event) => this.stopPanelResize(event);
+			this.boundDocumentClick = (event) => this.onDocumentClick(event);
 		}
 
 		init() {
@@ -63,7 +64,6 @@
 					</div>
 					<div class="ask_alyf-toolbar">
 						<div class="ask_alyf-conversation-field"></div>
-						<div class="ask_alyf-mode-field"></div>
 					</div>
 					<div class="ask_alyf-config-warning ask_alyf-hidden"></div>
 					<div class="ask_alyf-messages"></div>
@@ -72,6 +72,20 @@
 							<textarea class="ask_alyf-input" rows="3" placeholder="${__(
 								"Ask about this ERPNext instance"
 							)}"></textarea>
+							<div class="ask_alyf-mode-dropdown">
+								<button class="ask_alyf-mode-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+									<span class="ask_alyf-mode-trigger-label"></span>
+									<i class="fa fa-chevron-down ask_alyf-mode-trigger-chevron" aria-hidden="true"></i>
+								</button>
+								<div class="ask_alyf-mode-menu ask_alyf-hidden" role="menu">
+									<button class="ask_alyf-mode-option" type="button" role="menuitemradio" data-mode="Read-Only">${__(
+										"Ask"
+									)}</button>
+									<button class="ask_alyf-mode-option" type="button" role="menuitemradio" data-mode="Edit-Mode">${__(
+										"Agent"
+									)}</button>
+								</div>
+							</div>
 							<div class="ask_alyf-composer-actions">
 								<button class="ask_alyf-icon-button ask_alyf-mic" type="button" title="${__(
 									"Voice input"
@@ -81,6 +95,9 @@
 								<button class="ask_alyf-send" type="button">${__("Send")}</button>
 							</div>
 						</div>
+						<div class="ask_alyf-disclaimer">${__(
+							"Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
+						)}</div>
 					</div>
 				</div>
 			`;
@@ -93,10 +110,14 @@
 			this.warningEl = root.querySelector(".ask_alyf-config-warning");
 			this.inputEl = root.querySelector(".ask_alyf-input");
 			this.conversationFieldEl = root.querySelector(".ask_alyf-conversation-field");
-			this.modeFieldEl = root.querySelector(".ask_alyf-mode-field");
 			this.bubbleEl = root.querySelector(".ask_alyf-bubble");
 			this.micEl = root.querySelector(".ask_alyf-mic");
 			this.resizeHandleEl = root.querySelector(".ask_alyf-resize-handle");
+			this.modeDropdownEl = root.querySelector(".ask_alyf-mode-dropdown");
+			this.modeTriggerEl = root.querySelector(".ask_alyf-mode-trigger");
+			this.modeTriggerLabelEl = root.querySelector(".ask_alyf-mode-trigger-label");
+			this.modeMenuEl = root.querySelector(".ask_alyf-mode-menu");
+			this.modeOptionEls = Array.from(root.querySelectorAll(".ask_alyf-mode-option"));
 
 			this.conversationControl = frappe.ui.form.make_control({
 				parent: this.conversationFieldEl,
@@ -120,21 +141,14 @@
 			this.conversationControl.$input.on("awesomplete-selectcomplete", () =>
 				this.onConversationAutocompleteSelect()
 			);
-			this.modeControl = frappe.ui.form.make_control({
-				parent: this.modeFieldEl,
-				df: {
-					fieldname: "ask_alyf_edit_mode",
-					fieldtype: "Check",
-					label: __("Edit-Mode"),
-					default: 0,
-					onchange: () => this.onModeChange(),
-				},
-				render_input: true,
+			this.modeTriggerEl.addEventListener("click", (event) =>
+				this.onModeTriggerClick(event)
+			);
+			this.modeOptionEls.forEach((optionEl) => {
+				optionEl.addEventListener("click", (event) => this.onModeOptionClick(event));
 			});
+			document.addEventListener("click", this.boundDocumentClick);
 			this.syncModeControl();
-			if (!frappe.boot.ask_alyf.edit_mode_enabled) {
-				this.modeControl.$input.prop("disabled", true);
-			}
 
 			root.querySelector(".ask_alyf-bubble").addEventListener("click", () =>
 				this.toggle(true)
@@ -156,6 +170,10 @@
 				if (event.key === "Enter" && !event.shiftKey) {
 					event.preventDefault();
 					this.sendMessage();
+					return;
+				}
+				if (event.key === "Escape") {
+					this.closeModeMenu();
 				}
 			});
 			this.inputEl.addEventListener("input", () => this.autoResizeInput());
@@ -239,16 +257,81 @@
 			this.openConversation(conversationName);
 		}
 
-		onModeChange() {
-			this.state.mode = this.modeControl?.get_value() ? "Edit-Mode" : "Read-Only";
+		onModeOptionClick(event) {
+			const option = event.currentTarget;
+			const selectedMode = option?.dataset?.mode;
+			if (!selectedMode || option.disabled) {
+				return;
+			}
+
+			this.state.mode = selectedMode;
 			localStorage.setItem("ask_alyf-mode", this.state.mode);
+			this.syncModeControl();
+		}
+
+		onModeTriggerClick(event) {
+			event.preventDefault();
+			event.stopPropagation();
+			const menuOpen = !this.modeMenuEl.classList.contains("ask_alyf-hidden");
+			if (menuOpen) {
+				this.closeModeMenu();
+				return;
+			}
+			this.openModeMenu();
 		}
 
 		syncModeControl() {
-			if (!this.modeControl) {
+			if (!this.modeTriggerEl) {
 				return;
 			}
-			this.modeControl.set_input(this.state.mode === "Edit-Mode" ? 1 : 0);
+
+			const isEditModeAllowed = Boolean(frappe.boot.ask_alyf.edit_mode_enabled);
+			if (!isEditModeAllowed && this.state.mode === "Edit-Mode") {
+				this.state.mode = "Read-Only";
+				localStorage.setItem("ask_alyf-mode", this.state.mode);
+			}
+
+			const modeLabel = this.state.mode === "Edit-Mode" ? __("Agent") : __("Ask");
+			this.modeTriggerLabelEl.textContent = modeLabel;
+			this.modeTriggerEl.setAttribute("aria-label", __("Mode: {0}", modeLabel));
+
+			this.modeOptionEls.forEach((option) => {
+				const optionMode = option.dataset.mode;
+				const isSelected = optionMode === this.state.mode;
+				const isDisabled = optionMode === "Edit-Mode" && !isEditModeAllowed;
+				option.classList.toggle("is-selected", isSelected);
+				option.classList.toggle("is-disabled", isDisabled);
+				option.disabled = isDisabled;
+				option.setAttribute("aria-checked", isSelected ? "true" : "false");
+			});
+
+			this.closeModeMenu();
+		}
+
+		onDocumentClick(event) {
+			if (!this.modeDropdownEl || this.modeMenuEl.classList.contains("ask_alyf-hidden")) {
+				return;
+			}
+			if (this.modeDropdownEl.contains(event.target)) {
+				return;
+			}
+			this.closeModeMenu();
+		}
+
+		openModeMenu() {
+			if (!this.modeMenuEl) {
+				return;
+			}
+			this.modeMenuEl.classList.remove("ask_alyf-hidden");
+			this.modeTriggerEl.setAttribute("aria-expanded", "true");
+		}
+
+		closeModeMenu() {
+			if (!this.modeMenuEl) {
+				return;
+			}
+			this.modeMenuEl.classList.add("ask_alyf-hidden");
+			this.modeTriggerEl.setAttribute("aria-expanded", "false");
 		}
 
 		onConversationInputMouseDown(event) {
@@ -365,6 +448,7 @@
 			this.state.open = open;
 			this.panel.classList.toggle("ask_alyf-hidden", !open);
 			this.bubbleEl.classList.toggle("ask_alyf-hidden", open);
+			this.closeModeMenu();
 			if (open) {
 				this.autoResizeInput();
 				this.inputEl.focus();

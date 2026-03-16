@@ -4,8 +4,8 @@ app_publisher = "ALYF GmbH"
 app_description = "Helps you understand ERPNext"
 app_email = "hallo@alyf.de"
 app_license = "gpl-3.0"
-app_include_js = "/assets/ask_alyf/js/ask_alyf.js"
-app_include_css = "/assets/ask_alyf/css/ask_alyf.css"
+app_include_js = "ask_alyf.bundle.js"
+app_include_css = "ask_alyf.bundle.css"
 extend_bootinfo = "ask_alyf.ask_alyf.boot.boot_session"
 add_to_apps_screen = [
 	{
