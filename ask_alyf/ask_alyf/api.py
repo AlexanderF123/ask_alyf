@@ -22,6 +22,19 @@ MODE_ASK = "Ask"
 MODE_AGENT = "Agent"
 
 
+def get_support_phone_uri(phone_number: str | None) -> str:
+	phone_number = (phone_number or "").strip()
+	if not phone_number:
+		return ""
+
+	digits_only = "".join(character for character in phone_number if character.isdigit())
+	if not digits_only:
+		return ""
+
+	prefix = "+" if phone_number.startswith("+") else ""
+	return f"tel:{prefix}{digits_only}"
+
+
 def has_app_permission() -> bool:
 	return can_access_ask_alyf()
 
@@ -30,12 +43,16 @@ def get_ask_alyf_boot_payload() -> dict:
 	settings_available = frappe.db.exists("DocType", "Ask ALYF Settings")
 	configured = False
 	agent_mode_enabled = False
+	support_phone_number = ""
+	support_phone_uri = ""
 
 	try:
 		settings = get_settings()
 		agent_mode_enabled = bool(settings.allow_agent_mode)
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		configured = bool(api_key and (settings.model or "").strip())
+		support_phone_number = (settings.support_phone_number or "").strip()
+		support_phone_uri = get_support_phone_uri(support_phone_number)
 	except Exception:
 		pass
 
@@ -43,6 +60,8 @@ def get_ask_alyf_boot_payload() -> dict:
 		"allowed": can_access_ask_alyf(),
 		"configured": configured,
 		"agent_mode_enabled": agent_mode_enabled,
+		"support_phone_number": support_phone_number,
+		"support_phone_uri": support_phone_uri,
 		"default_mode": MODE_ASK,
 		"site_name": frappe.local.site,
 		"user": frappe.session.user,

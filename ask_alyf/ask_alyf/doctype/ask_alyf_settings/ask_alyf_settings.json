@@ -17,7 +17,8 @@
   "roles_html",
   "allowed_roles",
   "excluded_doctypes",
-  "system_prompt"
+  "system_prompt",
+  "support_phone_number"
  ],
  "fields": [
   {
@@ -83,13 +84,18 @@
    "fieldname": "allow_agent_mode",
    "fieldtype": "Check",
    "label": "Allow Agent Mode"
+  },
+  {
+   "fieldname": "support_phone_number",
+   "fieldtype": "Phone",
+   "label": "Support Phone Number"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-16 15:43:53.587984",
+ "modified": "2026-03-16 18:43:13.350048",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",
