@@ -54,10 +54,10 @@
 							<div class="ask_alyf-subtitle">${__("ERPNext assistant")}</div>
 						</div>
 						<div class="ask_alyf-actions">
-							<button class="ask_alyf-header-button ask_alyf-new-chat" type="button" title="${__(
+							<button class="ask_alyf-header-button ask_alyf-new-chat btn btn-secondary btn-sm" type="button" title="${__(
 								"Start a new conversation"
 							)}" aria-label="${__("New chat")}">${__("New chat")}</button>
-							<button class="ask_alyf-header-button ask_alyf-close" type="button" title="${__(
+							<button class="ask_alyf-header-button ask_alyf-close btn btn-secondary btn-sm" type="button" title="${__(
 								"Close"
 							)}" aria-label="${__("Close")}">&times;</button>
 						</div>
@@ -85,26 +85,26 @@
 									"Ask about this ERPNext instance"
 								)}"></textarea>
 								<div class="ask_alyf-mode-dropdown">
-									<button class="ask_alyf-mode-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+									<button class="ask_alyf-mode-trigger btn btn-secondary btn-sm" type="button" aria-haspopup="menu" aria-expanded="false">
 										<span class="ask_alyf-mode-trigger-label"></span>
 										<i class="fa fa-chevron-down ask_alyf-mode-trigger-chevron" aria-hidden="true"></i>
 									</button>
 									<div class="ask_alyf-mode-menu ask_alyf-hidden" role="menu">
-										<button class="ask_alyf-mode-option" type="button" role="menuitemradio" data-mode="Read-Only">${__(
+										<button class="ask_alyf-mode-option btn btn-secondary btn-sm" type="button" role="menuitemradio" data-mode="Read-Only">${__(
 											"Ask"
 										)}</button>
-										<button class="ask_alyf-mode-option" type="button" role="menuitemradio" data-mode="Edit-Mode">${__(
+										<button class="ask_alyf-mode-option btn btn-secondary btn-sm" type="button" role="menuitemradio" data-mode="Edit-Mode">${__(
 											"Agent"
 										)}</button>
 									</div>
 								</div>
 								<div class="ask_alyf-composer-actions">
-									<button class="ask_alyf-icon-button ask_alyf-mic" type="button" title="${__(
+									<button class="ask_alyf-icon-button ask_alyf-mic btn btn-secondary btn-sm" type="button" title="${__(
 										"Voice input"
 									)}" aria-label="${__(
 				"Voice input"
 			)}"><i class="fa fa-microphone"></i></button>
-									<button class="ask_alyf-send" type="button">${__("Send")}</button>
+									<button class="ask_alyf-send btn btn-primary btn-sm" type="button">${__("Send")}</button>
 								</div>
 							</div>
 							<div class="ask_alyf-disclaimer">${__(
@@ -328,7 +328,8 @@
 				const optionMode = option.dataset.mode;
 				const isSelected = optionMode === this.state.mode;
 				const isDisabled = optionMode === "Edit-Mode" && !isEditModeAllowed;
-				option.classList.toggle("is-selected", isSelected);
+				option.classList.toggle("btn-primary", isSelected);
+				option.classList.toggle("btn-secondary", !isSelected);
 				option.classList.toggle("is-disabled", isDisabled);
 				option.disabled = isDisabled;
 				option.setAttribute("aria-checked", isSelected ? "true" : "false");
@@ -407,11 +408,12 @@
 			recentConversations.forEach((conversation) => {
 				const itemEl = document.createElement("button");
 				itemEl.type = "button";
-				itemEl.className = "ask_alyf-history-item";
+				itemEl.className = "ask_alyf-history-item btn btn-secondary btn-sm";
 				itemEl.dataset.conversation = conversation.name;
 
 				if (conversation.name === currentName) {
-					itemEl.classList.add("is-active");
+					itemEl.classList.remove("btn-secondary");
+					itemEl.classList.add("btn-primary");
 				}
 
 				const titleEl = document.createElement("div");
@@ -789,8 +791,8 @@
 						this.state.pendingAction.summary || this.state.pendingAction.action || ""
 					)}</div>
 					<div class="ask_alyf-proposal-actions">
-						<button class="ask_alyf-confirm" type="button">${__("Confirm")}</button>
-						<button class="ask_alyf-reject" type="button">${__("Reject")}</button>
+						<button class="ask_alyf-confirm btn btn-primary btn-sm" type="button">${__("Confirm")}</button>
+						<button class="ask_alyf-reject btn btn-secondary btn-sm" type="button">${__("Reject")}</button>
 					</div>
 				`;
 				proposal
