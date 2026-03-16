@@ -282,6 +282,18 @@ class ask_alyfToolset:
 		self.runtime.emit_status("Running SQL query...")
 		return tools.run_read_only_sql(query=query)
 
+	def get_app_version(self, app_name: str) -> str:
+		"""Read the installed version for an app.
+
+		Args:
+			app_name: The installed app name.
+
+		Returns:
+			The app version string.
+		"""
+		self.runtime.emit_status("Reading app version...")
+		return tools.get_app_version(app_name=app_name)
+
 	def read_github_releases(self, app_name: str, limit: int = 5) -> list[dict[str, Any]]:
 		"""Read recent GitHub releases for an installed app.
 
@@ -602,6 +614,7 @@ Edit-mode rules:
 			self.toolset.read_code_file,
 			self.toolset.read_file_record,
 			self.toolset.run_read_only_sql,
+			self.toolset.get_app_version,
 			self.toolset.read_github_releases,
 			self.toolset.read_documentation_page,
 		]

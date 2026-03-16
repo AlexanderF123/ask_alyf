@@ -234,6 +234,34 @@ def run_read_only_sql(query: str) -> list[dict[str, Any]]:
 	return frappe.db.sql(query, as_dict=True)
 
 
+def get_app_version(app_name: str) -> str:
+	app_name = (app_name or "").strip()
+	if not app_name:
+		frappe.throw(_("App name is required."))
+
+	if app_name not in frappe.get_installed_apps():
+		frappe.throw(_("App '{0}' is not installed.").format(app_name))
+
+	version = ""
+	try:
+		module_version = frappe.get_attr(f"{app_name}.__version__")
+		if isinstance(module_version, str):
+			version = module_version.strip()
+	except Exception:
+		version = ""
+
+	if not version:
+		project_data = get_app_pyproject_data(app_name)
+		project_version = project_data.get("project", {}).get("version")
+		if isinstance(project_version, str):
+			version = project_version.strip()
+
+	if not version:
+		frappe.throw(_("No version was found for app '{0}'.").format(app_name))
+
+	return version
+
+
 def read_github_releases(app_name: str, limit: int = 5) -> list[dict[str, Any]]:
 	limit = coerce_int(limit, 5, minimum=1)
 	urls = get_project_urls(app_name)
@@ -282,12 +310,16 @@ def read_documentation_page(app_name: str, relative_path: str = "") -> dict[str,
 	return {"url": target_url, "content": content[:20000]}
 
 
-def get_project_urls(app_name: str) -> dict[str, str]:
+def get_app_pyproject_data(app_name: str) -> dict[str, Any]:
 	pyproject_path = Path(get_bench_path()) / "apps" / app_name / "pyproject.toml"
 	if not pyproject_path.exists():
 		frappe.throw(_("No pyproject.toml was found for app '{0}'.").format(app_name))
 
-	data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+	return tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+
+
+def get_project_urls(app_name: str) -> dict[str, str]:
+	data = get_app_pyproject_data(app_name)
 	urls = data.get("project", {}).get("urls", {})
 	return {key.lower(): value for key, value in urls.items()}
 

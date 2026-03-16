@@ -39,6 +39,7 @@ Schema and permissions:
 Code and documentation:
 
 - search / read code (using codebase search, restricted to the `apps/` folder) — helps the agent understand the codebase and diagnose bugs
+- get installed app version — useful for comparing your current version with available releases
 - read GitHub releases — uses the Repository URL from `pyproject.toml` `[project.urls]`
 - search / read official docs — uses the Documentation URL from `pyproject.toml` `[project.urls]`
 
