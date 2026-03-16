@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ask ALYF VERSION\n"
 "Report-Msgid-Bugs-To: hallo@alyf.de\n"
-"POT-Creation-Date: 2026-03-16 01:45+0053\n"
-"PO-Revision-Date: 2026-03-16 01:45+0053\n"
+"POT-Creation-Date: 2026-03-16 16:35+0053\n"
+"PO-Revision-Date: 2026-03-16 16:35+0053\n"
 "Last-Translator: hallo@alyf.de\n"
 "Language-Team: hallo@alyf.de\n"
 "MIME-Version: 1.0\n"
@@ -16,26 +16,56 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.16.0\n"
 
-#: ask_alyf/ask_alyf/tools.py:423
+#: ask_alyf/ask_alyf/tools.py:520
 msgid "Action field 'args' must be an object."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:412
+#: ask_alyf/ask_alyf/tools.py:509
 msgid "Action field 'doctype' is required."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:416
+#: ask_alyf/ask_alyf/tools.py:513
 msgid "Action field 'values' must be an object."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:405
+#: ask_alyf/ask_alyf/tools.py:502
 msgid "Action field '{0}' must be an object."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:51
-#: ask_alyf/public/js/ask_alyf.bundle.js:323
-#: ask_alyf/public/js/ask_alyf.bundle.js:425
+#: ask_alyf/public/js/ask_alyf.bundle.js:52
+#: ask_alyf/public/js/ask_alyf.bundle.js:331
 msgid "Agent"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:88
+msgid "Agent mode is disabled or not available for your user."
+msgstr ""
+
+#. Label of the allow_agent_mode (Check) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Allow Agent Mode"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:490
+msgid "Amend proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:488
+msgid "Amend {0} {1}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:302
+msgid "App '{0}' is not installed."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:299
+msgid "App name is required."
+msgstr ""
+
+#. Label of a Desktop Icon
+#. Title of a Workspace Sidebar
+#: ask_alyf/desktop_icon/ask_alyf.json ask_alyf/workspace_sidebar/ask_alyf.json
+msgid "Ask ALYF"
 msgstr ""
 
 #. Name of a DocType
@@ -44,102 +74,171 @@ msgid "Ask ALYF Conversation"
 msgstr ""
 
 #. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_excluded_doctype/ask_alyf_excluded_doctype.json
+msgid "Ask ALYF Excluded DocType"
+msgstr ""
+
+#. Title of the Module Onboarding 'Ask ALYF Onboarding'
+#: ask_alyf/ask_alyf/module_onboarding/ask_alyf_onboarding/ask_alyf_onboarding.json
+msgid "Ask ALYF Onboarding"
+msgstr ""
+
+#. Name of a DocType
+#. Label of a Workspace Sidebar Item
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+#: ask_alyf/workspace_sidebar/ask_alyf.json
 msgid "Ask ALYF Settings"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:53
+#: ask_alyf/public/js/ask_alyf.bundle.js:54
 msgid "Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:232
+#: ask_alyf/public/js/ask_alyf.bundle.js:235
 msgid "Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
 msgstr ""
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:66
-msgid "Base URL is required for OpenAI-compatible providers."
+#: ask_alyf/ask_alyf/agent.py:571
+msgid "Attach file proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:356
+#: ask_alyf/ask_alyf/agent.py:569
+msgid "Attach {0} to {1} {2}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:596
+msgid "Call {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:469
+msgid "Cancel proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:467
+msgid "Cancel {0} {1}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:367
 msgid "Cancelled the pending action."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:195
+#: ask_alyf/ask_alyf/agent.py:190
+msgid "Checking permissions..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:260
 msgid "Code reads are restricted to the bench directory."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:159
+#: ask_alyf/ask_alyf/tools.py:224
 msgid "Code search is restricted to the apps directory."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:544
+#: ask_alyf/ask_alyf/agent.py:632
 msgid "Configure a model in Ask ALYF Settings before sending messages."
 msgstr ""
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:63
-msgid "Configure an API key first, then fetch available models."
-msgstr ""
-
-#: ask_alyf/ask_alyf/agent.py:538
+#: ask_alyf/ask_alyf/agent.py:626
 msgid "Configure an API key in Ask ALYF Settings before sending messages."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:337
+#: ask_alyf/ask_alyf/api.py:340
 msgid "Confirmed action: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:320
+#: ask_alyf/ask_alyf/api.py:323
 msgid "Could not confirm action: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:350
+#: ask_alyf/ask_alyf/agent.py:113
+msgid "Counting documents..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:365
+msgid "Create proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:363
+msgid "Create {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:511
+msgid "Delete proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:509
+msgid "Delete {0} {1}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:447
 msgid "Deleted {0} {1}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:47
-msgid "DocType '{0}' is excluded from edit mode."
+#: ask_alyf/ask_alyf/tools.py:54
+msgid "DocType '{0}' is excluded from Agent mode."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:339
+#: ask_alyf/ask_alyf/api.py:342
 msgid "Document: {0} {1}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:45
+#: ask_alyf/public/js/ask_alyf.bundle.js:46
 msgid "ERPNext assistant"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:88
-msgid "Edit mode is disabled or not available for your user."
+#: ask_alyf/ask_alyf/tools.py:188
+msgid "Each label must be a string."
 msgstr ""
 
-#. Label of the enable_edit_mode (Check) field in DocType 'Ask ALYF Settings'
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-msgid "Enable Edit Mode"
+#: ask_alyf/ask_alyf/agent.py:203
+msgid "Evaluating permissions..."
 msgstr ""
 
-#. Label of the excluded_doctypes (Small Text) field in DocType 'Ask ALYF
-#. Settings'
+#. Label of the excluded_doctype (Link) field in DocType 'Ask ALYF Excluded
+#. DocType'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_excluded_doctype/ask_alyf_excluded_doctype.json
+msgid "Excluded DocType"
+msgstr ""
+
+#. Label of the excluded_doctypes (Table MultiSelect) field in DocType 'Ask
+#. ALYF Settings'
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "Excluded DocTypes"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:466
+#: ask_alyf/public/js/ask_alyf.bundle.js:472
 msgid "Failed to open conversation."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:700
+#: ask_alyf/public/js/ask_alyf.bundle.js:706
 msgid "Failed to send message."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:447
+#: ask_alyf/ask_alyf/agent.py:132
+msgid "Fetching document..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:89
+msgid "Fetching list..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:164
+msgid "Fetching single value..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:151
+msgid "Fetching value..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:544
 msgid "Field '{0}' in {1} is a child table ({2}) and must be a list of row objects."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:453
+#: ask_alyf/ask_alyf/tools.py:550
 msgid "Field '{0}' row #{1} in {2} must be an object."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:47
+#: ask_alyf/public/js/ask_alyf.bundle.js:48
 msgid "History"
 msgstr ""
 
@@ -151,13 +250,17 @@ msgstr ""
 msgid "I prepared the requested action. Please review it and confirm if it looks correct."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:291
+#: ask_alyf/ask_alyf/tools.py:388
 msgid "Invalid action payload."
 msgstr ""
 
 #. Label of the llm_provider (Select) field in DocType 'Ask ALYF Settings'
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "LLM Provider"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:183
+msgid "Labels must be provided as a list of strings."
 msgstr ""
 
 #. Label of the last_context_json (Code) field in DocType 'Ask ALYF
@@ -172,8 +275,20 @@ msgstr ""
 msgid "Last Message At"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:455
+#: ask_alyf/ask_alyf/agent.py:215
+msgid "Listing accessible DocTypes..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:224
+msgid "Listing accessible reports..."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:460
 msgid "Loading conversation..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:176
+msgid "Loading metadata..."
 msgstr ""
 
 #. Label of the messages_json (Code) field in DocType 'Ask ALYF Conversation'
@@ -181,7 +296,11 @@ msgstr ""
 msgid "Messages JSON"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:325
+#: ask_alyf/ask_alyf/agent.py:598
+msgid "Method call proposal needs correction."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:333
 msgid "Mode: {0}"
 msgstr ""
 
@@ -195,51 +314,49 @@ msgstr ""
 msgid "New Conversation"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:45
+#: ask_alyf/public/js/ask_alyf.bundle.js:46
 msgid "New chat"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:403
+#: ask_alyf/public/js/ask_alyf.bundle.js:411
 msgid "No conversations yet."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:265
+#: ask_alyf/ask_alyf/tools.py:358
 msgid "No documentation URL was found for app '{0}'."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:282
+#: ask_alyf/ask_alyf/tools.py:375
 msgid "No pyproject.toml was found for app '{0}'."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:236
+#: ask_alyf/ask_alyf/tools.py:329
 msgid "No repository URL was found for app '{0}'."
 msgstr ""
 
-#. Description of the 'Excluded DocTypes' (Small Text) field in DocType 'Ask
-#. ALYF Settings'
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-msgid "One DocType per line. These DocTypes stay read-only in edit mode."
+#: ask_alyf/ask_alyf/tools.py:319
+msgid "No version was found for app '{0}'."
 msgstr ""
 
-#. Description of the 'Allowed Roles' (Table) field in DocType 'Ask ALYF
-#. Settings'
+#. Description of the 'Excluded DocTypes' (Table MultiSelect) field in DocType
+#. 'Ask ALYF Settings'
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-msgid "One role per line. Leave empty to allow all desk users."
+msgid "One DocType per line. These DocTypes stay read-only in Agent mode."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:220
+#: ask_alyf/ask_alyf/tools.py:285
 msgid "Only Administrator and System Manager can run SQL queries."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:241
+#: ask_alyf/ask_alyf/tools.py:334
 msgid "Only GitHub repositories are supported for release lookup."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:223
+#: ask_alyf/ask_alyf/tools.py:288
 msgid "Only a single read-only SQL statement is allowed."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:226
+#: ask_alyf/ask_alyf/tools.py:291
 msgid "Only read-only SQL statements are allowed."
 msgstr ""
 
@@ -264,16 +381,112 @@ msgstr ""
 msgid "Pending Action JSON"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:788
+#: ask_alyf/public/js/ask_alyf.bundle.js:792
 msgid "Pending action"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:790
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:69
+msgid "Please configure a Base URL first and save the settings, then we can fetch available models."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:62
+msgid "Please configure an API key first and save the settings, then we can fetch available models."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:491
+msgid "Prepared amend proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:572
+msgid "Prepared attach file proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:470
+msgid "Prepared cancel proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:366
+msgid "Prepared create proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:512
+msgid "Prepared delete proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:599
+msgid "Prepared method call proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:542
+msgid "Prepared rename proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:426
+msgid "Prepared set value proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:449
+msgid "Prepared submit proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:395
+msgid "Prepared update proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:194
+msgid "Provide at least one label to translate."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:333
+msgid "Reading GitHub releases..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:320
+msgid "Reading app version..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:283
+msgid "Reading code file..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:346
+msgid "Reading documentation..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:296
+msgid "Reading file..."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:794
 msgid "Reject"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:666
+#: ask_alyf/ask_alyf/agent.py:541
+msgid "Rename proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:539
+msgid "Rename {0} {1} to {2}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:308
+msgid "Running SQL query..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:269
+msgid "Searching code..."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:672
 msgid "Sending..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:425
+msgid "Set value proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:423
+msgid "Set {0} on {1} {2}"
 msgstr ""
 
 #. Description of the 'Model' (Autocomplete) field in DocType 'Ask ALYF
@@ -282,45 +495,71 @@ msgstr ""
 msgid "Start typing to choose a model. Available models are loaded from the configured provider."
 msgstr ""
 
+#: ask_alyf/ask_alyf/agent.py:448
+msgid "Submit proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:446
+msgid "Submit {0} {1}"
+msgstr ""
+
 #. Label of the system_prompt (Code) field in DocType 'Ask ALYF Settings'
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "System Prompt"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:313
+#: ask_alyf/ask_alyf/api.py:315
 msgid "There is no pending action to confirm."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:193
+#: ask_alyf/public/js/ask_alyf.bundle.js:195
 msgid "Thinking..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:87
+#: ask_alyf/ask_alyf/agent.py:252
+msgid "Translating UI labels..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:93
 msgid "Unsupported LLM provider: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:387
+#: ask_alyf/ask_alyf/tools.py:484
 msgid "Unsupported action '{0}'."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:368
+#: ask_alyf/public/js/ask_alyf.bundle.js:376
 msgid "Untitled conversation"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:843
+#. Title of an Onboarding Step
+#: ask_alyf/ask_alyf/onboarding_step/update_ask_alyf_settings/update_ask_alyf_settings.json
+msgid "Update Ask ALYF Settings"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:394
+msgid "Update proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:392
+msgid "Update {0} {1}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:880
 msgid "Voice input language: {0}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:696
+#: ask_alyf/public/js/ask_alyf.bundle.js:702
 msgid "Waiting for response..."
 msgstr ""
 
 #: ask_alyf/ask_alyf/api.py:158 ask_alyf/ask_alyf/api.py:170
 #: ask_alyf/ask_alyf/api.py:187 ask_alyf/ask_alyf/api.py:210
+#: ask_alyf/ask_alyf/api.py:309 ask_alyf/ask_alyf/api.py:354
 msgid "You do not have access to Ask ALYF."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:817
+#: ask_alyf/public/js/ask_alyf.bundle.js:821
 msgid "Your browser does not support voice input."
 msgstr ""
 
