@@ -61,7 +61,7 @@
    "options": "Has Role"
   },
   {
-   "description": "One DocType per line. These DocTypes stay read-only in edit mode.",
+   "description": "One DocType per line. These DocTypes stay read-only in Agent mode.",
    "fieldname": "excluded_doctypes",
    "fieldtype": "Table MultiSelect",
    "label": "Excluded DocTypes",
@@ -89,7 +89,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-16 03:08:22.636786",
+ "modified": "2026-03-16 15:43:53.587984",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",

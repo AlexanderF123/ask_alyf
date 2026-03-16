@@ -14,7 +14,7 @@
 				messages: [],
 				pendingAction: null,
 				status: "",
-				mode: "Read-Only",
+				mode: "Ask",
 			};
 			this.pendingStreamMessageId = null;
 			this.resizeState = null;
@@ -29,8 +29,8 @@
 				return;
 			}
 
-			if (this.state.mode === "Edit-Mode" && !frappe.boot.ask_alyf.edit_mode_enabled) {
-				this.state.mode = "Read-Only";
+			if (this.state.mode === "Agent" && !this.isAgentModeEnabled()) {
+				this.state.mode = "Ask";
 			}
 
 			this.initialized = true;
@@ -91,10 +91,10 @@
 										<i class="fa fa-chevron-down ask_alyf-mode-trigger-chevron" aria-hidden="true"></i>
 									</button>
 									<div class="ask_alyf-mode-menu ask_alyf-hidden" role="menu">
-										<button class="ask_alyf-mode-option btn btn-secondary btn-sm" type="button" role="menuitemradio" data-mode="Read-Only">${__(
+										<button class="ask_alyf-mode-option btn btn-secondary btn-sm" type="button" role="menuitemradio" data-mode="Ask">${__(
 											"Ask"
 										)}</button>
-										<button class="ask_alyf-mode-option btn btn-secondary btn-sm" type="button" role="menuitemradio" data-mode="Edit-Mode">${__(
+										<button class="ask_alyf-mode-option btn btn-secondary btn-sm" type="button" role="menuitemradio" data-mode="Agent">${__(
 											"Agent"
 										)}</button>
 									</div>
@@ -298,8 +298,13 @@
 		}
 
 		setModeToAskDefault() {
-			this.state.mode = "Read-Only";
+			this.state.mode = "Ask";
 			this.syncModeControl();
+		}
+
+		isAgentModeEnabled() {
+			const askAlyfSettings = frappe?.boot?.ask_alyf || {};
+			return Boolean(askAlyfSettings.agent_mode_enabled);
 		}
 
 		onModeTriggerClick(event) {
@@ -318,19 +323,19 @@
 				return;
 			}
 
-			const isEditModeAllowed = Boolean(frappe.boot.ask_alyf.edit_mode_enabled);
-			if (!isEditModeAllowed && this.state.mode === "Edit-Mode") {
-				this.state.mode = "Read-Only";
+			const isAgentModeAllowed = this.isAgentModeEnabled();
+			if (!isAgentModeAllowed && this.state.mode === "Agent") {
+				this.state.mode = "Ask";
 			}
 
-			const modeLabel = this.state.mode === "Edit-Mode" ? __("Agent") : __("Ask");
+			const modeLabel = this.state.mode === "Agent" ? __("Agent") : __("Ask");
 			this.modeTriggerLabelEl.textContent = modeLabel;
 			this.modeTriggerEl.setAttribute("aria-label", __("Mode: {0}", modeLabel));
 
 			this.modeOptionEls.forEach((option) => {
 				const optionMode = option.dataset.mode;
 				const isSelected = optionMode === this.state.mode;
-				const isDisabled = optionMode === "Edit-Mode" && !isEditModeAllowed;
+				const isDisabled = optionMode === "Agent" && !isAgentModeAllowed;
 				option.classList.toggle("btn-primary", isSelected);
 				option.classList.toggle("btn-secondary", !isSelected);
 				option.classList.toggle("is-disabled", isDisabled);
