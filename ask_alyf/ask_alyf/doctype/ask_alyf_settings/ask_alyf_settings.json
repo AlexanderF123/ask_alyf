@@ -64,8 +64,9 @@
   {
    "description": "One DocType per line. These DocTypes stay read-only in edit mode.",
    "fieldname": "excluded_doctypes",
-   "fieldtype": "Small Text",
-   "label": "Excluded DocTypes"
+   "fieldtype": "Table MultiSelect",
+   "label": "Excluded DocTypes",
+   "options": "Ask ALYF Excluded DocType"
   },
   {
    "fieldname": "system_prompt",
@@ -89,7 +90,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-16 02:28:46.456315",
+ "modified": "2026-03-16 02:35:45.127036",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",

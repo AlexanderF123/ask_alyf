@@ -31,12 +31,16 @@ class AskALYFSettings(Document):
 		from frappe.core.doctype.has_role.has_role import HasRole
 		from frappe.types import DF
 
+		from ask_alyf.ask_alyf.doctype.ask_alyf_excluded_doctype.ask_alyf_excluded_doctype import (
+			AskALYFExcludedDocType,
+		)
+
 		allow_agent_mode: DF.Check
 		allowed_roles: DF.Table[HasRole]
 		api_key: DF.Password | None
 		base_url: DF.Data | None
 		enabled: DF.Check
-		excluded_doctypes: DF.SmallText | None
+		excluded_doctypes: DF.TableMultiSelect[AskALYFExcludedDocType]
 		llm_provider: DF.Literal["OpenAI", "OpenAI Compatible"]
 		model: DF.Autocomplete | None
 		system_prompt: DF.Code | None
