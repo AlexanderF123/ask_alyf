@@ -12,11 +12,12 @@
 				conversations: [],
 				activeTab: "chat",
 				messages: [],
-				pendingAction: null,
+				pendingOperation: null,
 				status: "",
 				mode: "Ask",
 			};
 			this.pendingStreamMessageId = null;
+			this.handledFrontendCallIds = new Set();
 			this.resizeState = null;
 			this.voiceRecognition = null;
 			this.boundResizeMove = (event) => this.resizePanel(event);
@@ -204,10 +205,11 @@
 				if (message.conversation !== this.state.conversation?.name) return;
 				this.setLoading(false);
 				this.setStatus("");
-				this.state.pendingAction = message.pending_action || null;
+				this.state.pendingOperation = message.pending_operation || null;
 				this.pendingStreamMessageId = null;
 				this.renderMessages();
 				this.refreshConversationList();
+				this.maybeAutoExecuteFrontendAction();
 			});
 		}
 
@@ -241,7 +243,7 @@
 		applyConversation(conversation) {
 			this.state.conversation = conversation;
 			this.state.messages = conversation.messages || [];
-			this.state.pendingAction = conversation.pending_action || null;
+			this.state.pendingOperation = conversation.pending_operation || null;
 			this.syncModeControl();
 			this.renderHistoryList();
 			this.renderMessages();
@@ -677,6 +679,7 @@
 				content: text,
 			};
 			this.state.messages.push(optimisticMessage);
+			this.state.pendingOperation = null;
 			this.renderMessages();
 			this.inputEl.value = "";
 			this.autoResizeInput();
@@ -732,28 +735,210 @@
 			this.setStatus("");
 		}
 
-		async confirmPendingAction() {
-			if (!this.state.pendingAction || !this.state.conversation?.name) return;
+		isFrontendAction(operation) {
+			return operation?.kind === "frontend_action";
+		}
+
+		getPendingOperationSummary(operation) {
+			if (!operation) {
+				return "";
+			}
+			return operation.summary || operation.tool || __("Pending operation");
+		}
+
+		getMatchingForm(payload = {}) {
+			if (!window.cur_frm?.doc) {
+				throw new Error(__("No form is currently open."));
+			}
+
+			const expectedDoctype = payload.doctype;
+			if (expectedDoctype && expectedDoctype !== cur_frm.doc.doctype) {
+				throw new Error(
+					__("Current form is {0}, expected {1}.", [
+						cur_frm.doc.doctype,
+						expectedDoctype,
+					])
+				);
+			}
+
+			const expectedDocname = payload.docname;
+			if (expectedDocname && expectedDocname !== cur_frm.doc.name) {
+				throw new Error(
+					__("Current document is {0}, expected {1}.", [
+						cur_frm.doc.name,
+						expectedDocname,
+					])
+				);
+			}
+
+			return cur_frm;
+		}
+
+		async dispatchFrontendAction(tool, payload = {}) {
+			if (tool === "set_route") {
+				await frappe.set_route(...(payload.route || []));
+				return { route: payload.route || [] };
+			}
+
+			if (tool === "new_doc") {
+				frappe.new_doc(payload.doctype, payload.route_options || null);
+				return { doctype: payload.doctype };
+			}
+
+			if (tool === "scroll_to_field") {
+				const frm = this.getMatchingForm(payload);
+				if (typeof frm.scroll_to_field !== "function") {
+					throw new Error(__("Scrolling to fields is not available on this form."));
+				}
+				frm.scroll_to_field(payload.fieldname);
+				return { fieldname: payload.fieldname };
+			}
+
+			if (tool === "frm_set_value") {
+				const frm = this.getMatchingForm(payload);
+				if (!frm.fields_dict?.[payload.fieldname]) {
+					throw new Error(
+						__("Field {0} does not exist on this form.", [payload.fieldname])
+					);
+				}
+				await frm.set_value(payload.fieldname, payload.value);
+				return { fieldname: payload.fieldname };
+			}
+
+			if (tool === "frm_add_child") {
+				const frm = this.getMatchingForm(payload);
+				if (!frm.fields_dict?.[payload.fieldname]) {
+					throw new Error(
+						__("Field {0} does not exist on this form.", [payload.fieldname])
+					);
+				}
+				const row = frm.add_child(payload.fieldname, payload.values || {});
+				frm.refresh_field(payload.fieldname);
+				return { fieldname: payload.fieldname, row_name: row?.name || "" };
+			}
+
+			throw new Error(__("Unsupported frontend action: {0}", [tool]));
+		}
+
+		async reportFrontendActionResult(operation, status, result = null, errorMessage = "") {
+			if (!operation?.call_id || !this.state.conversation?.name) {
+				return;
+			}
+
+			const args = {
+				conversation: this.state.conversation.name,
+				call_id: operation.call_id,
+				status,
+				mode: this.state.mode,
+			};
+			if (result && typeof result === "object") {
+				args.result = result;
+			}
+			if (errorMessage) {
+				args.error = errorMessage;
+			}
 
 			const response = await frappe.call({
-				method: "ask_alyf.api.confirm_pending_action",
+				method: "ask_alyf.api.frontend_action_result",
 				type: "POST",
-				args: { conversation: this.state.conversation.name, mode: this.state.mode },
+				args,
 			});
-			this.applyConversation(response.message.conversation);
+			if (response.message?.conversation) {
+				this.applyConversation(response.message.conversation);
+			}
 			this.refreshConversationList();
 		}
 
-		async rejectPendingAction() {
-			if (!this.state.conversation?.name) return;
+		async executeFrontendAction(operation) {
+			if (!this.isFrontendAction(operation)) {
+				return;
+			}
+			if (!operation.call_id) {
+				frappe.msgprint(__("Frontend action is missing a call ID."));
+				return;
+			}
 
-			const response = await frappe.call({
-				method: "ask_alyf.api.reject_pending_action",
-				type: "POST",
-				args: { conversation: this.state.conversation.name, mode: this.state.mode },
-			});
-			this.applyConversation(response.message.conversation);
-			this.refreshConversationList();
+			this.handledFrontendCallIds.add(operation.call_id);
+			try {
+				const actionResult = await this.dispatchFrontendAction(
+					operation.tool,
+					operation.payload || {}
+				);
+				await this.reportFrontendActionResult(operation, "success", actionResult);
+			} catch (error) {
+				const errorMessage = error?.message || __("Failed to execute frontend action.");
+				try {
+					await this.reportFrontendActionResult(operation, "failed", null, errorMessage);
+				} catch {
+					// Keep the widget responsive even if status reporting fails.
+				}
+				frappe.msgprint(errorMessage);
+			}
+		}
+
+		async maybeAutoExecuteFrontendAction() {
+			const operation = this.state.pendingOperation;
+			if (!this.isFrontendAction(operation)) {
+				return;
+			}
+			if (operation.requires_confirmation) {
+				return;
+			}
+			if (!operation.call_id || this.handledFrontendCallIds.has(operation.call_id)) {
+				return;
+			}
+			await this.executeFrontendAction(operation);
+		}
+
+		async confirmPendingOperation() {
+			const operation = this.state.pendingOperation;
+			if (!operation || !this.state.conversation?.name) {
+				return;
+			}
+
+			try {
+				if (this.isFrontendAction(operation)) {
+					await this.executeFrontendAction(operation);
+					return;
+				}
+
+				const response = await frappe.call({
+					method: "ask_alyf.api.confirm_pending_operation",
+					type: "POST",
+					args: { conversation: this.state.conversation.name, mode: this.state.mode },
+				});
+				this.applyConversation(response.message.conversation);
+				this.refreshConversationList();
+			} catch (error) {
+				frappe.msgprint(error.message || __("Failed to confirm pending operation."));
+			}
+		}
+
+		async rejectPendingOperation() {
+			const operation = this.state.pendingOperation;
+			if (!operation || !this.state.conversation?.name) {
+				return;
+			}
+
+			try {
+				if (this.isFrontendAction(operation)) {
+					if (operation.call_id) {
+						this.handledFrontendCallIds.add(operation.call_id);
+					}
+					await this.reportFrontendActionResult(operation, "rejected");
+					return;
+				}
+
+				const response = await frappe.call({
+					method: "ask_alyf.api.reject_pending_operation",
+					type: "POST",
+					args: { conversation: this.state.conversation.name, mode: this.state.mode },
+				});
+				this.applyConversation(response.message.conversation);
+				this.refreshConversationList();
+			} catch (error) {
+				frappe.msgprint(error.message || __("Failed to reject pending operation."));
+			}
 		}
 
 		renderMessages() {
@@ -786,13 +971,13 @@
 				this.messagesEl.appendChild(statusWrapper);
 			}
 
-			if (this.state.pendingAction) {
+			if (this.state.pendingOperation) {
 				const proposal = document.createElement("div");
 				proposal.className = "ask_alyf-proposal";
 				proposal.innerHTML = `
-					<div class="ask_alyf-proposal-title">${__("Pending action")}</div>
+					<div class="ask_alyf-proposal-title">${__("Pending operation")}</div>
 					<div class="ask_alyf-proposal-summary">${this.escapeHtml(
-						this.state.pendingAction.summary || this.state.pendingAction.action || ""
+						this.getPendingOperationSummary(this.state.pendingOperation)
 					)}</div>
 					<div class="ask_alyf-proposal-actions">
 						<button class="ask_alyf-confirm btn btn-primary btn-sm" type="button">${__("Confirm")}</button>
@@ -801,10 +986,10 @@
 				`;
 				proposal
 					.querySelector(".ask_alyf-confirm")
-					.addEventListener("click", () => this.confirmPendingAction());
+					.addEventListener("click", () => this.confirmPendingOperation());
 				proposal
 					.querySelector(".ask_alyf-reject")
-					.addEventListener("click", () => this.rejectPendingAction());
+					.addEventListener("click", () => this.rejectPendingOperation());
 				this.messagesEl.appendChild(proposal);
 			}
 

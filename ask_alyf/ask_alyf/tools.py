@@ -19,6 +19,17 @@ FORBIDDEN_SQL_RE = re.compile(
 	r"\b(insert|update|delete|drop|truncate|alter|create|grant|revoke|replace)\b", re.IGNORECASE
 )
 ENGLISH_LANGUAGE_CODES = {"en", "en-us", "en-gb"}
+OPERATION_KIND_BACKEND = "backend_action"
+OPERATION_KIND_FRONTEND = "frontend_action"
+UNSAFE_PAYLOAD_KEYS = {"__proto__", "constructor", "prototype"}
+FRONTEND_ACTION_TOOLS = {
+	"set_route",
+	"new_doc",
+	"scroll_to_field",
+	"frm_set_value",
+	"frm_add_child",
+}
+AUTO_FRONTEND_ACTION_TOOLS = {"set_route", "new_doc", "scroll_to_field"}
 
 
 def coerce_int(value: Any, default: int, *, minimum: int | None = None) -> int:
@@ -383,6 +394,44 @@ def get_project_urls(app_name: str) -> dict[str, str]:
 	return {key.lower(): value for key, value in urls.items()}
 
 
+def get_frontend_action_requires_confirmation(tool: str) -> bool:
+	return tool not in AUTO_FRONTEND_ACTION_TOOLS
+
+
+def validate_pending_operation_payload(
+	kind: str,
+	tool: str,
+	payload: dict[str, Any],
+) -> str | None:
+	if kind == OPERATION_KIND_BACKEND:
+		return validate_pending_action_payload(tool, payload)
+
+	if kind == OPERATION_KIND_FRONTEND:
+		return validate_frontend_action_payload(tool, payload)
+
+	return _("Unsupported operation kind '{0}'.").format(kind)
+
+
+def execute_pending_operation(operation: dict[str, Any]) -> dict[str, Any]:
+	if not isinstance(operation, dict):
+		frappe.throw(_("Invalid pending operation payload."))
+
+	kind = (operation.get("kind") or "").strip()
+	tool = (operation.get("tool") or "").strip()
+	payload = coerce_object_payload(operation.get("payload"), "payload")
+	validation_error = validate_pending_operation_payload(kind, tool, payload)
+	if validation_error:
+		frappe.throw(validation_error)
+
+	if kind == OPERATION_KIND_BACKEND:
+		return execute_action({"action": tool, **payload})
+
+	if kind == OPERATION_KIND_FRONTEND:
+		frappe.throw(_("Frontend actions must be executed in the browser."))
+
+	frappe.throw(_("Unsupported operation kind '{0}'.").format(kind))
+
+
 def execute_action(action: dict[str, Any]) -> dict[str, Any]:
 	if not isinstance(action, dict):
 		frappe.throw(_("Invalid action payload."))
@@ -520,6 +569,89 @@ def validate_pending_action_payload(action_type: str, payload: dict[str, Any]) -
 			return _("Action field 'args' must be an object.")
 
 	return None
+
+
+def has_unsafe_payload_keys(value: Any) -> bool:
+	if isinstance(value, dict):
+		for key, nested_value in value.items():
+			if key in UNSAFE_PAYLOAD_KEYS:
+				return True
+			if has_unsafe_payload_keys(nested_value):
+				return True
+		return False
+
+	if isinstance(value, list):
+		for item in value:
+			if has_unsafe_payload_keys(item):
+				return True
+		return False
+
+	return False
+
+
+def validate_frontend_action_payload(tool: str, payload: dict[str, Any]) -> str | None:
+	tool = (tool or "").strip()
+	if tool not in FRONTEND_ACTION_TOOLS:
+		return _("Unsupported frontend action '{0}'.").format(tool)
+
+	if not isinstance(payload, dict):
+		return _("Frontend action payload must be an object.")
+
+	if has_unsafe_payload_keys(payload):
+		return _("Frontend action payload contains an unsafe key.")
+
+	if tool == "set_route":
+		route = payload.get("route")
+		if not isinstance(route, list) or not route:
+			return _("Frontend action 'set_route' requires a non-empty route list.")
+		for index, route_part in enumerate(route, start=1):
+			if not isinstance(route_part, str) or not route_part.strip():
+				return _("Route part #{0} must be a non-empty string.").format(index)
+		return None
+
+	if tool == "new_doc":
+		doctype = payload.get("doctype")
+		if not isinstance(doctype, str) or not doctype.strip():
+			return _("Frontend action 'new_doc' requires a DocType.")
+		route_options = payload.get("route_options")
+		if route_options is not None and not isinstance(route_options, dict):
+			return _("Frontend action 'new_doc' field 'route_options' must be an object.")
+		return None
+
+	if tool == "scroll_to_field":
+		fieldname = payload.get("fieldname")
+		if not isinstance(fieldname, str) or not fieldname.strip():
+			return _("Frontend action 'scroll_to_field' requires a fieldname.")
+		return None
+
+	if tool == "frm_set_value":
+		fieldname = payload.get("fieldname")
+		if not isinstance(fieldname, str) or not fieldname.strip():
+			return _("Frontend action 'frm_set_value' requires a fieldname.")
+		doctype = payload.get("doctype")
+		docname = payload.get("docname")
+		if doctype is not None and (not isinstance(doctype, str) or not doctype.strip()):
+			return _("Frontend action 'frm_set_value' field 'doctype' must be a string.")
+		if docname is not None and (not isinstance(docname, str) or not docname.strip()):
+			return _("Frontend action 'frm_set_value' field 'docname' must be a string.")
+		return None
+
+	if tool == "frm_add_child":
+		fieldname = payload.get("fieldname")
+		if not isinstance(fieldname, str) or not fieldname.strip():
+			return _("Frontend action 'frm_add_child' requires a fieldname.")
+		values = payload.get("values")
+		if values is not None and not isinstance(values, dict):
+			return _("Frontend action 'frm_add_child' field 'values' must be an object.")
+		doctype = payload.get("doctype")
+		docname = payload.get("docname")
+		if doctype is not None and (not isinstance(doctype, str) or not doctype.strip()):
+			return _("Frontend action 'frm_add_child' field 'doctype' must be a string.")
+		if docname is not None and (not isinstance(docname, str) or not docname.strip()):
+			return _("Frontend action 'frm_add_child' field 'docname' must be a string.")
+		return None
+
+	return _("Unsupported frontend action '{0}'.").format(tool)
 
 
 def validate_table_field_shapes(doctype: str, values: dict[str, Any]) -> str | None:

@@ -13,7 +13,7 @@
   "last_message_at",
   "route",
   "messages_json",
-  "pending_action_json",
+  "pending_operation_json",
   "last_context_json"
  ],
  "fields": [
@@ -57,15 +57,15 @@
    "options": "JSON"
   },
   {
-   "fieldname": "pending_action_json",
-   "fieldtype": "Code",
-   "label": "Pending Action JSON",
-   "options": "JSON"
-  },
-  {
    "fieldname": "last_context_json",
    "fieldtype": "Code",
    "label": "Last Context JSON",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "pending_operation_json",
+   "fieldtype": "Code",
+   "label": "Pending Operation JSON",
    "options": "JSON"
   }
  ],
@@ -73,7 +73,7 @@
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-16 03:28:08.958132",
+ "modified": "2026-03-16 17:16:28.772734",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Conversation",
