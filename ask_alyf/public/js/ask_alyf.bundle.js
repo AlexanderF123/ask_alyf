@@ -10,6 +10,7 @@
 				loading: false,
 				conversation: null,
 				conversations: [],
+				activeTab: "chat",
 				messages: [],
 				pendingAction: null,
 				status: "",
@@ -17,7 +18,6 @@
 			};
 			this.pendingStreamMessageId = null;
 			this.resizeState = null;
-			this.preventConversationAutocompleteReopen = false;
 			this.boundResizeMove = (event) => this.resizePanel(event);
 			this.boundResizeEnd = (event) => this.stopPanelResize(event);
 			this.boundDocumentClick = (event) => this.onDocumentClick(event);
@@ -62,42 +62,58 @@
 							)}" aria-label="${__("Close")}">&times;</button>
 						</div>
 					</div>
-					<div class="ask_alyf-toolbar">
-						<div class="ask_alyf-conversation-field"></div>
+					<div class="form-tabs-list ask_alyf-tabs-list">
+						<ul class="nav form-tabs ask_alyf-tabs" role="tablist" aria-label="${__("Ask ALYF sections")}">
+							<li class="nav-item">
+								<button class="nav-link ask_alyf-tab active" type="button" role="tab" data-tab="chat" aria-selected="true">${__(
+									"Chat"
+								)}</button>
+							</li>
+							<li class="nav-item">
+								<button class="nav-link ask_alyf-tab" type="button" role="tab" data-tab="history" aria-selected="false">${__(
+									"History"
+								)}</button>
+							</li>
+						</ul>
 					</div>
 					<div class="ask_alyf-config-warning ask_alyf-hidden"></div>
-					<div class="ask_alyf-messages"></div>
-					<div class="ask_alyf-composer">
-						<div class="ask_alyf-input-shell">
-							<textarea class="ask_alyf-input" rows="3" placeholder="${__(
-								"Ask about this ERPNext instance"
-							)}"></textarea>
-							<div class="ask_alyf-mode-dropdown">
-								<button class="ask_alyf-mode-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
-									<span class="ask_alyf-mode-trigger-label"></span>
-									<i class="fa fa-chevron-down ask_alyf-mode-trigger-chevron" aria-hidden="true"></i>
-								</button>
-								<div class="ask_alyf-mode-menu ask_alyf-hidden" role="menu">
-									<button class="ask_alyf-mode-option" type="button" role="menuitemradio" data-mode="Read-Only">${__(
-										"Ask"
-									)}</button>
-									<button class="ask_alyf-mode-option" type="button" role="menuitemradio" data-mode="Edit-Mode">${__(
-										"Agent"
-									)}</button>
+					<div class="ask_alyf-chat-view">
+						<div class="ask_alyf-messages"></div>
+						<div class="ask_alyf-composer">
+							<div class="ask_alyf-input-shell">
+								<textarea class="ask_alyf-input" rows="3" placeholder="${__(
+									"Ask about this ERPNext instance"
+								)}"></textarea>
+								<div class="ask_alyf-mode-dropdown">
+									<button class="ask_alyf-mode-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+										<span class="ask_alyf-mode-trigger-label"></span>
+										<i class="fa fa-chevron-down ask_alyf-mode-trigger-chevron" aria-hidden="true"></i>
+									</button>
+									<div class="ask_alyf-mode-menu ask_alyf-hidden" role="menu">
+										<button class="ask_alyf-mode-option" type="button" role="menuitemradio" data-mode="Read-Only">${__(
+											"Ask"
+										)}</button>
+										<button class="ask_alyf-mode-option" type="button" role="menuitemradio" data-mode="Edit-Mode">${__(
+											"Agent"
+										)}</button>
+									</div>
 								</div>
-							</div>
-							<div class="ask_alyf-composer-actions">
-								<button class="ask_alyf-icon-button ask_alyf-mic" type="button" title="${__(
-									"Voice input"
-								)}" aria-label="${__(
+								<div class="ask_alyf-composer-actions">
+									<button class="ask_alyf-icon-button ask_alyf-mic" type="button" title="${__(
+										"Voice input"
+									)}" aria-label="${__(
 				"Voice input"
 			)}"><i class="fa fa-microphone"></i></button>
-								<button class="ask_alyf-send" type="button">${__("Send")}</button>
+									<button class="ask_alyf-send" type="button">${__("Send")}</button>
+								</div>
 							</div>
+							<div class="ask_alyf-disclaimer">${__(
+								"Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
+							)}</div>
 						</div>
-						<div class="ask_alyf-disclaimer">${__(
-							"Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
-						)}</div>
+					</div>
+					<div class="ask_alyf-history-view ask_alyf-hidden">
+						<div class="ask_alyf-history-list"></div>
 					</div>
 				</div>
 			`;
@@ -109,38 +125,21 @@
 			this.messagesEl = root.querySelector(".ask_alyf-messages");
 			this.warningEl = root.querySelector(".ask_alyf-config-warning");
 			this.inputEl = root.querySelector(".ask_alyf-input");
-			this.conversationFieldEl = root.querySelector(".ask_alyf-conversation-field");
 			this.bubbleEl = root.querySelector(".ask_alyf-bubble");
 			this.micEl = root.querySelector(".ask_alyf-mic");
 			this.resizeHandleEl = root.querySelector(".ask_alyf-resize-handle");
+			this.chatViewEl = root.querySelector(".ask_alyf-chat-view");
+			this.historyViewEl = root.querySelector(".ask_alyf-history-view");
+			this.historyListEl = root.querySelector(".ask_alyf-history-list");
+			this.tabEls = Array.from(root.querySelectorAll(".ask_alyf-tab"));
 			this.modeDropdownEl = root.querySelector(".ask_alyf-mode-dropdown");
 			this.modeTriggerEl = root.querySelector(".ask_alyf-mode-trigger");
 			this.modeTriggerLabelEl = root.querySelector(".ask_alyf-mode-trigger-label");
 			this.modeMenuEl = root.querySelector(".ask_alyf-mode-menu");
 			this.modeOptionEls = Array.from(root.querySelectorAll(".ask_alyf-mode-option"));
-
-			this.conversationControl = frappe.ui.form.make_control({
-				parent: this.conversationFieldEl,
-				df: {
-					fieldname: "ask_alyf_conversation",
-					fieldtype: "Autocomplete",
-					label: __("Conversation"),
-					placeholder: __("Search conversations"),
-					options: [],
-					onchange: () => this.onConversationChange(),
-				},
-				render_input: true,
+			this.tabEls.forEach((tabEl) => {
+				tabEl.addEventListener("click", (event) => this.onTabClick(event));
 			});
-			this.conversationControl.$input.on("mousedown", (event) =>
-				this.onConversationInputMouseDown(event)
-			);
-			this.conversationControl.$input.on("input", () => this.onConversationInputTyping());
-			this.conversationControl.$input.on("awesomplete-open", () =>
-				this.onConversationAutocompleteOpen()
-			);
-			this.conversationControl.$input.on("awesomplete-selectcomplete", () =>
-				this.onConversationAutocompleteSelect()
-			);
 			this.modeTriggerEl.addEventListener("click", (event) =>
 				this.onModeTriggerClick(event)
 			);
@@ -179,6 +178,7 @@
 			this.inputEl.addEventListener("input", () => this.autoResizeInput());
 			this.updateVoiceInputHint();
 			this.autoResizeInput();
+			this.setActiveTab(this.state.activeTab);
 		}
 
 		bindRealtime() {
@@ -244,16 +244,45 @@
 				this.state.mode = "Read-Only";
 			}
 			this.syncModeControl();
-			this.renderConversationOptions();
+			this.renderHistoryList();
 			this.renderMessages();
 		}
 
-		onConversationChange() {
-			const conversationName = this.conversationControl?.get_value();
-			if (!conversationName || conversationName === this.state.conversation?.name) {
-				this.renderConversationOptions();
+		onTabClick(event) {
+			const selectedTab = event.currentTarget?.dataset?.tab || "chat";
+			this.setActiveTab(selectedTab);
+			if (selectedTab === "history") {
+				this.refreshConversationList();
+			}
+		}
+
+		setActiveTab(tabName) {
+			const nextTab = tabName === "history" ? "history" : "chat";
+			this.state.activeTab = nextTab;
+
+			const showHistory = nextTab === "history";
+			this.chatViewEl?.classList.toggle("ask_alyf-hidden", showHistory);
+			this.historyViewEl?.classList.toggle("ask_alyf-hidden", !showHistory);
+
+			this.tabEls.forEach((tabEl) => {
+				const isActive = tabEl.dataset.tab === nextTab;
+				tabEl.classList.toggle("active", isActive);
+				tabEl.setAttribute("aria-selected", isActive ? "true" : "false");
+			});
+		}
+
+		onHistoryConversationClick(event) {
+			const conversationName = event.currentTarget?.dataset?.conversation;
+			if (!conversationName) {
 				return;
 			}
+
+			this.setActiveTab("chat");
+			if (conversationName === this.state.conversation?.name) {
+				this.inputEl?.focus();
+				return;
+			}
+
 			this.openConversation(conversationName);
 		}
 
@@ -334,91 +363,86 @@
 			this.modeTriggerEl.setAttribute("aria-expanded", "false");
 		}
 
-		onConversationInputMouseDown(event) {
-			if (event.button !== undefined && event.button !== 0) {
-				return;
-			}
-
-			this.preventConversationAutocompleteReopen = false;
-			this.openConversationAutocomplete();
-		}
-
-		onConversationInputTyping() {
-			this.preventConversationAutocompleteReopen = false;
-		}
-
-		onConversationAutocompleteOpen() {
-			if (!this.preventConversationAutocompleteReopen) {
-				return;
-			}
-			this.closeConversationAutocomplete();
-		}
-
-		onConversationAutocompleteSelect() {
-			this.preventConversationAutocompleteReopen = true;
-			this.closeConversationAutocomplete();
-		}
-
-		openConversationAutocomplete() {
-			const autocomplete = this.conversationControl?.awesomplete;
-			if (!autocomplete) {
-				return;
-			}
-
-			const originalFilter = autocomplete.filter;
-			try {
-				autocomplete.filter = () => true;
-				autocomplete.evaluate();
-			} finally {
-				autocomplete.filter = originalFilter;
-			}
-		}
-
-		closeConversationAutocomplete() {
-			this.conversationControl?.awesomplete?.close();
-		}
-
 		formatConversationLabel(conversation) {
 			const title = (conversation.title || "").trim() || __("Untitled conversation");
 			return `${title}`;
 		}
 
-		renderConversationOptions() {
-			if (!this.conversationControl) {
+		formatConversationTimestamp(conversation) {
+			const timestamp = conversation.last_message_at || conversation.modified;
+			if (!timestamp) {
+				return "";
+			}
+
+			if (!frappe.datetime?.str_to_user) {
+				return timestamp;
+			}
+
+			try {
+				return frappe.datetime.str_to_user(timestamp);
+			} catch {
+				return timestamp;
+			}
+		}
+
+		renderHistoryList() {
+			if (!this.historyListEl) {
 				return;
 			}
 
 			const currentName = this.state.conversation?.name || "";
-			const options = [...(this.state.conversations || [])];
-			if (
-				currentName &&
-				!options.some((conversation) => conversation.name === currentName)
-			) {
-				options.unshift({
-					name: currentName,
-					title: this.state.conversation?.title || __("Current conversation"),
-				});
+			const recentConversations = (this.state.conversations || [])
+				.filter((conversation) => conversation?.name)
+				.slice(0, 20);
+			this.historyListEl.innerHTML = "";
+
+			if (!recentConversations.length) {
+				const emptyStateEl = document.createElement("div");
+				emptyStateEl.className = "ask_alyf-history-empty";
+				emptyStateEl.textContent = __("No conversations yet.");
+				this.historyListEl.appendChild(emptyStateEl);
+				return;
 			}
 
-			const autocompleteOptions = options
-				.filter((conversation) => conversation?.name)
-				.map((conversation) => ({
-					value: conversation.name,
-					label: this.formatConversationLabel(conversation),
-				}));
+			recentConversations.forEach((conversation) => {
+				const itemEl = document.createElement("button");
+				itemEl.type = "button";
+				itemEl.className = "ask_alyf-history-item";
+				itemEl.dataset.conversation = conversation.name;
 
-			this.conversationControl.set_data(autocompleteOptions);
-			this.conversationControl.set_input(currentName || "");
+				if (conversation.name === currentName) {
+					itemEl.classList.add("is-active");
+				}
+
+				const titleEl = document.createElement("div");
+				titleEl.className = "ask_alyf-history-item-title";
+				titleEl.textContent = this.formatConversationLabel(conversation);
+
+				const metaEl = document.createElement("div");
+				metaEl.className = "ask_alyf-history-item-meta";
+				const modeLabel = conversation.mode === "Edit-Mode" ? __("Agent") : __("Ask");
+				const timestampLabel = this.formatConversationTimestamp(conversation);
+				metaEl.textContent = timestampLabel
+					? `${modeLabel} | ${timestampLabel}`
+					: modeLabel;
+
+				itemEl.appendChild(titleEl);
+				itemEl.appendChild(metaEl);
+				itemEl.addEventListener("click", (event) =>
+					this.onHistoryConversationClick(event)
+				);
+				this.historyListEl.appendChild(itemEl);
+			});
 		}
 
 		async refreshConversationList() {
 			try {
 				const response = await frappe.call({
 					method: "ask_alyf.api.list_conversations",
-					args: { limit: 30 },
+					args: { limit: 20 },
 				});
 				this.state.conversations = response.message || [];
-				this.renderConversationOptions();
+				this.renderHistoryList();
 			} catch {
 				// Ignore list refresh errors to keep chat usable.
 			}
@@ -438,7 +462,7 @@
 			} catch (error) {
 				this.setStatus("");
 				frappe.msgprint(error.message || __("Failed to open conversation."));
-				this.renderConversationOptions();
+				this.renderHistoryList();
 			} finally {
 				this.setLoading(false);
 			}
@@ -451,7 +475,9 @@
 			this.closeModeMenu();
 			if (open) {
 				this.autoResizeInput();
-				this.inputEl.focus();
+				if (this.state.activeTab === "chat") {
+					this.inputEl.focus();
+				}
 				this.refreshConversationList();
 			} else {
 				this.stopPanelResize();
@@ -632,6 +658,7 @@
 				return;
 			}
 
+			this.setActiveTab("chat");
 			this.toggle(true);
 			this.setLoading(true);
 			this.setStatus(__("Sending..."));
@@ -693,6 +720,7 @@
 					mode: this.state.mode,
 				},
 			});
+			this.setActiveTab("chat");
 			this.applyConversation(response.message);
 			this.refreshConversationList();
 			this.setStatus("");

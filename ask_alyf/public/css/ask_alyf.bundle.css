@@ -75,14 +75,12 @@
 }
 
 .ask_alyf-header,
-.ask_alyf-toolbar,
 .ask_alyf-composer,
 .ask_alyf-config-warning {
 	padding: 0.85rem 1rem;
 }
 
 .ask_alyf-header,
-.ask_alyf-toolbar,
 .ask_alyf-composer {
 	border-bottom: 1px solid var(--border-color);
 }
@@ -143,37 +141,16 @@
 	transform: translateY(1px);
 }
 
-.ask_alyf-toolbar {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr);
-	align-items: end;
-	gap: 0.75rem;
+.ask_alyf-tabs-list.form-tabs-list {
+	position: relative;
+	top: auto;
+	padding: 0 1rem;
+	border-radius: 0;
+	background: var(--bg-color);
 }
 
-.ask_alyf-conversation-field,
-.ask_alyf-conversation-field .awesomplete,
-.ask_alyf-conversation-field .awesomplete input,
 .ask_alyf-input {
 	width: 100%;
-}
-
-.ask_alyf-toolbar .frappe-control,
-.ask_alyf-toolbar .form-group {
-	margin-bottom: 0;
-}
-
-.ask_alyf-toolbar .control-label {
-	margin-bottom: 0.3rem;
-	font-size: 0.72rem;
-	color: var(--text-muted);
-}
-
-.ask_alyf-toggle {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-	font-size: 0.85rem;
-	color: var(--text-muted);
 }
 
 .ask_alyf-config-warning {
@@ -181,6 +158,14 @@
 	color: var(--text-color);
 	font-size: 0.85rem;
 	border-bottom: 1px solid var(--border-color);
+}
+
+.ask_alyf-chat-view,
+.ask_alyf-history-view {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
 }
 
 .ask_alyf-messages {
@@ -192,6 +177,57 @@
 	min-height: 8rem;
 	gap: 0.75rem;
 	background: color-mix(in srgb, var(--bg-color), black 2%);
+}
+
+.ask_alyf-history-list {
+	flex: 1 1 auto;
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	padding: 0.9rem 1rem;
+	background: color-mix(in srgb, var(--bg-color), black 2%);
+}
+
+.ask_alyf-history-item {
+	border: 1px solid var(--border-color);
+	background: var(--bg-color);
+	color: var(--text-color);
+	border-radius: var(--border-radius);
+	padding: 0.6rem 0.7rem;
+	text-align: left;
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.ask_alyf-history-item:hover {
+	border-color: color-mix(in srgb, var(--primary), var(--border-color) 55%);
+	background: color-mix(in srgb, var(--primary), var(--bg-color) 96%);
+}
+
+.ask_alyf-history-item.is-active {
+	border-color: color-mix(in srgb, var(--primary), var(--border-color) 45%);
+	background: color-mix(in srgb, var(--primary), var(--bg-color) 93%);
+}
+
+.ask_alyf-history-item-title {
+	font-size: 0.86rem;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.ask_alyf-history-item-meta {
+	font-size: 0.72rem;
+	color: var(--text-muted);
+	line-height: 1.2;
+}
+
+.ask_alyf-history-empty {
+	color: var(--text-muted);
+	font-size: 0.85rem;
+	text-align: center;
+	padding: 1rem 0.5rem;
 }
 
 .ask_alyf-message {
