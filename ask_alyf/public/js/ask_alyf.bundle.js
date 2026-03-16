@@ -18,6 +18,7 @@
 			};
 			this.pendingStreamMessageId = null;
 			this.resizeState = null;
+			this.voiceRecognition = null;
 			this.boundResizeMove = (event) => this.resizePanel(event);
 			this.boundResizeEnd = (event) => this.stopPanelResize(event);
 			this.boundDocumentClick = (event) => this.onDocumentClick(event);
@@ -127,6 +128,7 @@
 			this.inputEl = root.querySelector(".ask_alyf-input");
 			this.bubbleEl = root.querySelector(".ask_alyf-bubble");
 			this.micEl = root.querySelector(".ask_alyf-mic");
+			this.micEl.setAttribute("aria-pressed", "false");
 			this.resizeHandleEl = root.querySelector(".ask_alyf-resize-handle");
 			this.chatViewEl = root.querySelector(".ask_alyf-chat-view");
 			this.historyViewEl = root.querySelector(".ask_alyf-history-view");
@@ -815,13 +817,22 @@
 				return;
 			}
 
+			if (this.voiceRecognition) {
+				this.voiceRecognition.stop();
+				return;
+			}
+
 			const speechLanguage = this.getPreferredSpeechLanguage();
 			this.updateVoiceInputHint(speechLanguage);
 
 			const recognition = new Recognition();
+			this.voiceRecognition = recognition;
 			recognition.lang = speechLanguage;
 			recognition.interimResults = false;
 			recognition.maxAlternatives = 1;
+			recognition.onstart = () => {
+				this.setVoiceInputListening(true);
+			};
 			recognition.onresult = (event) => {
 				const transcript = event.results?.[0]?.[0]?.transcript;
 				if (transcript) {
@@ -829,7 +840,31 @@
 					this.autoResizeInput();
 				}
 			};
-			recognition.start();
+			recognition.onerror = () => {
+				this.setVoiceInputListening(false);
+			};
+			recognition.onend = () => {
+				this.setVoiceInputListening(false);
+			};
+
+			try {
+				recognition.start();
+			} catch (error) {
+				this.setVoiceInputListening(false);
+			}
+		}
+
+		setVoiceInputListening(isListening) {
+			if (!isListening) {
+				this.voiceRecognition = null;
+			}
+
+			if (!this.micEl) {
+				return;
+			}
+
+			this.micEl.classList.toggle("is-listening", isListening);
+			this.micEl.setAttribute("aria-pressed", isListening ? "true" : "false");
 		}
 
 		updateVoiceInputHint(languageCode = this.getPreferredSpeechLanguage()) {
