@@ -238,6 +238,35 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	transition: color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ask_alyf-mic.is-listening {
+	color: var(--primary);
+	animation: ask_alyf-mic-pulse 1.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+@keyframes ask_alyf-mic-pulse {
+	0% {
+		transform: scale(1);
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary), white 35%);
+	}
+
+	70% {
+		transform: scale(1.06);
+		box-shadow: 0 0 0 0.4rem color-mix(in srgb, var(--primary), transparent 85%);
+	}
+
+	100% {
+		transform: scale(1);
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary), transparent 100%);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ask_alyf-mic.is-listening {
+		animation: none;
+	}
 }
 
 .ask_alyf-proposal {
