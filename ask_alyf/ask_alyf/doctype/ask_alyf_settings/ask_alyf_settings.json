@@ -47,10 +47,10 @@
    "label": "API Key"
   },
   {
+   "depends_on": "api_key",
    "description": "Start typing to choose a model. Available models are loaded from the configured provider.",
    "fieldname": "model",
    "fieldtype": "Autocomplete",
-   "in_list_view": 1,
    "label": "Model"
   },
   {
@@ -89,7 +89,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-16 02:35:45.127036",
+ "modified": "2026-03-16 03:08:22.636786",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",

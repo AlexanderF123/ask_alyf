@@ -50,27 +50,29 @@ class AskALYFSettings(Document):
 
 
 @frappe.whitelist()
-def get_available_models(
-	llm_provider: str | None = None,
-	base_url: str | None = None,
-	api_key: str | None = None,
-) -> list[dict[str, str]]:
+def get_available_models() -> list[dict[str, str]]:
 	settings = frappe.get_single("Ask ALYF Settings")
+	settings.check_permission("write")
 
-	llm_provider = (llm_provider or settings.llm_provider or "OpenAI").strip()
-	base_url = (base_url or settings.base_url or "").strip() or None
-	api_key = (
-		normalize_api_key(api_key) or (settings.get_password("api_key", raise_exception=False) or "").strip()
-	)
+	base_url = (settings.base_url or "").strip() or None
+	api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 
 	if not api_key:
-		frappe.throw(_("Configure an API key first, then fetch available models."))
+		frappe.msgprint(
+			_("Please configure an API key first and save the settings, then we can fetch available models."),
+			alert=True,
+		)
+		return []
 
-	if llm_provider == "OpenAI Compatible" and not base_url:
-		frappe.throw(_("Base URL is required for OpenAI-compatible providers."))
+	if settings.llm_provider == "OpenAI Compatible" and not base_url:
+		frappe.msgprint(
+			_("Please configure a Base URL first and save the settings, then we can fetch available models."),
+			alert=True,
+		)
+		return []
 
 	client = AnyLLM.create(
-		provider=get_any_llm_provider(llm_provider),
+		provider=get_any_llm_provider(settings.llm_provider),
 		api_key=api_key,
 		api_base=base_url,
 	)

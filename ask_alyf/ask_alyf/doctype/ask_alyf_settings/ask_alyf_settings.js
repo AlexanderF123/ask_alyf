@@ -36,11 +36,6 @@ async function load_model_options(frm) {
 	try {
 		const response = await frappe.call({
 			method: "ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings.get_available_models",
-			args: {
-				llm_provider: frm.doc.llm_provider,
-				base_url: frm.doc.base_url,
-				api_key: frm.doc.api_key,
-			},
 		});
 
 		const models = response.message || [];
