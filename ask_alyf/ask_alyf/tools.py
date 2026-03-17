@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fnmatch
 import json
 import re
 import tomllib
@@ -45,6 +46,183 @@ def coerce_int(value: Any, default: int, *, minimum: int | None = None) -> int:
 
 def get_settings():
 	return frappe.get_single("Ask ALYF Settings")
+
+
+def ensure_code_search_enabled():
+	settings = get_settings()
+	if not settings.is_code_search_enabled():
+		frappe.throw(_("Code search is disabled in Ask ALYF Settings."))
+
+
+def is_path_within(base_path: Path, target_path: Path) -> bool:
+	return base_path == target_path or base_path in target_path.parents
+
+
+def get_apps_path() -> Path:
+	return (Path(get_bench_path()) / "apps").resolve()
+
+
+def get_installed_app_roots() -> dict[str, Path]:
+	apps_path = get_apps_path()
+	app_roots: dict[str, Path] = {}
+	for app_name in frappe.get_installed_apps():
+		app_root = (apps_path / app_name).resolve()
+		if app_root.exists() and app_root.is_dir() and is_path_within(apps_path, app_root):
+			app_roots[app_name] = app_root
+	return app_roots
+
+
+def get_installed_app_root(app_name: str) -> Path:
+	ensure_code_search_enabled()
+	app_name = (app_name or "").strip()
+	if not app_name:
+		frappe.throw(_("App name is required."))
+
+	app_root = get_installed_app_roots().get(app_name)
+	if not app_root:
+		frappe.throw(_("App '{0}' is not installed.").format(app_name))
+
+	return app_root
+
+
+def get_path_parts(path_value: str) -> list[str]:
+	cleaned_path = (path_value or "").strip().strip("/")
+	if not cleaned_path or cleaned_path == ".":
+		return []
+
+	return [part for part in Path(cleaned_path).parts if part not in {"", "."}]
+
+
+def normalize_app_relative_path(app_name: str, relative_path: str = "") -> Path:
+	parts = get_path_parts(relative_path)
+	if parts[:2] == ["apps", app_name]:
+		parts = parts[2:]
+	elif parts[:1] == [app_name]:
+		parts = parts[1:]
+
+	return Path(*parts) if parts else Path()
+
+
+def resolve_installed_app_path(app_name: str, relative_path: str = "") -> tuple[Path, Path]:
+	app_root = get_installed_app_root(app_name)
+	relative_target = normalize_app_relative_path(app_name, relative_path)
+	target = (app_root / relative_target).resolve()
+
+	if not is_path_within(app_root, target):
+		frappe.throw(_("Code access is restricted to installed app directories."))
+
+	return app_root, target
+
+
+def resolve_code_search_roots(relative_path: str = "") -> list[tuple[str, Path, Path]]:
+	ensure_code_search_enabled()
+	app_roots = get_installed_app_roots()
+	if not app_roots:
+		frappe.throw(_("No installed app code roots were found."))
+
+	parts = get_path_parts(relative_path)
+	if parts[:1] == ["apps"]:
+		parts = parts[1:]
+
+	if not parts:
+		return [(app_name, app_root, app_root) for app_name, app_root in app_roots.items()]
+
+	app_name = parts[0]
+	relative_target = "/".join(parts[1:])
+	app_root, target = resolve_installed_app_path(app_name, relative_target)
+	return [(app_name, app_root, target)]
+
+
+def resolve_bench_app_path(path: str) -> tuple[Path, Path]:
+	ensure_code_search_enabled()
+	parts = get_path_parts(path)
+	if parts[:1] == ["apps"]:
+		parts = parts[1:]
+
+	if not parts:
+		frappe.throw(_("Path must start with an installed app name."))
+
+	app_name = parts[0]
+	relative_target = "/".join(parts[1:])
+	return resolve_installed_app_path(app_name, relative_target)
+
+
+def is_hidden_path(app_root: Path, path: Path) -> bool:
+	return any(part.startswith(".") for part in path.relative_to(app_root).parts if part not in {"", "."})
+
+
+def to_bench_relative_path(path: Path) -> str:
+	bench_path = Path(get_bench_path()).resolve()
+	return path.relative_to(bench_path).as_posix()
+
+
+def build_code_path_entry(app_root: Path, path: Path) -> dict[str, Any]:
+	entry = {
+		"name": path.name or app_root.name,
+		"path": to_bench_relative_path(path),
+		"app_relative_path": path.relative_to(app_root).as_posix() or ".",
+		"type": "directory" if path.is_dir() else "file",
+	}
+	if path.is_file():
+		entry["size"] = path.stat().st_size
+	return entry
+
+
+def ensure_app_target_exists(app_root: Path, target: Path):
+	if target.exists():
+		return
+
+	relative_path = target.relative_to(app_root).as_posix() or "."
+	frappe.throw(_("Path '{0}' was not found in app '{1}'.").format(relative_path, app_root.name))
+
+
+def iter_scoped_entries(
+	app_root: Path,
+	target: Path,
+	*,
+	recursive: bool,
+	include_hidden: bool,
+) -> list[Path]:
+	ensure_app_target_exists(app_root, target)
+	if target.is_file():
+		return [target]
+
+	results: list[Path] = []
+	seen_paths = {target}
+	pending_paths = [target]
+
+	while pending_paths:
+		current_path = pending_paths.pop()
+		try:
+			children = sorted(current_path.iterdir(), key=lambda child: child.name.lower())
+		except Exception:
+			continue
+
+		for child in children:
+			resolved_child = child.resolve()
+			if resolved_child in seen_paths or not is_path_within(app_root, resolved_child):
+				continue
+			if not include_hidden and is_hidden_path(app_root, child):
+				continue
+
+			seen_paths.add(resolved_child)
+			results.append(resolved_child)
+			if recursive and resolved_child.is_dir():
+				pending_paths.append(resolved_child)
+
+	return results
+
+
+def iter_scoped_files(app_root: Path, target: Path, include_hidden: bool = False) -> list[Path]:
+	if target.is_file():
+		ensure_app_target_exists(app_root, target)
+		return [target]
+
+	return [
+		entry
+		for entry in iter_scoped_entries(app_root, target, recursive=True, include_hidden=include_hidden)
+		if entry.is_file()
+	]
 
 
 def get_excluded_doctypes() -> set[str]:
@@ -227,48 +405,48 @@ def translate_ui_labels(labels: list[str] | str, language: str | None = None) ->
 
 
 def search_code(query: str, relative_path: str = "", limit: int = 20) -> list[dict[str, Any]]:
+	ensure_code_search_enabled()
 	limit = coerce_int(limit, 20, minimum=1)
-	apps_path = Path(get_bench_path()) / "apps"
-	search_root = (apps_path / relative_path).resolve() if relative_path else apps_path.resolve()
-
-	if apps_path.resolve() not in [search_root, *search_root.parents]:
-		frappe.throw(_("Code search is restricted to the apps directory."))
+	query = (query or "").strip()
+	if not query:
+		frappe.throw(_("Query is required."))
 
 	query_lower = query.lower()
 	results = []
 
-	for file_path in search_root.rglob("*"):
-		if not file_path.is_file() or file_path.suffix.lower() not in CODE_EXTENSIONS:
-			continue
+	for _app_name, app_root, search_root in resolve_code_search_roots(relative_path):
+		for file_path in sorted(iter_scoped_files(app_root, search_root), key=to_bench_relative_path):
+			if file_path.suffix.lower() not in CODE_EXTENSIONS:
+				continue
 
-		try:
-			lines = file_path.read_text(encoding="utf-8").splitlines()
-		except Exception:
-			continue
+			try:
+				lines = file_path.read_text(encoding="utf-8").splitlines()
+			except Exception:
+				continue
 
-		for index, line in enumerate(lines, start=1):
-			if query_lower in line.lower():
-				results.append(
-					{
-						"path": str(file_path.relative_to(apps_path.parent)),
-						"line": index,
-						"snippet": line.strip(),
-					}
-				)
-				if len(results) >= limit:
-					return results
+			for index, line in enumerate(lines, start=1):
+				if query_lower in line.lower():
+					results.append(
+						{
+							"path": to_bench_relative_path(file_path),
+							"line": index,
+							"snippet": line.strip(),
+						}
+					)
+					if len(results) >= limit:
+						return results
 
 	return results
 
 
 def read_code_file(path: str, start_line: int = 1, end_line: int = 200) -> dict[str, Any]:
+	ensure_code_search_enabled()
 	start_line = coerce_int(start_line, 1, minimum=1)
 	end_line = coerce_int(end_line, 200, minimum=1)
-	bench_path = Path(get_bench_path()).resolve()
-	target = (bench_path / path).resolve()
-
-	if bench_path not in [target, *target.parents]:
-		frappe.throw(_("Code reads are restricted to the bench directory."))
+	app_root, target = resolve_bench_app_path(path)
+	ensure_app_target_exists(app_root, target)
+	if not target.is_file():
+		frappe.throw(_("Path '{0}' must point to a file inside an installed app.").format(path))
 
 	lines = target.read_text(encoding="utf-8").splitlines()
 	start = max(1, start_line)
@@ -277,7 +455,140 @@ def read_code_file(path: str, start_line: int = 1, end_line: int = 200) -> dict[
 	for line_number in range(start, stop + 1):
 		content.append(f"{line_number}: {lines[line_number - 1]}")
 
-	return {"path": path, "content": "\n".join(content), "start_line": start, "end_line": stop}
+	return {
+		"path": to_bench_relative_path(target),
+		"content": "\n".join(content),
+		"start_line": start,
+		"end_line": stop,
+	}
+
+
+def ls(
+	app_name: str,
+	relative_path: str = "",
+	recursive: bool = False,
+	include_hidden: bool = False,
+	limit: int = 200,
+) -> dict[str, Any]:
+	"""List files or directories inside an installed app, similar to Debian ls."""
+	ensure_code_search_enabled()
+	limit = coerce_int(limit, 200, minimum=1)
+	app_root, target = resolve_installed_app_path(app_name, relative_path)
+	entries = sorted(
+		iter_scoped_entries(app_root, target, recursive=bool(recursive), include_hidden=bool(include_hidden)),
+		key=to_bench_relative_path,
+	)
+
+	return {
+		"app_name": app_name,
+		"path": target.relative_to(app_root).as_posix() or ".",
+		"recursive": bool(recursive),
+		"entries": [build_code_path_entry(app_root, entry) for entry in entries[:limit]],
+	}
+
+
+def find(
+	app_name: str,
+	name_pattern: str = "*",
+	relative_path: str = "",
+	entry_type: str = "any",
+	include_hidden: bool = False,
+	limit: int = 200,
+) -> dict[str, Any]:
+	"""Find files or directories inside an installed app, similar to Debian find."""
+	ensure_code_search_enabled()
+	limit = coerce_int(limit, 200, minimum=1)
+	entry_type = (entry_type or "any").strip().lower()
+	if entry_type not in {"any", "file", "directory"}:
+		frappe.throw(_("Entry type must be one of any, file, or directory."))
+
+	app_root, target = resolve_installed_app_path(app_name, relative_path)
+	candidates = sorted(
+		iter_scoped_entries(app_root, target, recursive=True, include_hidden=bool(include_hidden)),
+		key=to_bench_relative_path,
+	)
+	if target.is_file():
+		candidates = [target]
+
+	matches = []
+	for candidate in candidates:
+		if entry_type == "file" and not candidate.is_file():
+			continue
+		if entry_type == "directory" and not candidate.is_dir():
+			continue
+		if not fnmatch.fnmatch(candidate.name, name_pattern):
+			continue
+
+		matches.append(build_code_path_entry(app_root, candidate))
+		if len(matches) >= limit:
+			break
+
+	return {
+		"app_name": app_name,
+		"path": target.relative_to(app_root).as_posix() or ".",
+		"name_pattern": name_pattern,
+		"entry_type": entry_type,
+		"matches": matches,
+	}
+
+
+def grep(
+	app_name: str,
+	query: str,
+	relative_path: str = "",
+	file_pattern: str = "*",
+	case_sensitive: bool = False,
+	include_hidden: bool = False,
+	limit: int = 50,
+) -> dict[str, Any]:
+	"""Search file contents inside an installed app, similar to Debian grep."""
+	ensure_code_search_enabled()
+	limit = coerce_int(limit, 50, minimum=1)
+	query = (query or "").strip()
+	if not query:
+		frappe.throw(_("Query is required."))
+
+	app_root, target = resolve_installed_app_path(app_name, relative_path)
+	needle = query if case_sensitive else query.lower()
+	matches = []
+
+	for file_path in sorted(
+		iter_scoped_files(app_root, target, include_hidden=bool(include_hidden)), key=to_bench_relative_path
+	):
+		if file_pattern and not fnmatch.fnmatch(file_path.name, file_pattern):
+			continue
+
+		try:
+			lines = file_path.read_text(encoding="utf-8").splitlines()
+		except Exception:
+			continue
+
+		for line_number, line in enumerate(lines, start=1):
+			haystack = line if case_sensitive else line.lower()
+			if needle not in haystack:
+				continue
+
+			matches.append(
+				{
+					"path": to_bench_relative_path(file_path),
+					"line": line_number,
+					"snippet": line.strip(),
+				}
+			)
+			if len(matches) >= limit:
+				return {
+					"app_name": app_name,
+					"path": target.relative_to(app_root).as_posix() or ".",
+					"query": query,
+					"matches": matches,
+				}
+
+	return {
+		"app_name": app_name,
+		"path": target.relative_to(app_root).as_posix() or ".",
+		"query": query,
+		"matches": matches,
+	}
 
 
 def read_file_record(file_url: str | None = None, file_name: str | None = None) -> dict[str, Any]:

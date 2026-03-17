@@ -36,6 +36,7 @@ class AskALYFSettings(Document):
 		)
 
 		allow_agent_mode: DF.Check
+		allow_code_search: DF.Check
 		allowed_roles: DF.Table[HasRole]
 		api_key: DF.Password | None
 		base_url: DF.Data | None
@@ -47,7 +48,8 @@ class AskALYFSettings(Document):
 		system_prompt: DF.Code | None
 	# end: auto-generated types
 
-	pass
+	def is_code_search_enabled(self) -> bool:
+		return bool(self.allow_code_search)
 
 
 @frappe.whitelist()

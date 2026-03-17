@@ -307,11 +307,11 @@ class ask_alyfToolset:
 		return tools.translate_ui_labels(labels=labels, language=language or request_language)
 
 	def search_code(self, query: str, relative_path: str = "", limit: int = 20) -> list[dict[str, Any]]:
-		"""Search the bench apps codebase for matching text.
+		"""Search installed app code for matching text.
 
 		Args:
 			query: The text to search for.
-			relative_path: Optional path inside the apps directory. Providing at least the app name will make it much faster.
+			relative_path: Optional installed-app-relative path. Providing at least the app name will make it much faster.
 			limit: Maximum number of matches to return.
 
 		Returns:
@@ -321,10 +321,10 @@ class ask_alyfToolset:
 		return tools.search_code(query=query, relative_path=relative_path, limit=limit)
 
 	def read_code_file(self, path: str, start_line: int = 1, end_line: int = 200) -> dict[str, Any]:
-		"""Read a file from the bench codebase.
+		"""Read a file from installed app code.
 
 		Args:
-			path: Bench-relative path to read.
+			path: Bench-relative path inside an installed app, such as apps/my_app/my_app/module.py.
 			start_line: First line to include.
 			end_line: Last line to include.
 
@@ -333,6 +333,102 @@ class ask_alyfToolset:
 		"""
 		self.runtime.emit_status(_("Reading code file..."))
 		return tools.read_code_file(path=path, start_line=start_line, end_line=end_line)
+
+	def ls(
+		self,
+		app_name: str,
+		relative_path: str = "",
+		recursive: bool = False,
+		include_hidden: bool = False,
+		limit: int = 200,
+	) -> dict[str, Any]:
+		"""List files or directories in an installed app, similar to Debian ls.
+
+		Args:
+			app_name: The installed app name.
+			relative_path: Optional path inside the app.
+			recursive: Whether to include nested descendants.
+			include_hidden: Whether to include hidden files and folders.
+			limit: Maximum number of entries to return.
+
+		Returns:
+			A directory listing payload.
+		"""
+		self.runtime.emit_status(_("Listing code files..."))
+		return tools.ls(
+			app_name=app_name,
+			relative_path=relative_path,
+			recursive=recursive,
+			include_hidden=include_hidden,
+			limit=limit,
+		)
+
+	def find(
+		self,
+		app_name: str,
+		name_pattern: str = "*",
+		relative_path: str = "",
+		entry_type: str = "any",
+		include_hidden: bool = False,
+		limit: int = 200,
+	) -> dict[str, Any]:
+		"""Find files or directories in an installed app, similar to Debian find.
+
+		Args:
+			app_name: The installed app name.
+			name_pattern: Shell-style filename pattern, such as *.py.
+			relative_path: Optional path inside the app to search from.
+			entry_type: One of any, file, or directory.
+			include_hidden: Whether to include hidden files and folders.
+			limit: Maximum number of matches to return.
+
+		Returns:
+			A find-style search payload.
+		"""
+		self.runtime.emit_status(_("Finding code paths..."))
+		return tools.find(
+			app_name=app_name,
+			name_pattern=name_pattern,
+			relative_path=relative_path,
+			entry_type=entry_type,
+			include_hidden=include_hidden,
+			limit=limit,
+		)
+
+	def grep(
+		self,
+		app_name: str,
+		query: str,
+		relative_path: str = "",
+		file_pattern: str = "*",
+		case_sensitive: bool = False,
+		include_hidden: bool = False,
+		limit: int = 50,
+	) -> dict[str, Any]:
+		"""Search file contents in an installed app, similar to Debian grep.
+
+		Args:
+			app_name: The installed app name.
+			query: The text to search for.
+			relative_path: Optional path inside the app to search from.
+			file_pattern: Optional shell-style filename filter, such as *.py.
+			case_sensitive: Whether matching should be case-sensitive.
+			include_hidden: Whether to include hidden files and folders.
+			limit: Maximum number of matches to return.
+
+		Returns:
+			A grep-style search payload.
+		"""
+		self.runtime.emit_status(_("Searching file contents..."))
+		return tools.grep(
+			app_name=app_name,
+			query=query,
+			relative_path=relative_path,
+			file_pattern=file_pattern,
+			case_sensitive=case_sensitive,
+			include_hidden=include_hidden,
+			limit=limit,
+		)
 
 	def read_file_record(self, file_url: str | None = None, file_name: str | None = None) -> dict[str, Any]:
 		"""Read the content of a File record the user can access.
@@ -854,6 +950,7 @@ Mode awareness and behavior:
 - Before insert or save, call get_meta for the target DocType and follow field types exactly.
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
 - After a write tool succeeds, explain what will happen when the user confirms it.
+- When code search is enabled, `search_code`, `read_code_file`, `ls`, `find`, and `grep` are read-only and restricted to installed app directories.
 - Excluded DocTypes for Agent mode: {excluded_doctypes}
 """.strip()
 
@@ -879,14 +976,23 @@ Mode awareness and behavior:
 			self.toolset.set_route,
 			self.toolset.new_doc,
 			self.toolset.scroll_to_field,
-			self.toolset.search_code,
-			self.toolset.read_code_file,
 			self.toolset.read_file_record,
 			self.toolset.run_read_only_sql,
 			self.toolset.get_app_version,
 			self.toolset.read_github_releases,
 			self.toolset.read_documentation_page,
 		]
+
+		if self.settings.is_code_search_enabled():
+			tool_defs.extend(
+				[
+					self.toolset.search_code,
+					self.toolset.read_code_file,
+					self.toolset.ls,
+					self.toolset.find,
+					self.toolset.grep,
+				]
+			)
 
 		if self.runtime.mode == "Agent":
 			tool_defs.extend(
