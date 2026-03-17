@@ -3,23 +3,24 @@
 
 frappe.ui.form.on("Ask ALYF Settings", {
 	refresh(frm) {
-		load_model_options(frm);
+		load_provider_model_options(frm);
 		render_roles_editor(frm);
+		add_code_index_sync_button(frm);
 	},
 
 	llm_provider(frm) {
-		clear_model_options(frm);
-		load_model_options(frm);
+		clear_provider_model_options(frm);
+		load_provider_model_options(frm);
 	},
 
 	base_url(frm) {
-		clear_model_options(frm);
-		load_model_options(frm);
+		clear_provider_model_options(frm);
+		load_provider_model_options(frm);
 	},
 
 	api_key(frm) {
-		clear_model_options(frm);
-		load_model_options(frm);
+		clear_provider_model_options(frm);
+		load_provider_model_options(frm);
 	},
 
 	validate(frm) {
@@ -27,30 +28,71 @@ frappe.ui.form.on("Ask ALYF Settings", {
 	},
 });
 
-async function load_model_options(frm) {
-	const model_field = frm.fields_dict.model;
-	if (!model_field) {
+async function load_provider_model_options(frm) {
+	await Promise.all([
+		load_autocomplete_options(
+			frm.fields_dict.model,
+			"ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings.get_available_models"
+		),
+		load_autocomplete_options(
+			frm.fields_dict.embedding_model,
+			"ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings.get_available_embedding_models"
+		),
+	]);
+}
+
+async function load_autocomplete_options(field, method) {
+	if (!field) {
 		return;
 	}
 
 	try {
-		const response = await frappe.call({
-			method: "ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings.get_available_models",
-		});
-
+		const response = await frappe.call({ method });
 		const models = response.message || [];
-		const options = models.map((model) => ({
-			label: model.id,
-			value: model.id,
-		}));
-		model_field.set_data(options);
+		field.set_data(
+			models.map((model) => ({
+				label: model.id,
+				value: model.id,
+			}))
+		);
 	} catch {
-		model_field.set_data([]);
+		field.set_data([]);
 	}
 }
 
-function clear_model_options(frm) {
+function clear_provider_model_options(frm) {
 	frm.fields_dict.model?.set_data([]);
+	frm.fields_dict.embedding_model?.set_data([]);
+}
+
+function add_code_index_sync_button(frm) {
+	if (!frm.doc.allow_code_search || frm.is_new()) {
+		return;
+	}
+
+	frm.add_custom_button(__("Run Code Index Sync"), () => {
+		if (frm.is_dirty()) {
+			frappe.msgprint(
+				__("Please save Ask ALYF Settings before starting a code index sync.")
+			);
+			return;
+		}
+
+		frappe.confirm(
+			__(
+				"This will enqueue a code index sync. The initial build can take a very long time and consume significant CPU and API resources. Do you want to continue?"
+			),
+			async () => {
+				const response = await frappe.call({
+					method: "ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings.enqueue_code_index_sync",
+				});
+				frappe.show_alert({
+					message: response.message?.message || __("Code index sync has been queued."),
+					indicator: "blue",
+				});
+			}
+		);
+	});
 }
 
 function render_roles_editor(frm) {

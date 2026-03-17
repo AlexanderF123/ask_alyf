@@ -19,6 +19,17 @@ NON_TEXT_MODEL_PATTERNS = (
 	"vision-preview",
 	"whisper",
 )
+EMBEDDING_MODEL_PATTERNS = (
+	"embed",
+	"embedding",
+	"bge",
+	"e5",
+	"gte",
+	"nomic",
+	"search",
+	"similarity",
+	"voyage",
+)
 
 
 class AskALYFSettings(Document):
@@ -36,9 +47,11 @@ class AskALYFSettings(Document):
 		)
 
 		allow_agent_mode: DF.Check
+		allow_code_search: DF.Check
 		allowed_roles: DF.Table[HasRole]
 		api_key: DF.Password | None
 		base_url: DF.Data | None
+		embedding_model: DF.Autocomplete | None
 		enabled: DF.Check
 		excluded_doctypes: DF.TableMultiSelect[AskALYFExcludedDocType]
 		llm_provider: DF.Literal["OpenAI", "OpenAI Compatible"]
@@ -47,11 +60,47 @@ class AskALYFSettings(Document):
 		system_prompt: DF.Code | None
 	# end: auto-generated types
 
-	pass
+	def on_update(self):
+		previous = self.get_doc_before_save()
+		if previous and not _code_search_settings_changed(previous, self):
+			return
+
+		from ask_alyf.ask_alyf.code_index import enqueue_codebase_index_sync
+
+		if self.allow_code_search:
+			enqueue_codebase_index_sync(force_full=_requires_full_rebuild(previous, self))
 
 
 @frappe.whitelist()
 def get_available_models() -> list[dict[str, str]]:
+	return _get_available_models(filter_fn=is_text_generation_model)
+
+
+@frappe.whitelist()
+def get_available_embedding_models() -> list[dict[str, str]]:
+	return _get_available_models(filter_fn=is_embedding_model)
+
+
+@frappe.whitelist()
+def enqueue_code_index_sync() -> dict[str, str]:
+	settings = frappe.get_single("Ask ALYF Settings")
+	settings.check_permission("write")
+
+	if not settings.allow_code_search:
+		frappe.throw(_("Enable code search in Ask ALYF Settings before starting a sync."))
+
+	from ask_alyf.ask_alyf.code_index import enqueue_codebase_index_sync
+
+	enqueue_codebase_index_sync()
+	return {
+		"status": "queued",
+		"message": _(
+			"Code index sync has been queued. Check the background jobs and Ask ALYF logs for progress."
+		),
+	}
+
+
+def _get_available_models(*, filter_fn) -> list[dict[str, str]]:
 	settings = frappe.get_single("Ask ALYF Settings")
 	settings.check_permission("write")
 
@@ -78,11 +127,7 @@ def get_available_models() -> list[dict[str, str]]:
 		api_base=base_url,
 	)
 	response = client.list_models()
-	models = sorted(
-		[model for model in response if is_text_generation_model(model.id)],
-		key=lambda model: model.id.lower(),
-	)
-
+	models = sorted([model for model in response if filter_fn(model.id)], key=lambda model: model.id.lower())
 	return [{"id": model.id} for model in models]
 
 
@@ -112,3 +157,43 @@ def is_text_generation_model(model_id: str) -> bool:
 		return False
 
 	return not any(pattern in model_id for pattern in NON_TEXT_MODEL_PATTERNS)
+
+
+def is_embedding_model(model_id: str) -> bool:
+	model_id = (model_id or "").strip().lower()
+	if not model_id:
+		return False
+
+	return any(pattern in model_id for pattern in EMBEDDING_MODEL_PATTERNS)
+
+
+def _code_search_settings_changed(previous: Document | None, current: AskALYFSettings) -> bool:
+	"""Return whether code-search-relevant settings changed."""
+	if previous is None:
+		return bool(current.allow_code_search)
+
+	return any(
+		_get_normalized_setting_value(previous, fieldname)
+		!= _get_normalized_setting_value(current, fieldname)
+		for fieldname in ("allow_code_search", "embedding_model", "llm_provider", "base_url")
+	)
+
+
+def _requires_full_rebuild(previous: Document | None, current: AskALYFSettings) -> bool:
+	"""Return whether settings changes invalidate the persisted embedding index."""
+	if previous is None:
+		return bool(current.allow_code_search)
+
+	return any(
+		_get_normalized_setting_value(previous, fieldname)
+		!= _get_normalized_setting_value(current, fieldname)
+		for fieldname in ("embedding_model", "llm_provider", "base_url")
+	)
+
+
+def _get_normalized_setting_value(document: Document, fieldname: str) -> str:
+	"""Normalize comparable settings values."""
+	value = document.get(fieldname)
+	if isinstance(value, str):
+		return value.strip()
+	return str(int(bool(value))) if isinstance(value, int | bool) else str(value or "")

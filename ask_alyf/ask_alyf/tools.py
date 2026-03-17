@@ -226,6 +226,13 @@ def translate_ui_labels(labels: list[str] | str, language: str | None = None) ->
 	}
 
 
+def search_codebase(query: str, top_k: int = 5) -> str:
+	top_k = coerce_int(top_k, 5, minimum=1)
+	from ask_alyf.ask_alyf.code_index import search_codebase as search_codebase_index
+
+	return search_codebase_index(query=query, top_k=top_k)
+
+
 def search_code(query: str, relative_path: str = "", limit: int = 20) -> list[dict[str, Any]]:
 	limit = coerce_int(limit, 20, minimum=1)
 	apps_path = Path(get_bench_path()) / "apps"

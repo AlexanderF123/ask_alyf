@@ -320,6 +320,19 @@ class ask_alyfToolset:
 		self.runtime.emit_status(_("Searching code..."))
 		return tools.search_code(query=query, relative_path=relative_path, limit=limit)
 
+	def search_codebase(self, query: str, top_k: int = 5) -> str:
+		"""Semantic code retrieval from the local LlamaIndex codebase index.
+
+		Args:
+			query: Natural language query describing the code to find.
+			top_k: Number of top matching code chunks to return.
+
+		Returns:
+			Formatted code snippets containing app name, path, and content.
+		"""
+		self.runtime.emit_status(_("Searching indexed codebase..."))
+		return tools.search_codebase(query=query, top_k=top_k)
+
 	def read_code_file(self, path: str, start_line: int = 1, end_line: int = 200) -> dict[str, Any]:
 		"""Read a file from the bench codebase.
 
@@ -832,13 +845,18 @@ class ask_alyfAgentRunner:
 		context = frappe.as_json(self.runtime.request_context, indent=2)
 		excluded_doctypes = ", ".join(sorted(tools.get_excluded_doctypes())) or "None"
 		system_prompt = (self.settings.system_prompt or "").strip()
+		code_search_instruction = (
+			"- Use `search_codebase` for natural-language code lookup and `search_code` for exact-text matches.\n"
+			if self.settings.allow_code_search
+			else "- Use `search_code` for exact-text code matches.\n"
+		)
 
 		base_instructions = f"""
 You are Ask ALYF, an ERPNext and Frappe assistant embedded inside the user's desk.
 
 Always follow these rules:
 - Use the available read tools whenever the user asks about instance data, permissions, metadata, code, files, or reports.
-- Be concise, accurate, and explicit about uncertainty.
+{code_search_instruction}- Be concise, accurate, and explicit about uncertainty.
 - Respect the current user's permissions. If a tool says something is not allowed, explain that plainly.
 - If request context `lang` is not English, always call `translate_ui_labels` before using user-facing UI terms (DocType names, field labels, button labels, tabs, menus, and status labels) in your response.
 - Render responses as Markdown when that helps.
@@ -887,6 +905,8 @@ Mode awareness and behavior:
 			self.toolset.read_github_releases,
 			self.toolset.read_documentation_page,
 		]
+		if self.settings.allow_code_search:
+			tool_defs.insert(15, self.toolset.search_codebase)
 
 		if self.runtime.mode == "Agent":
 			tool_defs.extend(

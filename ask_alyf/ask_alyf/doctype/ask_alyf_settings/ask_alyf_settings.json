@@ -8,17 +8,20 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "enabled",
   "llm_provider",
   "base_url",
   "api_key",
   "model",
-  "allow_agent_mode",
+  "embedding_model",
   "roles_html",
   "allowed_roles",
   "excluded_doctypes",
   "system_prompt",
-  "support_phone_number"
+  "support_phone_number",
+  "column_break_idxf",
+  "enabled",
+  "allow_agent_mode",
+  "allow_code_search"
  ],
  "fields": [
   {
@@ -52,7 +55,7 @@
    "description": "Start typing to choose a model. Available models are loaded from the configured provider.",
    "fieldname": "model",
    "fieldtype": "Autocomplete",
-   "label": "Model"
+   "label": "Chat Model"
   },
   {
    "fieldname": "allowed_roles",
@@ -89,13 +92,28 @@
    "fieldname": "support_phone_number",
    "fieldtype": "Phone",
    "label": "Support Phone Number"
+  },
+  {
+   "fieldname": "embedding_model",
+   "fieldtype": "Autocomplete",
+   "label": "Embedding Model"
+  },
+  {
+   "fieldname": "column_break_idxf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_code_search",
+   "fieldtype": "Check",
+   "label": "Allow Code Search"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-16 18:43:13.350048",
+ "modified": "2026-03-17 01:52:34.825189",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",

@@ -101,10 +101,20 @@ Conversations are persisted in an **Ask ALYF Conversation** DocType. This provid
 
 - LLM provider
 - API key
-- model name
+- chat model
+- embedding model
+- enable / disable code search
 - enable / disable Agent mode (site-wide kill switch)
 - roles that can use the agent
 - DocTypes excluded from Agent mode
+
+Code search notes:
+
+- Semantic code search builds a site-local LlamaIndex under `sites/[site]/private/llamaindex_code_index`.
+- Disabling code search does not delete the persisted index; re-enabling it can reuse the existing artifact.
+- Changing the embedding model, provider, or base URL triggers a full rebuild because indexing and querying must use the same embedding backend.
+- In one observed full indexing run, the embedding workflow transferred roughly 72 MB upstream and 120 MB downstream, so network usage can be noticeably higher than the raw source size.
+- Progress logs for code index sync are emitted at `INFO` level via `frappe.logger("ask_alyf")`. If you do not see them while a sync is running, make sure the process executing the sync is running with log level `INFO` or lower.
 
 ### Error Handling
 
