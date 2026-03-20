@@ -29,8 +29,17 @@ FRONTEND_ACTION_TOOLS = {
 	"scroll_to_field",
 	"frm_set_value",
 	"frm_add_child",
+	"show_chart",
 }
-AUTO_FRONTEND_ACTION_TOOLS = {"set_route", "new_doc", "scroll_to_field"}
+AUTO_FRONTEND_ACTION_TOOLS = {"set_route", "new_doc", "scroll_to_field", "show_chart"}
+ALLOWED_FRAPPE_CHART_TYPES = frozenset({"bar", "line", "scatter", "pie", "percentage", "donut", "axis-mixed"})
+MAX_FRAPPE_CHARTS_PER_MESSAGE = 8
+MAX_FRAPPE_CHART_LABELS = 100
+MAX_FRAPPE_CHART_DATASETS = 20
+# Frappe Charts subtracts ~130px (margins, padding, title, legend) from this value;
+# values below ~200 yield a non-positive plot height and NaN axis geometry in draw.js.
+MIN_FRAPPE_CHART_HEIGHT = 240
+MAX_FRAPPE_CHART_HEIGHT = 800
 
 
 def coerce_int(value: Any, default: int, *, minimum: int | None = None) -> int:
@@ -900,6 +909,183 @@ def has_unsafe_payload_keys(value: Any) -> bool:
 	return False
 
 
+def _coerce_chart_scalar(value: Any) -> float | str | None:
+	if isinstance(value, bool):
+		return None
+	if isinstance(value, (int, float)):
+		if isinstance(value, float) and not (value == value):  # NaN
+			return None
+		return float(value)
+	if isinstance(value, str):
+		stripped = value.strip()
+		return stripped[:500] if stripped else None
+	return None
+
+
+def _sanitize_axis_chart_data(data: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+	labels_raw = data.get("labels")
+	if not isinstance(labels_raw, list) or not labels_raw:
+		return None, _("Chart data requires a non-empty labels array.")
+
+	if len(labels_raw) > MAX_FRAPPE_CHART_LABELS:
+		return None, _("Too many chart labels.")
+
+	labels: list[str] = []
+	for label in labels_raw:
+		coerced = _coerce_chart_scalar(label)
+		if coerced is None and label not in (0, 0.0):
+			return None, _("Chart labels must be numbers or strings.")
+		if coerced is None:
+			labels.append("0")
+		elif isinstance(coerced, float):
+			labels.append(str(int(coerced)) if coerced == int(coerced) else str(coerced))
+		else:
+			labels.append(str(coerced))
+
+	datasets_raw = data.get("datasets")
+	if not isinstance(datasets_raw, list) or not datasets_raw:
+		return None, _("Chart data requires a non-empty datasets array.")
+
+	if len(datasets_raw) > MAX_FRAPPE_CHART_DATASETS:
+		return None, _("Too many chart datasets.")
+
+	datasets: list[dict[str, Any]] = []
+	for row in datasets_raw:
+		if not isinstance(row, dict):
+			return None, _("Each dataset must be an object.")
+		values_raw = row.get("values")
+		if not isinstance(values_raw, list):
+			return None, _("Each dataset needs a values array.")
+		if len(values_raw) != len(labels):
+			return None, _("Dataset values must match labels length.")
+
+		values: list[float] = []
+		for v in values_raw:
+			if isinstance(v, bool):
+				return None, _("Dataset values must be numeric.")
+			if isinstance(v, (int, float)):
+				if isinstance(v, float) and not (v == v):
+					return None, _("Dataset values must be numeric.")
+				values.append(float(v))
+			else:
+				return None, _("Dataset values must be numeric.")
+
+		entry: dict[str, Any] = {"values": values}
+		name = row.get("name")
+		if isinstance(name, str) and name.strip():
+			entry["name"] = name.strip()[:120]
+		dtype = row.get("type")
+		if isinstance(dtype, str) and dtype.strip() in {"bar", "line"}:
+			entry["type"] = dtype.strip()
+		datasets.append(entry)
+
+	return {"labels": labels, "datasets": datasets}, None
+
+
+def validate_frappe_chart_options(raw: Any) -> tuple[dict[str, Any] | None, str | None]:
+	if not isinstance(raw, dict):
+		return None, _("Each chart must be an object.")
+
+	ctype = raw.get("type")
+	if not isinstance(ctype, str) or ctype not in ALLOWED_FRAPPE_CHART_TYPES:
+		return None, _("Unsupported or missing chart type.")
+
+	sanitized: dict[str, Any] = {"type": ctype}
+
+	title = raw.get("title")
+	if isinstance(title, str) and title.strip():
+		sanitized["title"] = title.strip()[:240]
+
+	height = raw.get("height")
+	if height is not None:
+		height_int = int(cint(height))
+		if height_int == 0:
+			pass
+		else:
+			height_int = max(MIN_FRAPPE_CHART_HEIGHT, height_int)
+			if height_int > MAX_FRAPPE_CHART_HEIGHT:
+				return None, _("Chart height is out of range.")
+			sanitized["height"] = height_int
+
+	colors = raw.get("colors")
+	if isinstance(colors, list) and colors:
+		safe_colors: list[str] = []
+		for c in colors[:24]:
+			if isinstance(c, str) and c.strip():
+				safe_colors.append(c.strip()[:64])
+		if safe_colors:
+			sanitized["colors"] = safe_colors
+
+	data = raw.get("data")
+	if not isinstance(data, dict):
+		return None, _("Chart data must be an object.")
+
+	safe_data, err = _sanitize_axis_chart_data(data)
+	if err or not safe_data:
+		return None, err or _("Invalid chart data.")
+
+	sanitized["data"] = safe_data
+
+	bar_options = raw.get("barOptions")
+	if isinstance(bar_options, dict):
+		bo: dict[str, Any] = {}
+		if "spaceRatio" in bar_options and isinstance(bar_options["spaceRatio"], (int, float)):
+			ratio = float(bar_options["spaceRatio"])
+			if 0 <= ratio <= 5:
+				bo["spaceRatio"] = ratio
+		if bo:
+			sanitized["barOptions"] = bo
+
+	line_options = raw.get("lineOptions")
+	if isinstance(line_options, dict):
+		lo: dict[str, Any] = {}
+		if "dotSize" in line_options and isinstance(line_options["dotSize"], (int, float)):
+			ds = float(line_options["dotSize"])
+			if 0 <= ds <= 40:
+				lo["dotSize"] = ds
+		if lo:
+			sanitized["lineOptions"] = lo
+
+	axis_options = raw.get("axisOptions")
+	if isinstance(axis_options, dict):
+		ao: dict[str, Any] = {}
+		for key in ("xAxisMode", "yAxisMode"):
+			val = axis_options.get(key)
+			if val in {"tick", "span"}:
+				ao[key] = val
+		if ao:
+			sanitized["axisOptions"] = ao
+
+	for flag in ("valuesOverPoints", "truncateLegends", "isNavigable"):
+		if raw.get(flag) is True:
+			sanitized[flag] = True
+
+	max_slices = raw.get("maxSlices")
+	if isinstance(max_slices, (int, float)):
+		ms = int(max_slices)
+		if 1 <= ms <= 50:
+			sanitized["maxSlices"] = ms
+
+	return sanitized, None
+
+
+def validate_frappe_charts_payload(frappe_charts: Any) -> tuple[list[dict[str, Any]] | None, str | None]:
+	if not isinstance(frappe_charts, list) or not frappe_charts:
+		return None, _("Provide at least one chart in frappe_charts.")
+
+	if len(frappe_charts) > MAX_FRAPPE_CHARTS_PER_MESSAGE:
+		return None, _("Too many charts in one request.")
+
+	out: list[dict[str, Any]] = []
+	for chart in frappe_charts:
+		sanitized, err = validate_frappe_chart_options(chart)
+		if err or not sanitized:
+			return None, err or _("Invalid chart specification.")
+		out.append(sanitized)
+
+	return out, None
+
+
 def validate_frontend_action_payload(tool: str, payload: dict[str, Any]) -> str | None:
 	tool = (tool or "").strip()
 	if tool not in FRONTEND_ACTION_TOOLS:
@@ -961,6 +1147,10 @@ def validate_frontend_action_payload(tool: str, payload: dict[str, Any]) -> str 
 		if docname is not None and (not isinstance(docname, str) or not docname.strip()):
 			return _("Frontend action 'frm_add_child' field 'docname' must be a string.")
 		return None
+
+	if tool == "show_chart":
+		_validation = validate_frappe_charts_payload(payload.get("frappe_charts"))
+		return _validation[1]
 
 	return _("Unsupported frontend action '{0}'.").format(tool)
 

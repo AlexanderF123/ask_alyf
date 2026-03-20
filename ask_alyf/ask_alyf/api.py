@@ -15,6 +15,7 @@ from ask_alyf.ask_alyf.tools import (
 	OPERATION_KIND_FRONTEND,
 	execute_pending_operation,
 	get_settings,
+	validate_frappe_charts_payload,
 )
 from ask_alyf.ask_alyf.utils import chunk_text, dumps, loads
 
@@ -123,6 +124,31 @@ def make_message(role: str, content: str, **metadata) -> dict:
 		"created_at": now_datetime().isoformat(),
 		"metadata": metadata,
 	}
+
+
+def find_assistant_message_for_pending_operation(
+	messages: list[dict[str, Any]],
+	pending_operation: dict[str, Any],
+) -> dict[str, Any] | None:
+	target_id = pending_operation.get("assistant_message_id")
+	if not isinstance(target_id, str) or not target_id.strip():
+		return None
+
+	target_id = target_id.strip()
+	for msg in messages:
+		if msg.get("id") == target_id:
+			return msg
+
+	return None
+
+
+def attach_frappe_charts_to_message(
+	message: dict[str, Any],
+	charts: list[dict[str, Any]],
+) -> None:
+	meta = message.setdefault("metadata", {})
+	meta["frappe_charts"] = [*charts]
+	meta["pending_operation"] = False
 
 
 def get_or_create_conversation(conversation_name: str | None = None):
@@ -364,6 +390,8 @@ def process_message_job(
 		pending_operation=bool(pending_operation),
 	)
 	messages.append(assistant_message)
+	if pending_operation and isinstance(pending_operation, dict):
+		pending_operation = {**pending_operation, "assistant_message_id": assistant_message["id"]}
 	doc.pending_operation_json = dumps(pending_operation) if pending_operation else ""
 	save_messages(doc, messages)
 
@@ -479,6 +507,49 @@ def reject_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 	return {"conversation": conversation_payload(doc)}
 
 
+def _resolve_show_chart_frontend_action(
+	doc,
+	messages: list[dict[str, Any]],
+	pending_operation: dict[str, Any],
+	status_value: str,
+	error: str | None,
+	normalized_mode: str,
+) -> dict[str, Any]:
+	doc.pending_operation_json = ""
+
+	if status_value == "success":
+		payload = pending_operation.get("payload")
+		payload = payload if isinstance(payload, dict) else {}
+		charts, validation_error = validate_frappe_charts_payload(payload.get("frappe_charts"))
+		if validation_error:
+			frappe.throw(validation_error)
+		target = find_assistant_message_for_pending_operation(messages, pending_operation)
+		if not target:
+			frappe.throw(_("Could not attach charts to the assistant message."))
+		attach_frappe_charts_to_message(target, charts)
+		save_messages(doc, messages)
+		return {"conversation": conversation_payload(doc)}
+
+	if status_value == "rejected":
+		content = _("Cancelled showing chart: {0}.").format(pending_operation.get("summary") or _("chart"))
+	else:
+		content = _("Could not display chart.")
+		if error:
+			content += " " + _("Reason: {0}").format(error)
+
+	messages.append(
+		make_message(
+			"assistant",
+			content,
+			mode=normalized_mode,
+			frontend_action_result=True,
+			frontend_action_status=status_value,
+		)
+	)
+	save_messages(doc, messages)
+	return {"conversation": conversation_payload(doc)}
+
+
 @frappe.whitelist(methods=["POST"])
 def frontend_action_result(
 	conversation: str,
@@ -516,11 +587,22 @@ def frontend_action_result(
 	elif isinstance(result, dict):
 		result_payload = result
 
+	messages = get_messages(doc)
+	if (pending_operation.get("tool") or "").strip() == "show_chart":
+		return _resolve_show_chart_frontend_action(
+			doc,
+			messages,
+			pending_operation,
+			status_value,
+			error,
+			normalized_mode,
+		)
+
 	summary = pending_operation.get("summary") or pending_operation.get("tool") or _("frontend action")
 	content = summarize_executed_action(
 		doc,
 		normalized_mode,
-		get_messages(doc),
+		messages,
 		pending_operation,
 		status=status_value,
 		result_payload=result_payload,
@@ -544,7 +626,6 @@ def frontend_action_result(
 	if result_payload:
 		message_metadata["frontend_action_payload"] = result_payload
 
-	messages = get_messages(doc)
 	messages.append(make_message("assistant", content, **message_metadata))
 	doc.pending_operation_json = ""
 	save_messages(doc, messages)

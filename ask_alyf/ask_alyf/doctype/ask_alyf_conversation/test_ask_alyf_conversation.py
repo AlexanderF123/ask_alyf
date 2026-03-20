@@ -56,11 +56,15 @@ class UnitTestAskALYFConversation(UnitTestCase):
 
 		conversation.reload()
 		payload = api.conversation_payload(conversation)
-		self.assertEqual(payload["pending_operation"], expected_operation)
+		messages = payload["messages"]
+		self.assertTrue(messages)
+		assistant = messages[-1]
+		expected_with_id = {**expected_operation, "assistant_message_id": assistant["id"]}
+		self.assertEqual(payload["pending_operation"], expected_with_id)
 
 		complete_events = [call for call in realtime_calls if call["event"] == "ask_alyf_response_complete"]
 		self.assertEqual(len(complete_events), 1)
-		self.assertEqual(complete_events[0]["payload"]["pending_operation"], expected_operation)
+		self.assertEqual(complete_events[0]["payload"]["pending_operation"], expected_with_id)
 
 	def test_invalid_frontend_operation_rejected_server_side(self):
 		with self.assertRaises(frappe.ValidationError):
@@ -150,3 +154,68 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		self.assertEqual(messages[-1]["content"], "Opened the Sales Invoice list view in your browser.")
 		self.assertEqual(messages[-1]["metadata"].get("frontend_action_status"), "success")
 		self.assertTrue(messages[-1]["metadata"].get("frontend_action_result"))
+
+	def test_show_chart_frontend_action_persists_charts_on_assistant_message(self):
+		assistant_message = api.make_message(
+			"assistant",
+			"Here is your data.",
+			mode=api.MODE_ASK,
+			pending_operation=True,
+		)
+		frappe_charts = [
+			{
+				"type": "bar",
+				"title": "Units",
+				"height": 300,
+				"colors": ["#7cd6fd"],
+				"data": {
+					"labels": ["A", "B"],
+					"datasets": [{"name": "Qty", "values": [1, 2]}],
+				},
+			},
+			{
+				"type": "line",
+				"title": "",
+				"height": 0,
+				"colors": [],
+				"data": {
+					"labels": ["Mon", "Tue"],
+					"datasets": [{"name": "", "values": [3, 4]}],
+				},
+			},
+		]
+		pending_operation = {
+			"kind": "frontend_action",
+			"tool": "show_chart",
+			"summary": "Show 2 charts",
+			"requires_confirmation": False,
+			"payload": {"frappe_charts": frappe_charts},
+			"call_id": "call-chart-1",
+			"assistant_message_id": assistant_message["id"],
+		}
+		conversation = self.make_conversation(
+			messages=[assistant_message],
+			pending_operation=pending_operation,
+		)
+
+		with patch("ask_alyf.ask_alyf.api.can_access_ask_alyf", return_value=True):
+			response = api.frontend_action_result(
+				conversation=conversation.name,
+				call_id="call-chart-1",
+				status="success",
+				mode=api.MODE_ASK,
+				result={"tool": "show_chart"},
+			)
+
+		self.assertIsNone(response["conversation"]["pending_operation"])
+		conversation.reload()
+		messages = loads(conversation.messages_json, [])
+		self.assertEqual(len(messages), 1)
+		stored = messages[0]["metadata"].get("frappe_charts")
+		self.assertTrue(isinstance(stored, list))
+		self.assertEqual(len(stored), 2)
+		self.assertEqual(stored[0]["type"], "bar")
+		self.assertEqual(stored[0]["title"], "Units")
+		self.assertEqual(stored[0]["height"], 300)
+		self.assertNotIn("height", stored[1])
+		self.assertFalse(messages[0]["metadata"].get("pending_operation"))

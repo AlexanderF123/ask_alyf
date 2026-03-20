@@ -246,6 +246,29 @@
 	justify-content: flex-end;
 }
 
+.ask_alyf-assistant {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.35rem;
+}
+
+.ask_alyf-message-charts {
+	width: 100%;
+	max-width: 100%;
+}
+
+.ask_alyf-frappe-chart-mount {
+	min-height: 4rem;
+	width: 100%;
+	min-width: 0;
+}
+
+.ask_alyf-frappe-chart-error {
+	color: var(--text-muted);
+	font-size: 0.85rem;
+	padding: 0.35rem 0;
+}
+
 .ask_alyf-status-message {
 	justify-content: center;
 }

@@ -67,6 +67,10 @@ Everything from Ask mode, plus:
 - `attach_file` — attach a file to a document
 - run whitelisted methods — call any `@frappe.whitelist()` method the current user has access to (e.g. `erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice`)
 
+#### Charts
+
+- `show_chart` — display one or more **Frappe Charts** under the assistant message (validated on the server, stored on message metadata, rendered below the reply; auto-run in the browser like other safe frontend actions)
+
 #### Context on every request
 
 - current user's route

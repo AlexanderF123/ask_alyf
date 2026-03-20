@@ -3,6 +3,139 @@
 		return;
 	}
 
+	const ASK_ALYF_AGGREGATION_CHART_TYPES = new Set(["pie", "donut", "percentage"]);
+	// Must exceed frappe-charts getExtraHeight (~130) plus drawable area; see tools.MIN_FRAPPE_CHART_HEIGHT.
+	const ASK_ALYF_FRAPPE_CHART_MIN_HEIGHT = 240;
+	const ASK_ALYF_FRAPPE_CHART_MAX_HEIGHT = 720;
+
+	/**
+	 * Frappe Charts divides by labels.length, Y interval range, and (for pie) grand total;
+	 * tiny/negative plot height or zero Y range yields NaN axis lines in draw.js.
+	 */
+	function normalizeStoredFrappeChartOptions(out) {
+		if (!out || typeof out !== "object") {
+			return { ok: false };
+		}
+		const type = String(out.type || "bar");
+		out.type = type;
+		out.animate = false;
+		out.disableEntryAnimation = true;
+
+		if (!out.data || typeof out.data !== "object") {
+			return { ok: false };
+		}
+
+		let labels = Array.isArray(out.data.labels)
+			? out.data.labels.map((label) =>
+					label === null || label === undefined ? "" : String(label)
+			  )
+			: [];
+		const maxLabels = 100;
+		if (labels.length > maxLabels) {
+			labels = labels.slice(0, maxLabels);
+		}
+		const nLabels = labels.length;
+		if (!nLabels) {
+			return { ok: false };
+		}
+
+		let datasets = Array.isArray(out.data.datasets) ? out.data.datasets : [];
+		if (!datasets.length) {
+			datasets = [{ name: "", values: new Array(nLabels).fill(0) }];
+		}
+
+		out.data.labels = labels;
+		out.data.datasets = datasets.map((dataset) => {
+			const row = { ...dataset };
+			const vals = Array.isArray(dataset.values) ? dataset.values : [];
+			const values = [];
+			for (let i = 0; i < nLabels; i++) {
+				const num = Number(vals[i]);
+				values.push(Number.isFinite(num) ? num : 0);
+			}
+			row.values = values;
+			return row;
+		});
+
+		if (ASK_ALYF_AGGREGATION_CHART_TYPES.has(type)) {
+			const perSlice = labels.map((_, index) =>
+				out.data.datasets.reduce(
+					(acc, dataset) => acc + Math.max(0, dataset.values[index] || 0),
+					0
+				)
+			);
+			const grandTotal = perSlice.reduce((acc, value) => acc + value, 0);
+			if (grandTotal <= 0) {
+				return { ok: false };
+			}
+		} else {
+			const allY = [];
+			for (const ds of out.data.datasets) {
+				for (const v of ds.values) {
+					if (Number.isFinite(v)) {
+						allY.push(v);
+					}
+				}
+			}
+			if (allY.length) {
+				const yMin = Math.min(...allY);
+				const yMax = Math.max(...allY);
+				if (yMin === yMax) {
+					const lastDs = out.data.datasets[out.data.datasets.length - 1];
+					const lastIdx = lastDs.values.length - 1;
+					if (lastIdx >= 0) {
+						const bump = yMax === 0 ? 1 : Math.abs(yMax) * 0.01 || 0.01;
+						lastDs.values[lastIdx] = yMax + bump;
+					}
+				}
+			}
+		}
+
+		const height = Number(out.height);
+		if (!Number.isFinite(height) || height <= 0) {
+			delete out.height;
+		} else if (height < ASK_ALYF_FRAPPE_CHART_MIN_HEIGHT) {
+			out.height = ASK_ALYF_FRAPPE_CHART_MIN_HEIGHT;
+		}
+
+		return { ok: true, options: out };
+	}
+
+	/**
+	 * frappe.Chart keeps window listeners, ResizeObserver, and a delayed `update` timer.
+	 * If we drop the mount with innerHTML, those still fire and draw.js logs NaN for SVG attrs.
+	 */
+	function wrapAskAlyfFrappeChart(chart) {
+		if (!chart || typeof chart.draw !== "function") {
+			return chart;
+		}
+		const origDraw = chart.draw.bind(chart);
+		const origUpdate = typeof chart.update === "function" ? chart.update.bind(chart) : null;
+		chart.draw = function askAlyfGuardedDraw(...args) {
+			if (chart._askAlyfDisposed) {
+				return;
+			}
+			const parent = chart.parent;
+			if (parent && !parent.isConnected) {
+				return;
+			}
+			return origDraw(...args);
+		};
+		if (origUpdate) {
+			chart.update = function askAlyfGuardedUpdate(data, drawing) {
+				if (chart._askAlyfDisposed) {
+					return;
+				}
+				const parent = chart.parent;
+				if (parent && !parent.isConnected) {
+					return;
+				}
+				return origUpdate(data, drawing);
+			};
+		}
+		return chart;
+	}
+
 	class ask_alyfWidget {
 		constructor() {
 			this.state = {
@@ -24,6 +157,303 @@
 			this.boundResizeMove = (event) => this.resizePanel(event);
 			this.boundResizeEnd = (event) => this.stopPanelResize(event);
 			this.boundDocumentClick = (event) => this.onDocumentClick(event);
+			this.deferredChartPaints = [];
+			this.messageEntries = new Map();
+			this.activeFrappeCharts = new Map();
+			this.statusWrapperEl = null;
+			this.statusBodyEl = null;
+			this.pendingOperationEl = null;
+		}
+
+		disposeActiveFrappeCharts(messageKey = null) {
+			if (messageKey === null) {
+				const keys = Array.from(this.activeFrappeCharts.keys());
+				keys.forEach((key) => this.disposeActiveFrappeCharts(key));
+				return;
+			}
+
+			const charts = this.activeFrappeCharts.get(messageKey) || [];
+			this.activeFrappeCharts.delete(messageKey);
+			for (const chart of charts) {
+				try {
+					chart._askAlyfDisposed = true;
+					if (typeof chart.destroy === "function") {
+						chart.destroy();
+					}
+				} catch {
+					// Ignore teardown errors from third-party chart.
+				}
+			}
+		}
+
+		isChatAreaReady() {
+			if (!this.panel || this.panel.classList.contains("ask_alyf-hidden")) {
+				return false;
+			}
+			if (!this.chatViewEl || this.chatViewEl.classList.contains("ask_alyf-hidden")) {
+				return false;
+			}
+			const width = this.messagesEl?.clientWidth ?? 0;
+			return width >= 48;
+		}
+
+		flushDeferredChartPaints() {
+			if (!this.deferredChartPaints?.length) {
+				return;
+			}
+			if (!this.isChatAreaReady()) {
+				return;
+			}
+			const batch = [...this.deferredChartPaints];
+			this.deferredChartPaints = [];
+			for (const paint of batch) {
+				try {
+					paint();
+				} catch {
+					// Ignore paint errors; individual mounts show their own fallback.
+				}
+			}
+		}
+
+		setTrackedFrappeChart(messageKey, index, chart) {
+			const charts = this.activeFrappeCharts.get(messageKey) || [];
+			charts[index] = chart;
+			this.activeFrappeCharts.set(messageKey, charts);
+		}
+
+		getTrackedFrappeChart(messageKey, index) {
+			return this.activeFrappeCharts.get(messageKey)?.[index] || null;
+		}
+
+		invalidateChartPaint(entry) {
+			if (!entry) {
+				return;
+			}
+			entry.chartPaintVersion = (entry.chartPaintVersion || 0) + 1;
+		}
+
+		resetMessageCharts(entry, messageKey) {
+			this.invalidateChartPaint(entry);
+			if (entry?.chartResizeObserver) {
+				entry.chartResizeObserver.disconnect();
+				entry.chartResizeObserver = null;
+			}
+			if (entry?.chartResizeFrame) {
+				cancelAnimationFrame(entry.chartResizeFrame);
+				entry.chartResizeFrame = 0;
+			}
+			this.disposeActiveFrappeCharts(messageKey);
+			if (entry?.chartHolder) {
+				entry.chartHolder.remove();
+				entry.chartHolder = null;
+			}
+		}
+
+		getMessageHtml(message) {
+			return message.role === "assistant"
+				? frappe.markdown(message.content || "")
+				: this.escapeHtml(message.content || "").replace(/\n/g, "<br>");
+		}
+
+		getChartsFingerprint(message) {
+			const charts = message?.metadata?.frappe_charts;
+			if (message?.role !== "assistant" || !Array.isArray(charts) || !charts.length) {
+				return "";
+			}
+			try {
+				return JSON.stringify(charts);
+			} catch {
+				return "__invalid_charts__";
+			}
+		}
+
+		syncMessageCharts(entry, message, messageKey) {
+			const chartFingerprint = this.getChartsFingerprint(message);
+			if (entry.chartFingerprint === chartFingerprint) {
+				return;
+			}
+
+			this.resetMessageCharts(entry, messageKey);
+			entry.chartFingerprint = chartFingerprint;
+			if (!chartFingerprint) {
+				return;
+			}
+
+			this.mountFrappeChartsForMessage(entry, message, messageKey);
+		}
+
+		getAskAlyfChartChromeHeight(chart) {
+			const measures = chart?.measures || {};
+			const margins = measures.margins || {};
+			const paddings = measures.paddings || {};
+			return (
+				(margins.top || 0) +
+				(margins.bottom || 0) +
+				(paddings.top || 0) +
+				(paddings.bottom || 0) +
+				(measures.titleHeight || 0) +
+				(measures.legendHeight || 0)
+			);
+		}
+
+		getResponsiveFrappeChartHeight(preferredHeight, widthPx, chartCount = 1) {
+			const minHeight = Math.max(
+				ASK_ALYF_FRAPPE_CHART_MIN_HEIGHT,
+				Number.isFinite(preferredHeight) ? preferredHeight : 0
+			);
+			const widthDrivenHeight = Math.round(widthPx * 0.55);
+			const panelHeight = this.panel?.clientHeight || 0;
+			let maxHeight = ASK_ALYF_FRAPPE_CHART_MAX_HEIGHT;
+			if (panelHeight > 0) {
+				const stackedDivisor = Math.min(Math.max(chartCount, 1), 2);
+				maxHeight = Math.max(
+					minHeight,
+					Math.min(
+						ASK_ALYF_FRAPPE_CHART_MAX_HEIGHT,
+						Math.floor((panelHeight * 0.8) / stackedDivisor)
+					)
+				);
+			}
+			return Math.max(minHeight, Math.min(maxHeight, widthDrivenHeight));
+		}
+
+		applyMountedFrappeChartLayout(chart, mount, widthPx, heightPx) {
+			if (!chart || !mount?.isConnected) {
+				return;
+			}
+
+			const nextWidth = String(widthPx);
+			const nextHeight = String(heightPx);
+			if (
+				mount.dataset.askAlyfWidth === nextWidth &&
+				mount.dataset.askAlyfHeight === nextHeight
+			) {
+				return;
+			}
+
+			mount.style.width = `${widthPx}px`;
+			mount.style.maxWidth = "100%";
+			mount.dataset.askAlyfWidth = nextWidth;
+			mount.dataset.askAlyfHeight = nextHeight;
+
+			chart.argHeight = heightPx;
+			chart.baseHeight = heightPx;
+			chart.height = Math.max(1, heightPx - this.getAskAlyfChartChromeHeight(chart));
+			chart.draw(false);
+		}
+
+		syncMessageElement(message, index, previousMessageKeys) {
+			const messageKey = this.getMessageRenderKey(message, index);
+			let entry = this.messageEntries.get(messageKey);
+			if (!entry) {
+				const wrapper = document.createElement("div");
+				const body = document.createElement("div");
+				body.className = "ask_alyf-message-body";
+				wrapper.appendChild(body);
+				entry = {
+					body,
+					chartFingerprint: "",
+					chartHolder: null,
+					chartPaintVersion: 0,
+					chartResizeFrame: 0,
+					chartResizeObserver: null,
+					html: null,
+					role: null,
+					wrapper,
+				};
+				this.messageEntries.set(messageKey, entry);
+				if (!previousMessageKeys.has(messageKey)) {
+					wrapper.classList.add("ask_alyf-message-enter");
+				}
+			}
+
+			if (entry.role !== message.role) {
+				entry.role = message.role;
+				entry.wrapper.className = `ask_alyf-message ask_alyf-${message.role}`;
+				if (!previousMessageKeys.has(messageKey)) {
+					entry.wrapper.classList.add("ask_alyf-message-enter");
+				}
+			}
+
+			const html = this.getMessageHtml(message);
+			if (entry.html !== html) {
+				entry.body.innerHTML = html;
+				entry.html = html;
+			}
+
+			this.syncMessageCharts(entry, message, messageKey);
+			return { entry, messageKey };
+		}
+
+		renderStatusMessage() {
+			if (!this.messagesEl) {
+				return;
+			}
+
+			if (!this.state.status) {
+				if (this.statusWrapperEl) {
+					this.statusWrapperEl.remove();
+					this.statusWrapperEl = null;
+					this.statusBodyEl = null;
+				}
+				return;
+			}
+
+			if (!this.statusWrapperEl) {
+				this.statusWrapperEl = document.createElement("div");
+				this.statusWrapperEl.className = "ask_alyf-message ask_alyf-status-message";
+				this.statusBodyEl = document.createElement("div");
+				this.statusBodyEl.className = "ask_alyf-message-body";
+				this.statusWrapperEl.appendChild(this.statusBodyEl);
+			}
+
+			this.statusWrapperEl.className = "ask_alyf-message ask_alyf-status-message";
+			if (this.state.loading) {
+				this.statusWrapperEl.classList.add("ask_alyf-status-loading");
+			}
+			this.statusBodyEl.textContent = this.state.status;
+			this.messagesEl.insertBefore(this.statusWrapperEl, this.pendingOperationEl || null);
+		}
+
+		renderPendingOperation() {
+			if (!this.messagesEl) {
+				return;
+			}
+
+			const pendingOperation = this.state.pendingOperation;
+			if (!pendingOperation || !this.operationRequiresConfirmation(pendingOperation)) {
+				if (this.pendingOperationEl) {
+					this.pendingOperationEl.remove();
+					this.pendingOperationEl = null;
+				}
+				return;
+			}
+
+			const proposal = document.createElement("div");
+			proposal.className = "ask_alyf-proposal";
+			proposal.innerHTML = `
+				<div class="ask_alyf-proposal-title">${__("Pending operation")}</div>
+				<div class="ask_alyf-proposal-summary">${this.escapeHtml(
+					this.getPendingOperationSummary(pendingOperation)
+				)}</div>
+				<div class="ask_alyf-proposal-actions">
+					<button class="ask_alyf-confirm btn btn-primary btn-sm" type="button">${__("Confirm")}</button>
+					<button class="ask_alyf-reject btn btn-secondary btn-sm" type="button">${__("Reject")}</button>
+				</div>
+			`;
+			proposal
+				.querySelector(".ask_alyf-confirm")
+				.addEventListener("click", () => this.confirmPendingOperation());
+			proposal
+				.querySelector(".ask_alyf-reject")
+				.addEventListener("click", () => this.rejectPendingOperation());
+
+			if (this.pendingOperationEl) {
+				this.pendingOperationEl.replaceWith(proposal);
+			} else {
+				this.messagesEl.appendChild(proposal);
+			}
+			this.pendingOperationEl = proposal;
 		}
 
 		init() {
@@ -282,6 +712,12 @@
 				tabEl.classList.toggle("active", isActive);
 				tabEl.setAttribute("aria-selected", isActive ? "true" : "false");
 			});
+
+			if (nextTab === "chat") {
+				requestAnimationFrame(() => {
+					requestAnimationFrame(() => this.flushDeferredChartPaints());
+				});
+			}
 		}
 
 		onHistoryConversationClick(event) {
@@ -545,6 +981,9 @@
 					this.inputEl.focus();
 				}
 				this.refreshConversationList();
+				requestAnimationFrame(() => {
+					requestAnimationFrame(() => this.flushDeferredChartPaints());
+				});
 			} else {
 				this.stopPanelResize();
 			}
@@ -556,6 +995,7 @@
 			if (this.sendEl) {
 				this.sendEl.setAttribute("aria-busy", value ? "true" : "false");
 			}
+			this.renderStatusMessage();
 		}
 
 		setStatus(text) {
@@ -563,7 +1003,8 @@
 				return;
 			}
 			this.state.status = text || "";
-			this.renderMessages();
+			this.renderStatusMessage();
+			this.scrollToBottom();
 		}
 
 		getCurrentContext() {
@@ -886,6 +1327,10 @@
 				return { fieldname: payload.fieldname, row_name: row?.name || "" };
 			}
 
+			if (tool === "show_chart") {
+				return { tool: "show_chart" };
+			}
+
 			throw new Error(__("Unsupported frontend action: {0}", [tool]));
 		}
 
@@ -1027,68 +1472,39 @@
 		renderMessages() {
 			const previousMessageKeys = this.renderedMessageKeys;
 			const nextMessageKeys = new Set();
-			this.messagesEl.innerHTML = "";
+			let anchor = this.messagesEl.firstChild;
 
 			this.state.messages.forEach((message, index) => {
-				const wrapper = document.createElement("div");
-				wrapper.className = `ask_alyf-message ask_alyf-${message.role}`;
-				const messageKey = this.getMessageRenderKey(message, index);
+				const { entry, messageKey } = this.syncMessageElement(
+					message,
+					index,
+					previousMessageKeys
+				);
 				nextMessageKeys.add(messageKey);
-				if (!previousMessageKeys.has(messageKey)) {
-					wrapper.classList.add("ask_alyf-message-enter");
+				if (entry.wrapper === anchor) {
+					anchor = anchor.nextSibling;
+				} else {
+					this.messagesEl.insertBefore(entry.wrapper, anchor);
 				}
-
-				const body = document.createElement("div");
-				body.className = "ask_alyf-message-body";
-				body.innerHTML =
-					message.role === "assistant"
-						? frappe.markdown(message.content || "")
-						: this.escapeHtml(message.content || "").replace(/\n/g, "<br>");
-				wrapper.appendChild(body);
-
-				this.messagesEl.appendChild(wrapper);
 			});
 
-			if (this.state.status) {
-				const statusWrapper = document.createElement("div");
-				statusWrapper.className = "ask_alyf-message ask_alyf-status-message";
-				if (this.state.loading) {
-					statusWrapper.classList.add("ask_alyf-status-loading");
+			for (const [messageKey, entry] of this.messageEntries) {
+				if (nextMessageKeys.has(messageKey)) {
+					continue;
 				}
-
-				const statusBody = document.createElement("div");
-				statusBody.className = "ask_alyf-message-body";
-				statusBody.textContent = this.state.status;
-
-				statusWrapper.appendChild(statusBody);
-				this.messagesEl.appendChild(statusWrapper);
-			}
-
-			const pendingOperation = this.state.pendingOperation;
-			if (pendingOperation && this.operationRequiresConfirmation(pendingOperation)) {
-				const proposal = document.createElement("div");
-				proposal.className = "ask_alyf-proposal";
-				proposal.innerHTML = `
-					<div class="ask_alyf-proposal-title">${__("Pending operation")}</div>
-					<div class="ask_alyf-proposal-summary">${this.escapeHtml(
-						this.getPendingOperationSummary(pendingOperation)
-					)}</div>
-					<div class="ask_alyf-proposal-actions">
-						<button class="ask_alyf-confirm btn btn-primary btn-sm" type="button">${__("Confirm")}</button>
-						<button class="ask_alyf-reject btn btn-secondary btn-sm" type="button">${__("Reject")}</button>
-					</div>
-				`;
-				proposal
-					.querySelector(".ask_alyf-confirm")
-					.addEventListener("click", () => this.confirmPendingOperation());
-				proposal
-					.querySelector(".ask_alyf-reject")
-					.addEventListener("click", () => this.rejectPendingOperation());
-				this.messagesEl.appendChild(proposal);
+				this.resetMessageCharts(entry, messageKey);
+				entry.wrapper.remove();
+				this.messageEntries.delete(messageKey);
 			}
 
 			this.renderedMessageKeys = nextMessageKeys;
+			this.renderStatusMessage();
+			this.renderPendingOperation();
 			this.scrollToBottom();
+
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => this.flushDeferredChartPaints());
+			});
 		}
 
 		playPanelEnterAnimation() {
@@ -1116,6 +1532,158 @@
 
 		scrollToBottom() {
 			this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+		}
+
+		mountFrappeChartsForMessage(entry, message, messageKey) {
+			const wrapper = entry.wrapper;
+			const meta = message?.metadata || {};
+			const charts = meta.frappe_charts;
+			if (!Array.isArray(charts) || !charts.length) {
+				return;
+			}
+			if (typeof frappe.Chart !== "function") {
+				return;
+			}
+
+			const jobs = [];
+			for (const rawOptions of charts) {
+				if (!rawOptions || typeof rawOptions !== "object") {
+					jobs.push({ ok: false });
+					continue;
+				}
+				let cloned;
+				try {
+					cloned = JSON.parse(JSON.stringify(rawOptions));
+				} catch {
+					jobs.push({ ok: false });
+					continue;
+				}
+				jobs.push(normalizeStoredFrappeChartOptions(cloned));
+			}
+			if (!jobs.length) {
+				return;
+			}
+
+			const holder = document.createElement("div");
+			holder.className = "ask_alyf-message-charts";
+			jobs.forEach(() => {
+				const mount = document.createElement("div");
+				mount.className = "ask_alyf-frappe-chart-mount";
+				holder.appendChild(mount);
+			});
+			wrapper.appendChild(holder);
+			entry.chartHolder = holder;
+
+			const mounts = Array.from(holder.querySelectorAll(".ask_alyf-frappe-chart-mount"));
+			const paintVersion = (entry.chartPaintVersion || 0) + 1;
+			entry.chartPaintVersion = paintVersion;
+			const layoutCharts = ({ create = false } = {}) => {
+				if (
+					entry.chartPaintVersion !== paintVersion ||
+					!holder.isConnected ||
+					!wrapper.isConnected
+				) {
+					return false;
+				}
+				let contentWidth = holder.clientWidth;
+				if (!Number.isFinite(contentWidth) || contentWidth < 48) {
+					contentWidth = this.messagesEl?.clientWidth || this.panel?.clientWidth || 0;
+				}
+				if (!Number.isFinite(contentWidth) || contentWidth < 48) {
+					return false;
+				}
+				const widthPx = Math.max(200, Math.floor(contentWidth - 8));
+				jobs.forEach((job, index) => {
+					const mount = mounts[index];
+					if (!mount || !mount.isConnected) {
+						return;
+					}
+					if (!job.ok) {
+						mount.classList.add("ask_alyf-frappe-chart-error");
+						mount.textContent = __("Invalid chart data.");
+						return;
+					}
+					const preferredHeight = Number(job.options.height);
+					const heightPx = this.getResponsiveFrappeChartHeight(
+						preferredHeight,
+						widthPx,
+						jobs.length
+					);
+					if (create) {
+						mount.style.width = `${widthPx}px`;
+						mount.style.maxWidth = "100%";
+						mount.dataset.askAlyfWidth = String(widthPx);
+						mount.dataset.askAlyfHeight = String(heightPx);
+						try {
+							const chart = new frappe.Chart(mount, {
+								...job.options,
+								height: heightPx,
+							});
+							wrapAskAlyfFrappeChart(chart);
+							if (typeof chart.destroy === "function") {
+								chart.destroy();
+							}
+							this.setTrackedFrappeChart(messageKey, index, chart);
+						} catch {
+							mount.classList.add("ask_alyf-frappe-chart-error");
+							mount.textContent = __("Could not render chart.");
+						}
+						return;
+					}
+					this.applyMountedFrappeChartLayout(
+						this.getTrackedFrappeChart(messageKey, index),
+						mount,
+						widthPx,
+						heightPx
+					);
+				});
+				return true;
+			};
+
+			const scheduleInitialPaint = () => {
+				requestAnimationFrame(() => {
+					requestAnimationFrame(() => {
+						if (
+							entry.chartPaintVersion !== paintVersion ||
+							!holder.isConnected ||
+							!wrapper.isConnected
+						) {
+							return;
+						}
+						if (!this.isChatAreaReady()) {
+							this.deferredChartPaints.push(scheduleInitialPaint);
+							return;
+						}
+						if (!layoutCharts({ create: true })) {
+							this.deferredChartPaints.push(scheduleInitialPaint);
+							return;
+						}
+						if (!entry.chartResizeObserver && typeof ResizeObserver === "function") {
+							entry.chartResizeObserver = new ResizeObserver(() => {
+								if (entry.chartResizeFrame) {
+									cancelAnimationFrame(entry.chartResizeFrame);
+								}
+								entry.chartResizeFrame = requestAnimationFrame(() => {
+									entry.chartResizeFrame = 0;
+									if (
+										entry.chartPaintVersion !== paintVersion ||
+										!holder.isConnected ||
+										!wrapper.isConnected ||
+										!this.isChatAreaReady()
+									) {
+										return;
+									}
+									layoutCharts();
+								});
+							});
+							if (this.panel) {
+								entry.chartResizeObserver.observe(this.panel);
+							}
+						}
+					});
+				});
+			};
+			scheduleInitialPaint();
 		}
 
 		startVoiceInput() {

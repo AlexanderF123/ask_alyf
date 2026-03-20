@@ -883,6 +883,43 @@ class ask_alyfToolset:
 			**payload,
 		)
 
+	def show_chart(
+		self,
+		frappe_charts: list[dict[str, Any]],
+		reason: str = "",
+	) -> dict[str, Any]:
+		"""Show one or more Frappe Charts under this assistant message.
+
+		The desk creates the DOM element; each item in `frappe_charts` is the `options`
+		argument to `new frappe.Chart(container, options)` (Frappe Charts on the client).
+
+		Shape (one object per chart):
+		- `type`: bar, line, scatter, pie, percentage, donut, or axis-mixed
+		- `data`: `{ "labels": [...], "datasets": [ { "values": [...], "name"?: str, "type"?: "bar"|"line" } ] }`
+		  — every `values` list must be the same length as `labels`
+		- Optional: `title`, `height` (0 for default; if set, at least 240 — Frappe Charts reserves ~130px chrome),
+		  `colors` (array; empty for defaults),
+		  `barOptions`, `lineOptions`, `axisOptions` (see Frappe Charts docs)
+
+		Args:
+			frappe_charts: One or more chart option objects.
+			reason: Optional short note for the user.
+
+		Returns:
+			A pending frontend operation proposal (auto-executed in the browser).
+		"""
+		count = len(frappe_charts) if isinstance(frappe_charts, list) else 0
+		summary = _("Show chart") if count == 1 else _("Show {0} charts").format(count)
+		return self._frontend_proposal(
+			"show_chart",
+			summary,
+			reason,
+			validation_error_status=_("Chart action needs correction."),
+			prepared_status=_("Prepared chart display."),
+			requires_confirmation=False,
+			frappe_charts=frappe_charts,
+		)
+
 
 class ask_alyfAgentRunner:
 	def __init__(self, runtime: ask_alyfRuntime):
@@ -945,7 +982,7 @@ Mode awareness and behavior:
 - The current mode is `{self.runtime.mode}` and is authoritative for this turn.
 - `Ask` mode is strictly read-only: write tools are unavailable, so if intent is mutation (create, update, submit, cancel, amend, rename, delete, attach, or a write method), immediately recommend switching to `Agent` mode and do not claim anything was done or queued.
 - `Agent` mode supports mutation workflows with write tools while still handling read-only questions with read tools, and every write action becomes a pending proposal that requires explicit user confirmation before execution.
-- Frontend action tools can navigate or adjust the current form in the browser.
+- Frontend action tools can navigate or adjust the current form in the browser, or display Frappe Charts under the assistant message via `show_chart` (pass `frappe_charts` as a list of chart option objects; validated server-side). See the `show_chart` tool docstring for the options shape.
 - Frontend actions with `requires_confirmation` must be confirmed before the browser executes them.
 - Before insert or save, call get_meta for the target DocType and follow field types exactly.
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
@@ -976,6 +1013,7 @@ Mode awareness and behavior:
 			self.toolset.set_route,
 			self.toolset.new_doc,
 			self.toolset.scroll_to_field,
+			self.toolset.show_chart,
 			self.toolset.read_file_record,
 			self.toolset.run_read_only_sql,
 			self.toolset.get_app_version,
