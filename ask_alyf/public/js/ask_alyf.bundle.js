@@ -1566,10 +1566,41 @@
 
 			const holder = document.createElement("div");
 			holder.className = "ask_alyf-message-charts";
-			jobs.forEach(() => {
+			jobs.forEach((job, index) => {
+				const shell = document.createElement("div");
+				shell.className = "ask_alyf-frappe-chart-shell";
+				const actions = document.createElement("div");
+				actions.className = "ask_alyf-frappe-chart-actions ask_alyf-hidden";
+				const downloadButton = document.createElement("button");
+				const downloadLabel = __("Download chart as SVG");
+				downloadButton.className = "ask_alyf-frappe-chart-download ask_alyf-icon-button";
+				downloadButton.type = "button";
+				downloadButton.title = downloadLabel;
+				downloadButton.setAttribute("aria-label", downloadLabel);
+				downloadButton.disabled = true;
+				downloadButton.innerHTML =
+					typeof frappe.utils?.icon === "function"
+						? frappe.utils.icon("download", "xs")
+						: "SVG";
+				downloadButton.addEventListener("click", () => {
+					const chart = this.getTrackedFrappeChart(messageKey, index);
+					if (!chart || typeof chart.export !== "function") {
+						return;
+					}
+					try {
+						chart.export();
+					} catch {
+						frappe.msgprint(__("Could not download chart."));
+					}
+				});
+				actions.appendChild(downloadButton);
 				const mount = document.createElement("div");
 				mount.className = "ask_alyf-frappe-chart-mount";
-				holder.appendChild(mount);
+				shell.appendChild(actions);
+				shell.appendChild(mount);
+				holder.appendChild(shell);
+				job.actionsEl = actions;
+				job.downloadButtonEl = downloadButton;
 			});
 			wrapper.appendChild(holder);
 			entry.chartHolder = holder;
@@ -1624,6 +1655,10 @@
 								chart.destroy();
 							}
 							this.setTrackedFrappeChart(messageKey, index, chart);
+							job.actionsEl?.classList.remove("ask_alyf-hidden");
+							if (job.downloadButtonEl) {
+								job.downloadButtonEl.disabled = false;
+							}
 						} catch {
 							mount.classList.add("ask_alyf-frappe-chart-error");
 							mount.textContent = __("Could not render chart.");
