@@ -329,8 +329,19 @@
 	padding: 0.35rem 0;
 }
 
-.ask_alyf-status-message {
+.ask_alyf-status-message,
+.ask_alyf-system {
 	justify-content: center;
+}
+
+.ask_alyf-system .ask_alyf-message-body {
+	max-width: 100%;
+	padding: 0.25rem 0.65rem;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	text-align: center;
 }
 
 .ask_alyf-message-body,

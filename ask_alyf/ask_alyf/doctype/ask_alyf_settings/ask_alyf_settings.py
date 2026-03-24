@@ -37,6 +37,7 @@ class AskALYFSettings(Document):
 
 		allow_agent_mode: DF.Check
 		allow_code_search: DF.Check
+		allow_file_upload: DF.Check
 		allowed_roles: DF.Table[HasRole]
 		api_key: DF.Password | None
 		base_url: DF.Data | None

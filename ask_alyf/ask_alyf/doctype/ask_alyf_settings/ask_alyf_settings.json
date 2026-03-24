@@ -20,7 +20,8 @@
   "column_break_idxf",
   "enabled",
   "allow_agent_mode",
-  "allow_code_search"
+  "allow_code_search",
+  "allow_file_upload"
  ],
  "fields": [
   {
@@ -101,13 +102,19 @@
    "fieldname": "allow_code_search",
    "fieldtype": "Check",
    "label": "Allow Code Search"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_file_upload",
+   "fieldtype": "Check",
+   "label": "Allow File Upload"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-17 13:33:40.824136",
+ "modified": "2026-03-24 17:57:48.777816",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",

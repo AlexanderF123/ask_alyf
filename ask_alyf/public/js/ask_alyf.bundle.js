@@ -250,9 +250,14 @@
 		}
 
 		getMessageHtml(message) {
-			return message.role === "assistant"
-				? frappe.markdown(message.content || "")
-				: this.escapeHtml(message.content || "").replace(/\n/g, "<br>");
+			if (message.role === "assistant") {
+				return frappe.markdown(message.content || "");
+			}
+			if (message.role === "system" && message.metadata?.file_name) {
+				const name = this.escapeHtml(message.metadata.file_name);
+				return `<i class="fa fa-paperclip" aria-hidden="true"></i> ${name}`;
+			}
+			return this.escapeHtml(message.content || "").replace(/\n/g, "<br>");
 		}
 
 		getChartsFingerprint(message) {
@@ -537,6 +542,11 @@
 									</div>
 								</div>
 								<div class="ask_alyf-composer-actions">
+									<button class="ask_alyf-icon-button ask_alyf-attach btn btn-secondary btn-sm ask_alyf-hidden" type="button" title="${__(
+										"Attach file"
+									)}" aria-label="${__(
+				"Attach file"
+			)}"><i class="fa fa-paperclip"></i></button>
 									<button class="ask_alyf-icon-button ask_alyf-mic btn btn-secondary btn-sm" type="button" title="${__(
 										"Voice input"
 									)}" aria-label="${__(
@@ -565,6 +575,7 @@
 			this.inputEl = root.querySelector(".ask_alyf-input");
 			this.bubbleEl = root.querySelector(".ask_alyf-bubble");
 			this.sendEl = root.querySelector(".ask_alyf-send");
+			this.attachEl = root.querySelector(".ask_alyf-attach");
 			this.micEl = root.querySelector(".ask_alyf-mic");
 			this.micEl.setAttribute("aria-pressed", "false");
 			this.resizeHandleEl = root.querySelector(".ask_alyf-resize-handle");
@@ -603,6 +614,7 @@
 			root.querySelector(".ask_alyf-new-chat").addEventListener("click", () =>
 				this.startNewConversation()
 			);
+			this.attachEl.addEventListener("click", () => this.openFileUploader());
 			this.micEl.addEventListener("click", () => this.startVoiceInput());
 			this.resizeHandleEl.addEventListener("pointerdown", (event) =>
 				this.startPanelResize(event)
@@ -671,6 +683,7 @@
 			this.applyConversation(response.message.conversation);
 			this.setModeToAskDefault();
 			this.syncSupportPhoneAction(askAlyfBoot);
+			this.syncFileUploadButton();
 			await this.refreshConversationList();
 
 			if (!askAlyfBoot.configured) {
@@ -755,6 +768,53 @@
 		isAgentModeEnabled() {
 			const askAlyfSettings = frappe?.boot?.ask_alyf || {};
 			return Boolean(askAlyfSettings.agent_mode_enabled);
+		}
+
+		isFileUploadEnabled() {
+			return Boolean(frappe?.boot?.ask_alyf?.file_upload_enabled);
+		}
+
+		syncFileUploadButton() {
+			if (!this.attachEl) {
+				return;
+			}
+			this.attachEl.classList.toggle("ask_alyf-hidden", !this.isFileUploadEnabled());
+		}
+
+		openFileUploader() {
+			if (!this.state.conversation?.name || this.state.loading) {
+				return;
+			}
+			new frappe.ui.FileUploader({
+				doctype: "Ask ALYF Conversation",
+				docname: this.state.conversation.name,
+				on_success: (file_doc) => this.onFileUploaded(file_doc),
+			});
+		}
+
+		async onFileUploaded(fileDoc) {
+			const files = Array.isArray(fileDoc) ? fileDoc : [fileDoc];
+			for (const file of files) {
+				if (!file?.file_name) {
+					continue;
+				}
+				try {
+					const response = await frappe.call({
+						method: "ask_alyf.api.attach_file",
+						type: "POST",
+						args: {
+							conversation: this.state.conversation.name,
+							file_name: file.file_name,
+							file_url: file.file_url,
+						},
+					});
+					if (response.message?.conversation) {
+						this.applyConversation(response.message.conversation);
+					}
+				} catch (error) {
+					frappe.msgprint(error.message || __("Failed to attach file to conversation."));
+				}
+			}
 		}
 
 		syncSupportPhoneAction(askAlyfBoot = {}) {

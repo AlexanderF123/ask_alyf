@@ -44,12 +44,14 @@ def get_ask_alyf_boot_payload() -> dict:
 	settings_available = frappe.db.exists("DocType", "Ask ALYF Settings")
 	configured = False
 	agent_mode_enabled = False
+	file_upload_enabled = False
 	support_phone_number = ""
 	support_phone_uri = ""
 
 	try:
 		settings = get_settings()
 		agent_mode_enabled = bool(settings.allow_agent_mode)
+		file_upload_enabled = bool(settings.allow_file_upload)
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		configured = bool(api_key and (settings.model or "").strip())
 		support_phone_number = (settings.support_phone_number or "").strip()
@@ -61,6 +63,7 @@ def get_ask_alyf_boot_payload() -> dict:
 		"allowed": can_access_ask_alyf(),
 		"configured": configured,
 		"agent_mode_enabled": agent_mode_enabled,
+		"file_upload_enabled": file_upload_enabled,
 		"support_phone_number": support_phone_number,
 		"support_phone_uri": support_phone_uri,
 		"default_mode": MODE_ASK,
@@ -629,4 +632,24 @@ def frontend_action_result(
 	messages.append(make_message("assistant", content, **message_metadata))
 	doc.pending_operation_json = ""
 	save_messages(doc, messages)
+	return {"conversation": conversation_payload(doc)}
+
+
+@frappe.whitelist(methods=["POST"])
+def attach_file(conversation: str, file_name: str, file_url: str) -> dict:
+	if not can_access_ask_alyf():
+		frappe.throw(_("You do not have access to Ask ALYF."))
+
+	settings = get_settings()
+	if not settings.allow_file_upload:
+		frappe.throw(_("File upload is not enabled."))
+
+	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
+	doc.check_permission("write")
+
+	messages = get_messages(doc)
+	content = f"User attached a file: {file_name} ({file_url})"
+	messages.append(make_message("system", content, file_name=file_name, file_url=file_url))
+	save_messages(doc, messages)
+
 	return {"conversation": conversation_payload(doc)}

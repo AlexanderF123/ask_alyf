@@ -1,4 +1,5 @@
 from ask_alyf.ask_alyf.api import (
+	attach_file,
 	bootstrap,
 	can_access_ask_alyf,
 	can_use_agent_mode,
@@ -14,6 +15,7 @@ from ask_alyf.ask_alyf.api import (
 )
 
 __all__ = [
+	"attach_file",
 	"bootstrap",
 	"can_access_ask_alyf",
 	"can_use_agent_mode",
