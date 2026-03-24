@@ -636,7 +636,7 @@ def frontend_action_result(
 
 
 @frappe.whitelist(methods=["POST"])
-def attach_file(conversation: str, file_name: str, file_url: str) -> dict:
+def attach_file(conversation: str, file: str | dict) -> dict:
 	if not can_access_ask_alyf():
 		frappe.throw(_("You do not have access to Ask ALYF."))
 
@@ -647,9 +647,19 @@ def attach_file(conversation: str, file_name: str, file_url: str) -> dict:
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	doc.check_permission("write")
 
+	file_data = frappe.parse_json(file) if isinstance(file, str) else file
+	if not isinstance(file_data, dict) or not file_data.get("file_name"):
+		frappe.throw(_("No valid file provided."))
+
+	file_entry = {
+		"name": file_data.get("name"),
+		"file_name": file_data.get("file_name"),
+		"file_url": file_data.get("file_url"),
+	}
+
+	content = f"User attached a file: {file_entry['file_name']} (ID: {file_entry['name']})"
 	messages = get_messages(doc)
-	content = f"User attached a file: {file_name} ({file_url})"
-	messages.append(make_message("system", content, file_name=file_name, file_url=file_url))
+	messages.append(make_message("system", content, files=[file_entry]))
 	save_messages(doc, messages)
 
 	return {"conversation": conversation_payload(doc)}

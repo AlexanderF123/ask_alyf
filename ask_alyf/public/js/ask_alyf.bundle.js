@@ -253,9 +253,11 @@
 			if (message.role === "assistant") {
 				return frappe.markdown(message.content || "");
 			}
-			if (message.role === "system" && message.metadata?.file_name) {
-				const name = this.escapeHtml(message.metadata.file_name);
-				return `<i class="fa fa-paperclip" aria-hidden="true"></i> ${name}`;
+			if (message.role === "system" && Array.isArray(message.metadata?.files)) {
+				const names = message.metadata.files
+					.map((f) => this.escapeHtml(f.file_name || f.name))
+					.join(", ");
+				return `<i class="fa fa-paperclip" aria-hidden="true"></i> ${names}`;
 			}
 			return this.escapeHtml(message.content || "").replace(/\n/g, "<br>");
 		}
@@ -793,27 +795,27 @@
 		}
 
 		async onFileUploaded(fileDoc) {
-			const files = Array.isArray(fileDoc) ? fileDoc : [fileDoc];
-			for (const file of files) {
-				if (!file?.file_name) {
-					continue;
-				}
-				try {
-					const response = await frappe.call({
-						method: "ask_alyf.api.attach_file",
-						type: "POST",
-						args: {
-							conversation: this.state.conversation.name,
-							file_name: file.file_name,
-							file_url: file.file_url,
+			if (!fileDoc?.file_name) {
+				return;
+			}
+			try {
+				const response = await frappe.call({
+					method: "ask_alyf.api.attach_file",
+					type: "POST",
+					args: {
+						conversation: this.state.conversation.name,
+						file: {
+							name: fileDoc.name,
+							file_name: fileDoc.file_name,
+							file_url: fileDoc.file_url,
 						},
-					});
-					if (response.message?.conversation) {
-						this.applyConversation(response.message.conversation);
-					}
-				} catch (error) {
-					frappe.msgprint(error.message || __("Failed to attach file to conversation."));
+					},
+				});
+				if (response.message?.conversation) {
+					this.applyConversation(response.message.conversation);
 				}
+			} catch (error) {
+				frappe.msgprint(error.message || __("Failed to attach file to conversation."));
 			}
 		}
 
