@@ -8,20 +8,23 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "llm_provider",
-  "base_url",
-  "api_key",
-  "model",
-  "roles_html",
-  "allowed_roles",
-  "excluded_doctypes",
   "system_prompt",
   "support_phone_number",
   "column_break_idxf",
   "enabled",
   "allow_agent_mode",
   "allow_code_search",
-  "allow_file_upload"
+  "allow_file_upload",
+  "chat_provider_tab",
+  "llm_provider",
+  "base_url",
+  "api_key",
+  "model",
+  "access_tab",
+  "roles_html",
+  "allowed_roles",
+  "section_break_kmgx",
+  "excluded_doctypes"
  ],
  "fields": [
   {
@@ -108,13 +111,27 @@
    "fieldname": "allow_file_upload",
    "fieldtype": "Check",
    "label": "Allow File Upload"
+  },
+  {
+   "fieldname": "chat_provider_tab",
+   "fieldtype": "Tab Break",
+   "label": "Chat Provider"
+  },
+  {
+   "fieldname": "access_tab",
+   "fieldtype": "Tab Break",
+   "label": "Access"
+  },
+  {
+   "fieldname": "section_break_kmgx",
+   "fieldtype": "Section Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-24 17:57:48.777816",
+ "modified": "2026-03-24 18:51:39.844849",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",
