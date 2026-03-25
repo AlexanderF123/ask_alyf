@@ -669,13 +669,24 @@ def attach_file(conversation: str, file: str | dict) -> dict:
 	doc.check_permission("write")
 
 	file_data = frappe.parse_json(file) if isinstance(file, str) else file
-	if not isinstance(file_data, dict) or not file_data.get("file_name"):
+	file_id = ""
+	if isinstance(file_data, dict):
+		file_id = (file_data.get("name") or file_data.get("file_id") or "").strip()
+	elif isinstance(file_data, str):
+		file_id = file_data.strip()
+
+	if not file_id:
 		frappe.throw(_("No valid file provided."))
+	if not frappe.db.exists("File", file_id):
+		frappe.throw(_("File '{0}' was not found.").format(file_id))
+
+	file_doc = frappe.get_doc("File", file_id)
+	file_doc.check_permission("read")
 
 	file_entry = {
-		"name": file_data.get("name"),
-		"file_name": file_data.get("file_name"),
-		"file_url": file_data.get("file_url"),
+		"name": file_doc.name,
+		"file_name": file_doc.file_name,
+		"file_url": file_doc.file_url,
 	}
 
 	content = f"User attached a file: {file_entry['file_name']} (ID: {file_entry['name']})"

@@ -46,7 +46,8 @@ Code and documentation:
 
 Files:
 
-- read file content from **File** records the current user has access to
+- `get_file_id` — resolve a **File** ID from attachment references
+- read file content from **File** records by File ID
 
 SQL (Administrator and System Manager only):
 
@@ -64,7 +65,7 @@ Everything from Ask mode, plus:
 - `amend` — amend a cancelled document (cancel + create amended copy)
 - `delete` — delete a document (framework requires cancel before delete for submitted docs; some documents cannot be deleted due to links, e.g. cancelled invoices linked to submitted payment ledger entries)
 - `rename_doc` — rename a document
-- `attach_file` — attach a file to a document
+- `attach_file` — attach a file to a document by File ID
 - run whitelisted methods — call any `@frappe.whitelist()` method the current user has access to (e.g. `erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice`)
 
 #### Charts

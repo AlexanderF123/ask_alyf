@@ -1,6 +1,7 @@
 # Copyright (c) 2026, ALYF GmbH and Contributors
 # See license.txt
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import frappe
@@ -71,8 +72,8 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		conversation = self.make_conversation(messages=[user_message])
 		document_extractions = [
 			{
+				"file_id": "FILE-0001",
 				"file_name": "invoice.pdf",
-				"file_url": "/private/files/invoice.pdf",
 				"pages_processed": 2,
 				"total_pages": 2,
 				"truncated": False,
@@ -110,9 +111,35 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		)
 		self.assertIn("Stored document extraction:", prompt)
 		self.assertIn("Extraction request: Extract line items and totals.", prompt)
-		self.assertIn("/private/files/invoice.pdf", prompt)
+		self.assertIn("id=FILE-0001", prompt)
+		self.assertNotIn("/private/files/invoice.pdf", prompt)
 		self.assertIn('"supplier": "ACME"', prompt)
 		self.assertIn('"total": "123.45"', prompt)
+
+	def test_attach_file_persists_file_url_in_message_metadata(self):
+		conversation = self.make_conversation(messages=[])
+		file_doc = frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": "invoice.txt",
+				"content": "Test Content",
+				"is_private": 1,
+			}
+		).save()
+
+		with patch("ask_alyf.ask_alyf.api.can_access_ask_alyf", return_value=True):
+			with patch(
+				"ask_alyf.ask_alyf.api.get_settings",
+				return_value=SimpleNamespace(allow_file_upload=True),
+			):
+				response = api.attach_file(conversation=conversation.name, file={"name": file_doc.name})
+
+		messages = response["conversation"]["messages"]
+		self.assertTrue(messages)
+		file_entry = messages[-1]["metadata"]["files"][0]
+		self.assertEqual(file_entry["name"], file_doc.name)
+		self.assertEqual(file_entry["file_name"], file_doc.file_name)
+		self.assertEqual(file_entry["file_url"], file_doc.file_url)
 
 	def test_parse_json_object_text_accepts_markdown_fenced_json(self):
 		parsed = tools._parse_json_object_text(

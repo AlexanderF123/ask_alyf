@@ -383,6 +383,33 @@ def list_accessible_reports() -> list[dict[str, Any]]:
 	return allowed
 
 
+def get_file_id(
+	reference_doctype: str,
+	reference_name: str,
+	reference_field: str = "",
+	file_url: str = "",
+	file_name: str = "",
+) -> str:
+	"""Resolve a unique File ID from attachment reference filters."""
+	filters = _build_file_reference_filters(
+		reference_doctype=reference_doctype,
+		reference_name=reference_name,
+		reference_field=reference_field,
+		file_url=file_url,
+		file_name=file_name,
+	)
+	matches = get_list("File", fields=["name"], filters=filters, order_by="modified desc", limit=2)
+	if not matches:
+		frappe.throw(_("No matching file was found."))
+
+	if len(matches) > 1:
+		frappe.throw(
+			_("Multiple matching files were found. Provide reference_field, file_url, or file_name.")
+		)
+
+	return matches[0]["name"]
+
+
 def get_current_user_roles() -> list[str]:
 	return frappe.get_roles()
 
@@ -632,18 +659,18 @@ def grep(
 	}
 
 
-def read_file_record(file_url: str | None = None, file_name: str | None = None) -> dict[str, Any]:
+def read_file_record(file_id: str) -> dict[str, Any]:
 	"""Read textual content from an accessible File record."""
-	file_doc = _get_accessible_file_doc(file_url=file_url, file_name=file_name)
+	file_doc = _get_accessible_file_doc(file_id=file_id)
 	content = file_doc.get_content()
 	if isinstance(content, bytes):
 		content = content.decode("utf-8", errors="replace")
-	return {"file_name": file_doc.file_name, "file_url": file_doc.file_url, "content": content}
+	return {"file_id": file_doc.name, "file_name": file_doc.file_name, "content": content}
 
 
-async def extract_document_data(file_url: str, extraction_prompt: str = "") -> dict[str, Any]:
+async def extract_document_data(file_id: str, extraction_prompt: str = "") -> dict[str, Any]:
 	"""Extract structured JSON data from an accessible PDF or image file."""
-	file_doc = _get_accessible_file_doc(file_url=file_url)
+	file_doc = _get_accessible_file_doc(file_id=file_id)
 	images, total_pages = _file_to_base64_images(file_doc.get_full_path())
 	if not images:
 		frappe.throw(_("Could not extract visual content from the file."))
@@ -665,34 +692,55 @@ async def extract_document_data(file_url: str, extraction_prompt: str = "") -> d
 
 def _get_accessible_file_doc(
 	*,
-	file_url: str | None = None,
-	file_name: str | None = None,
+	file_id: str,
 ):
-	"""Load a File document by URL or name and enforce read permission."""
-	filters = _build_file_lookup_filters(file_url=file_url, file_name=file_name)
-	docname = frappe.db.get_value("File", filters, "name")
-	if not docname:
-		file_label = filters.get("file_url") or filters.get("file_name") or _("requested file")
-		frappe.throw(_("File '{0}' was not found.").format(file_label))
+	"""Load a File document by ID and enforce read permission."""
+	clean_file_id = (file_id or "").strip()
+	if not clean_file_id:
+		frappe.throw(_("File ID is required."))
+	if not frappe.db.exists("File", clean_file_id):
+		frappe.throw(_("File '{0}' was not found.").format(clean_file_id))
 
-	file_doc = frappe.get_doc("File", docname)
+	file_doc = frappe.get_doc("File", clean_file_id)
 	file_doc.check_permission("read")
 	return file_doc
 
 
-def _build_file_lookup_filters(
-	*, file_url: str | None = None, file_name: str | None = None
+def _build_file_reference_filters(
+	*,
+	reference_doctype: str,
+	reference_name: str,
+	reference_field: str = "",
+	file_url: str = "",
+	file_name: str = "",
 ) -> dict[str, str]:
-	"""Build a File lookup filter from the provided reference."""
+	"""Build a File lookup filter from the provided attachment reference."""
+	clean_reference_doctype = (reference_doctype or "").strip()
+	if not clean_reference_doctype:
+		frappe.throw(_("Reference doctype is required."))
+
+	clean_reference_name = (reference_name or "").strip()
+	if not clean_reference_name:
+		frappe.throw(_("Reference name is required."))
+
+	filters = {
+		"attached_to_doctype": clean_reference_doctype,
+		"attached_to_name": clean_reference_name,
+	}
+
+	clean_reference_field = (reference_field or "").strip()
+	if clean_reference_field:
+		filters["attached_to_field"] = clean_reference_field
+
 	clean_file_url = (file_url or "").strip()
 	if clean_file_url:
-		return {"file_url": clean_file_url}
+		filters["file_url"] = clean_file_url
 
 	clean_file_name = (file_name or "").strip()
 	if clean_file_name:
-		return {"file_name": clean_file_name}
+		filters["file_name"] = clean_file_name
 
-	frappe.throw(_("Provide a file URL or file name."))
+	return filters
 
 
 def _get_document_extraction_model_config(settings) -> VisionModelConfig:
@@ -804,8 +852,8 @@ def _build_document_extraction_result(
 ) -> dict[str, Any]:
 	"""Build the persisted extraction payload returned to the agent."""
 	result: dict[str, Any] = {
+		"file_id": file_doc.name,
 		"file_name": file_doc.file_name,
-		"file_url": file_doc.file_url,
 		"pages_processed": pages_processed,
 		"total_pages": total_pages,
 		"extracted_data": extracted_data,
@@ -1120,8 +1168,7 @@ def execute_action(action: dict[str, Any]) -> dict[str, Any]:
 	if action_type == "attach_file":
 		doctype = action["doctype"]
 		ensure_editable_doctype(doctype)
-		file_doc = frappe.get_doc("File", {"file_url": action["file_url"]})
-		file_doc.check_permission("read")
+		file_doc = _get_accessible_file_doc(file_id=action["file_id"])
 		attached = frappe.get_doc(
 			{
 				"doctype": "File",
@@ -1173,6 +1220,11 @@ def validate_pending_action_payload(action_type: str, payload: dict[str, Any]) -
 			return _("Action field 'values' must be an object.")
 
 		return validate_table_field_shapes(doctype, values)
+
+	if action_type == "attach_file":
+		file_id = payload.get("file_id")
+		if not isinstance(file_id, str) or not file_id.strip():
+			return _("Action field 'file_id' is required.")
 
 	if action_type == "run_method":
 		args = payload.get("args")

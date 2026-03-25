@@ -255,11 +255,53 @@
 			}
 			if (message.role === "system" && Array.isArray(message.metadata?.files)) {
 				const names = message.metadata.files
-					.map((f) => this.escapeHtml(f.file_name || f.name))
+					.map((f) => this.renderFileLink(f))
+					.filter(Boolean)
 					.join(", ");
 				return `<i class="fa fa-paperclip" aria-hidden="true"></i> ${names}`;
 			}
 			return this.escapeHtml(message.content || "").replace(/\n/g, "<br>");
+		}
+
+		renderFileLink(fileEntry) {
+			const label = (fileEntry?.file_name || fileEntry?.name || "").toString().trim();
+			if (!label) {
+				return "";
+			}
+
+			const href = this.getSafeFileHref(fileEntry?.file_url);
+			if (!href) {
+				return this.escapeHtml(label);
+			}
+
+			const link = document.createElement("a");
+			link.href = href;
+			link.target = "_blank";
+			link.rel = "noopener noreferrer";
+			link.textContent = label;
+			return link.outerHTML;
+		}
+
+		getSafeFileHref(fileUrl) {
+			const value = (fileUrl || "").toString().trim();
+			if (!value) {
+				return "";
+			}
+
+			if (value.startsWith("/")) {
+				return value;
+			}
+
+			try {
+				const parsed = new URL(value, window.location.origin);
+				if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+					return parsed.href;
+				}
+			} catch {
+				return "";
+			}
+
+			return "";
 		}
 
 		getChartsFingerprint(message) {
@@ -440,8 +482,8 @@
 			proposal.className = "ask_alyf-proposal";
 			proposal.innerHTML = `
 				<div class="ask_alyf-proposal-title">${__("Pending operation")}</div>
-				<div class="ask_alyf-proposal-summary">${this.escapeHtml(
-					this.getPendingOperationSummary(pendingOperation)
+				<div class="ask_alyf-proposal-summary">${this.getPendingOperationSummaryHtml(
+					pendingOperation
 				)}</div>
 				<div class="ask_alyf-proposal-actions">
 					<button class="ask_alyf-confirm btn btn-primary btn-sm" type="button">${__("Confirm")}</button>
@@ -807,7 +849,6 @@
 						file: {
 							name: fileDoc.name,
 							file_name: fileDoc.file_name,
-							file_url: fileDoc.file_url,
 						},
 					},
 				});
@@ -1316,6 +1357,22 @@
 				return "";
 			}
 			return operation.summary || operation.tool || __("Pending operation");
+		}
+
+		getPendingOperationSummaryHtml(operation) {
+			return this.renderInlineMarkdown(this.getPendingOperationSummary(operation));
+		}
+
+		renderInlineMarkdown(value) {
+			const container = document.createElement("div");
+			container.innerHTML = frappe.markdown((value || "").toString());
+			if (
+				container.childElementCount === 1 &&
+				container.firstElementChild?.tagName === "P"
+			) {
+				return container.firstElementChild.innerHTML;
+			}
+			return container.innerHTML;
 		}
 
 		getMatchingForm(payload = {}) {

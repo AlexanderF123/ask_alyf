@@ -73,3 +73,61 @@ class UnitTestCodeTools(UnitTestCase):
 			)
 			grep_paths = {match["path"] for match in grep_result["matches"]}
 			self.assertIn("apps/ask_alyf/ask_alyf/ask_alyf/agent.py", grep_paths)
+
+	def test_get_file_id_uses_reference_filters(self):
+		expected_filters = {
+			"attached_to_doctype": "Sales Invoice",
+			"attached_to_name": "SINV-0001",
+			"attached_to_field": "custom_attachment",
+			"file_name": "invoice.pdf",
+		}
+		with patch("ask_alyf.ask_alyf.tools.get_list", return_value=[{"name": "FILE-0001"}]) as get_list:
+			file_id = tools.get_file_id(
+				reference_doctype="Sales Invoice",
+				reference_name="SINV-0001",
+				reference_field="custom_attachment",
+				file_name="invoice.pdf",
+			)
+
+		get_list.assert_called_once_with(
+			"File",
+			fields=["name"],
+			filters=expected_filters,
+			order_by="modified desc",
+			limit=2,
+		)
+		self.assertEqual(file_id, "FILE-0001")
+
+	def test_get_file_id_rejects_ambiguous_matches(self):
+		with patch(
+			"ask_alyf.ask_alyf.tools.get_list",
+			return_value=[{"name": "FILE-0001"}, {"name": "FILE-0002"}],
+		):
+			with self.assertRaises(frappe.ValidationError):
+				tools.get_file_id(reference_doctype="Sales Invoice", reference_name="SINV-0001")
+
+	def test_attach_file_proposal_uses_linked_file_name_summary(self):
+		runtime = SimpleNamespace(
+			conversation_name="TEST-CONVERSATION",
+			user=frappe.session.user,
+			mode="Agent",
+			request_context={},
+			pending_operation=None,
+			emit_status=lambda _text: None,
+		)
+		toolset = ask_alyfToolset(runtime)
+		file_doc = frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": "invoice.txt",
+				"content": "Test Content",
+				"is_private": 1,
+			}
+		).save()
+
+		result = toolset.attach_file("ToDo", "TODO-0001", file_doc.name)
+
+		self.assertTrue(result["success"])
+		self.assertEqual(result["proposal"]["payload"]["file_id"], file_doc.name)
+		self.assertIn(f"[{file_doc.file_name}](", result["proposal"]["summary"])
+		self.assertIn(file_doc.file_url, result["proposal"]["summary"])

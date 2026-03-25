@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import quote
 from uuid import uuid4
 
 import frappe
@@ -438,20 +439,48 @@ class ask_alyfToolset:
 			limit=limit,
 		)
 
-	def read_file_record(self, file_url: str | None = None, file_name: str | None = None) -> dict[str, Any]:
+	def get_file_id(
+		self,
+		reference_doctype: str,
+		reference_name: str,
+		reference_field: str = "",
+		file_url: str = "",
+		file_name: str = "",
+	) -> str:
+		"""Resolve a unique File ID from attachment reference filters.
+
+		Args:
+			reference_doctype: The DocType the file is attached to.
+			reference_name: The document name the file is attached to.
+			reference_field: Optional attachment field name.
+			file_url: Optional file URL to disambiguate matches.
+			file_name: Optional file name to disambiguate matches.
+
+		Returns:
+			The matching File ID.
+		"""
+		self.runtime.emit_status(_("Resolving file ID..."))
+		return tools.get_file_id(
+			reference_doctype=reference_doctype,
+			reference_name=reference_name,
+			reference_field=reference_field,
+			file_url=file_url,
+			file_name=file_name,
+		)
+
+	def read_file_record(self, file_id: str) -> dict[str, Any]:
 		"""Read the content of a File record the user can access.
 
 		Args:
-			file_url: Optional file URL.
-			file_name: Optional file name.
+			file_id: The File ID (`name`) to read.
 
 		Returns:
 			The file metadata and content.
 		"""
 		self.runtime.emit_status(_("Reading file..."))
-		return tools.read_file_record(file_url=file_url, file_name=file_name)
+		return tools.read_file_record(file_id=file_id)
 
-	async def extract_document_data(self, file_url: str, extraction_prompt: str = "") -> dict[str, Any]:
+	async def extract_document_data(self, file_id: str, extraction_prompt: str = "") -> dict[str, Any]:
 		"""Extract structured data from a PDF or image file using vision AI.
 
 		Call this tool when a user uploads or references a document (invoice, receipt,
@@ -461,16 +490,16 @@ class ask_alyfToolset:
 		Supports PDF files (up to 10 pages) and images (PNG, JPG, GIF, WebP).
 
 		Args:
-			file_url: The Frappe file URL to process (e.g. /private/files/invoice.pdf).
+			file_id: The File ID (`name`) to process.
 			extraction_prompt: Optional instructions for what data to extract.
 				If omitted, a general-purpose extraction prompt is used.
 
 		Returns:
-			A dictionary with the file name, URL, number of pages processed,
+			A dictionary with the file ID, file name, number of pages processed,
 			and the extracted data as a JSON object.
 		"""
 		self.runtime.emit_status(_("Extracting document data..."))
-		result = await tools.extract_document_data(file_url=file_url, extraction_prompt=extraction_prompt)
+		result = await tools.extract_document_data(file_id=file_id, extraction_prompt=extraction_prompt)
 		self.runtime.remember_document_extraction(result, extraction_prompt=extraction_prompt)
 		return result
 
@@ -728,7 +757,7 @@ class ask_alyfToolset:
 		self,
 		doctype: str,
 		name: str,
-		file_url: str,
+		file_id: str,
 		reason: str = "",
 	) -> dict[str, Any]:
 		"""Propose attaching an existing file to a document.
@@ -736,21 +765,22 @@ class ask_alyfToolset:
 		Args:
 			doctype: The DocType to update.
 			name: The document name.
-			file_url: The file URL to attach.
+			file_id: The File ID (`name`) to attach.
 			reason: Optional explanation of why this change is needed.
 
 		Returns:
 			A pending action proposal that requires confirmation.
 		"""
+		file_doc = tools._get_accessible_file_doc(file_id=file_id)
 		return self._backend_proposal(
 			"attach_file",
-			_("Attach {0} to {1} {2}").format(file_url, doctype, name),
+			_("Attach file {0} to {1} {2}").format(_build_file_markdown_link(file_doc), doctype, name),
 			reason,
 			validation_error_status=_("Attach file proposal needs correction."),
 			prepared_status=_("Prepared attach file proposal."),
 			doctype=doctype,
 			name=name,
-			file_url=file_url,
+			file_id=file_id,
 		)
 
 	def run_whitelisted_method(
@@ -1006,7 +1036,7 @@ Always follow these rules:
 - Respect the current user's permissions. If a tool says something is not allowed, explain that plainly.
 - If request context `lang` is not English, always call `translate_ui_labels` before using user-facing UI terms (DocType names, field labels, button labels, tabs, menus, and status labels) in your response.
 - Render responses as Markdown when that helps.
-- If conversation history includes attachment metadata, use the exact file name, file URL, or file ID shown there. Never guess or invent a file URL.
+- If conversation history includes attachment metadata, use the exact file ID shown there. If you only know a document reference, file name, or file URL, call `get_file_id` first. Never guess or invent a file ID.
 - When the user asks about the contents of an attached PDF or image, prefer `extract_document_data`. Use `read_file_record` for text-like files.
 - If conversation history includes stored document extraction data, reuse it for follow-up questions instead of re-running extraction unless the user asks for a fresh read.
 - If a file tool returns a truncation warning, tell the user clearly that only part of the file was processed.
@@ -1049,6 +1079,7 @@ Mode awareness and behavior:
 			self.toolset.new_doc,
 			self.toolset.scroll_to_field,
 			self.toolset.show_chart,
+			self.toolset.get_file_id,
 			self.toolset.read_file_record,
 			self.toolset.extract_document_data,
 			self.toolset.run_read_only_sql,
@@ -1120,8 +1151,8 @@ def _build_document_extraction_history_entry(
 ) -> dict[str, Any]:
 	"""Normalize extraction metadata stored on assistant messages."""
 	return {
+		"file_id": extraction.get("file_id") or extraction.get("name"),
 		"file_name": extraction.get("file_name"),
-		"file_url": extraction.get("file_url"),
 		"pages_processed": extraction.get("pages_processed"),
 		"total_pages": extraction.get("total_pages"),
 		"truncated": bool(extraction.get("truncated")),
@@ -1157,15 +1188,12 @@ def _build_attachment_metadata_lines(files: Any) -> list[str]:
 			continue
 
 		parts = []
+		file_id = (file_entry.get("name") or file_entry.get("file_id") or "").strip()
 		file_name = (file_entry.get("file_name") or "").strip()
-		file_url = (file_entry.get("file_url") or "").strip()
-		file_id = (file_entry.get("name") or "").strip()
-		if file_name:
-			parts.append(f"name={file_name}")
-		if file_url:
-			parts.append(f"url={file_url}")
 		if file_id:
 			parts.append(f"id={file_id}")
+		if file_name:
+			parts.append(f"name={file_name}")
 		if parts:
 			lines.append(f"Attachment metadata: {', '.join(parts)}")
 
@@ -1205,19 +1233,43 @@ def _build_document_extraction_lines(document_extractions: Any) -> list[str]:
 def _build_document_extraction_summary(extraction: dict[str, Any]) -> str:
 	"""Summarize a stored extraction record for prompt reuse."""
 	parts = []
+	file_id = (extraction.get("file_id") or extraction.get("name") or "").strip()
 	file_name = (extraction.get("file_name") or "").strip()
-	file_url = (extraction.get("file_url") or "").strip()
 	pages_processed = extraction.get("pages_processed")
 	total_pages = extraction.get("total_pages")
+	if file_id:
+		parts.append(f"id={file_id}")
 	if file_name:
 		parts.append(f"name={file_name}")
-	if file_url:
-		parts.append(f"url={file_url}")
 	if isinstance(pages_processed, int):
 		parts.append(f"pages_processed={pages_processed}")
 	if isinstance(total_pages, int):
 		parts.append(f"total_pages={total_pages}")
 	return f"Stored document extraction: {', '.join(parts)}" if parts else ""
+
+
+def _build_file_markdown_link(file_doc) -> str:
+	"""Build a Markdown link for a File document label."""
+	file_label = _escape_markdown_link_label(
+		(file_doc.file_name or file_doc.name or "").strip() or file_doc.name
+	)
+	file_url = _quote_markdown_link_destination(file_doc.file_url)
+	if not file_url:
+		return file_label
+	return f"[{file_label}]({file_url})"
+
+
+def _escape_markdown_link_label(label: str) -> str:
+	"""Escape characters that would break a Markdown link label."""
+	return label.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+
+
+def _quote_markdown_link_destination(url: str | None) -> str:
+	"""Quote a URL so it is safe inside Markdown link syntax."""
+	clean_url = (url or "").strip()
+	if not clean_url:
+		return ""
+	return quote(clean_url, safe="/#:?&=%")
 
 
 def _stringify_extracted_data(extracted_data: Any) -> str:
