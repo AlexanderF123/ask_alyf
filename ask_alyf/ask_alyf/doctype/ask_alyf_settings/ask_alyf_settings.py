@@ -1,7 +1,30 @@
+from typing import TYPE_CHECKING
+
 import frappe
 from any_llm import AnyLLM
 from frappe import _
 from frappe.model.document import Document
+
+if TYPE_CHECKING:
+	from frappe.core.doctype.has_role.has_role import HasRole
+	from frappe.types import DF
+
+	from ask_alyf.ask_alyf.doctype.ask_alyf_excluded_doctype.ask_alyf_excluded_doctype import (
+		AskALYFExcludedDocType,
+	)
+
+MODEL_CONFIG_FIELDS = {
+	"chat": {
+		"provider_field": "llm_provider",
+		"base_url_field": "base_url",
+		"api_key_field": "api_key",
+	},
+	"vision": {
+		"provider_field": "vision_llm_provider",
+		"base_url_field": "vision_base_url",
+		"api_key_field": "vision_api_key",
+	},
+}
 
 NON_TEXT_MODEL_PATTERNS = (
 	"audio",
@@ -47,6 +70,11 @@ class AskALYFSettings(Document):
 		model: DF.Autocomplete | None
 		support_phone_number: DF.Phone | None
 		system_prompt: DF.Code | None
+		vision_api_key: DF.Password | None
+		vision_base_url: DF.Data | None
+		vision_llm_provider: DF.Literal["OpenAI", "OpenAI Compatible"]
+		vision_model: DF.Autocomplete | None
+		vision_model_is_chat_model: DF.Check
 	# end: auto-generated types
 
 	def is_code_search_enabled(self) -> bool:
@@ -54,12 +82,17 @@ class AskALYFSettings(Document):
 
 
 @frappe.whitelist()
-def get_available_models() -> list[dict[str, str]]:
+def get_available_models(configuration: str = "chat") -> list[dict[str, str]]:
 	settings = frappe.get_single("Ask ALYF Settings")
 	settings.check_permission("write")
 
-	base_url = (settings.base_url or "").strip() or None
-	api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
+	model_fields = get_model_config_fields(configuration)
+	llm_provider = (getattr(settings, model_fields["provider_field"], "") or "").strip()
+	base_url = (getattr(settings, model_fields["base_url_field"], "") or "").strip() or None
+	api_key = normalize_api_key(settings.get_password(model_fields["api_key_field"], raise_exception=False))
+
+	if not llm_provider:
+		return []
 
 	if not api_key:
 		frappe.msgprint(
@@ -68,7 +101,7 @@ def get_available_models() -> list[dict[str, str]]:
 		)
 		return []
 
-	if settings.llm_provider == "OpenAI Compatible" and not base_url:
+	if llm_provider == "OpenAI Compatible" and not base_url:
 		frappe.msgprint(
 			_("Please configure a Base URL first and save the settings, then we can fetch available models."),
 			alert=True,
@@ -76,7 +109,7 @@ def get_available_models() -> list[dict[str, str]]:
 		return []
 
 	client = AnyLLM.create(
-		provider=get_any_llm_provider(settings.llm_provider),
+		provider=get_any_llm_provider(llm_provider),
 		api_key=api_key,
 		api_base=base_url,
 	)
@@ -87,6 +120,14 @@ def get_available_models() -> list[dict[str, str]]:
 	)
 
 	return [{"id": model.id} for model in models]
+
+
+def get_model_config_fields(configuration: str) -> dict[str, str]:
+	configuration = (configuration or "chat").strip().lower()
+	if configuration not in MODEL_CONFIG_FIELDS:
+		frappe.throw(_("Unsupported model configuration: {0}").format(configuration))
+
+	return MODEL_CONFIG_FIELDS[configuration]
 
 
 def get_any_llm_provider(llm_provider: str) -> str:

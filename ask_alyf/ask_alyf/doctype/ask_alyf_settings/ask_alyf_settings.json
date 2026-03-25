@@ -20,6 +20,12 @@
   "base_url",
   "api_key",
   "model",
+  "vision_provider_tab",
+  "vision_model_is_chat_model",
+  "vision_llm_provider",
+  "vision_base_url",
+  "vision_api_key",
+  "vision_model",
   "access_tab",
   "roles_html",
   "allowed_roles",
@@ -46,7 +52,8 @@
    "description": "Optional for OpenAI. Required for OpenAI-compatible providers.",
    "fieldname": "base_url",
    "fieldtype": "Data",
-   "label": "Base URL"
+   "label": "Base URL",
+   "mandatory_depends_on": "eval: doc.llm_provider == \"OpenAI Compatible\""
   },
   {
    "fieldname": "api_key",
@@ -125,13 +132,53 @@
   {
    "fieldname": "section_break_kmgx",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "vision_provider_tab",
+   "fieldtype": "Tab Break",
+   "label": "Vision Provider"
+  },
+  {
+   "default": "1",
+   "fieldname": "vision_model_is_chat_model",
+   "fieldtype": "Check",
+   "label": "Same as Chat"
+  },
+  {
+   "depends_on": "eval:!doc.vision_model_is_chat_model",
+   "fieldname": "vision_llm_provider",
+   "fieldtype": "Select",
+   "label": "Vision LLM Provider",
+   "mandatory_depends_on": "eval:!doc.vision_model_is_chat_model",
+   "options": "OpenAI\nOpenAI Compatible"
+  },
+  {
+   "depends_on": "eval:!doc.vision_model_is_chat_model",
+   "description": "Optional for OpenAI. Required for OpenAI-compatible providers.",
+   "fieldname": "vision_base_url",
+   "fieldtype": "Data",
+   "label": "Vision Base URL",
+   "mandatory_depends_on": "eval: doc.vision_llm_provider == \"OpenAI Compatible\" && !doc.vision_model_is_chat_model"
+  },
+  {
+   "depends_on": "eval:!doc.vision_model_is_chat_model",
+   "fieldname": "vision_api_key",
+   "fieldtype": "Password",
+   "label": "Vision API Key",
+   "mandatory_depends_on": "eval:!doc.vision_model_is_chat_model"
+  },
+  {
+   "depends_on": "eval:!doc.vision_model_is_chat_model && doc.vision_api_key",
+   "fieldname": "vision_model",
+   "fieldtype": "Autocomplete",
+   "label": "Vision Model"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-24 18:51:39.844849",
+ "modified": "2026-03-25 18:53:53.697469",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",
