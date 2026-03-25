@@ -21,10 +21,17 @@ class ask_alyfRuntime:
 	document_extractions: list[dict[str, Any]] = field(default_factory=list)
 
 	def emit_status(self, text: str):
+		"""Send a short status update to the current user."""
 		frappe.publish_realtime(
 			"ask_alyf_status",
 			{"conversation": self.conversation_name, "text": text},
 			user=self.user,
+		)
+
+	def remember_document_extraction(self, extraction: dict[str, Any], *, extraction_prompt: str = ""):
+		"""Store a normalized extraction result for reuse in later turns."""
+		self.document_extractions.append(
+			_build_document_extraction_history_entry(extraction, extraction_prompt=extraction_prompt)
 		)
 
 
@@ -464,18 +471,7 @@ class ask_alyfToolset:
 		"""
 		self.runtime.emit_status(_("Extracting document data..."))
 		result = await tools.extract_document_data(file_url=file_url, extraction_prompt=extraction_prompt)
-		self.runtime.document_extractions.append(
-			{
-				"file_name": result.get("file_name"),
-				"file_url": result.get("file_url"),
-				"pages_processed": result.get("pages_processed"),
-				"total_pages": result.get("total_pages"),
-				"truncated": bool(result.get("truncated")),
-				"warning": result.get("warning"),
-				"extraction_prompt": extraction_prompt,
-				"extracted_data": result.get("extracted_data"),
-			}
-		)
+		self.runtime.remember_document_extraction(result, extraction_prompt=extraction_prompt)
 		return result
 
 	def run_read_only_sql(self, query: str) -> list[dict[str, Any]]:
@@ -1111,62 +1107,126 @@ def build_prompt(message: str, conversation_history: list[dict[str, Any]]) -> st
 		"Conversation history:",
 	]
 	for item in conversation_history:
-		role = (item.get("role") or "user").capitalize()
-		content = item.get("content") or ""
-		lines.append(f"{role}: {content}")
-		metadata = item.get("metadata")
-		files = metadata.get("files") if isinstance(metadata, dict) else None
-		if isinstance(files, list):
-			for file_entry in files:
-				if not isinstance(file_entry, dict):
-					continue
-				parts = []
-				file_name = (file_entry.get("file_name") or "").strip()
-				file_url = (file_entry.get("file_url") or "").strip()
-				file_id = (file_entry.get("name") or "").strip()
-				if file_name:
-					parts.append(f"name={file_name}")
-				if file_url:
-					parts.append(f"url={file_url}")
-				if file_id:
-					parts.append(f"id={file_id}")
-				if parts:
-					lines.append(f"Attachment metadata: {', '.join(parts)}")
-		document_extractions = metadata.get("document_extractions") if isinstance(metadata, dict) else None
-		if isinstance(document_extractions, list):
-			for extraction in document_extractions:
-				if not isinstance(extraction, dict):
-					continue
-				summary_parts = []
-				file_name = (extraction.get("file_name") or "").strip()
-				file_url = (extraction.get("file_url") or "").strip()
-				pages_processed = extraction.get("pages_processed")
-				total_pages = extraction.get("total_pages")
-				if file_name:
-					summary_parts.append(f"name={file_name}")
-				if file_url:
-					summary_parts.append(f"url={file_url}")
-				if isinstance(pages_processed, int):
-					summary_parts.append(f"pages_processed={pages_processed}")
-				if isinstance(total_pages, int):
-					summary_parts.append(f"total_pages={total_pages}")
-				if summary_parts:
-					lines.append(f"Stored document extraction: {', '.join(summary_parts)}")
-				warning = (extraction.get("warning") or "").strip()
-				if warning:
-					lines.append(f"Extraction warning: {warning}")
-				extracted_data = extraction.get("extracted_data")
-				extracted_data_text = ""
-				if isinstance(extracted_data, str):
-					extracted_data_text = extracted_data.strip()
-				elif extracted_data is not None:
-					extracted_data_text = frappe.as_json(extracted_data, indent=2)
-				if extracted_data_text:
-					lines.append("Extracted document data (JSON):")
-					lines.append(extracted_data_text)
+		lines.extend(_build_history_item_lines(item))
 
 	lines.extend(["", f"User: {message}"])
 	return "\n".join(lines)
+
+
+def _build_document_extraction_history_entry(
+	extraction: dict[str, Any],
+	*,
+	extraction_prompt: str = "",
+) -> dict[str, Any]:
+	"""Normalize extraction metadata stored on assistant messages."""
+	return {
+		"file_name": extraction.get("file_name"),
+		"file_url": extraction.get("file_url"),
+		"pages_processed": extraction.get("pages_processed"),
+		"total_pages": extraction.get("total_pages"),
+		"truncated": bool(extraction.get("truncated")),
+		"warning": extraction.get("warning"),
+		"extraction_prompt": extraction_prompt,
+		"extracted_data": extraction.get("extracted_data"),
+	}
+
+
+def _build_history_item_lines(item: dict[str, Any]) -> list[str]:
+	"""Render one stored message and its metadata into prompt lines."""
+	role = (item.get("role") or "user").capitalize()
+	content = item.get("content") or ""
+	lines = [f"{role}: {content}"]
+
+	metadata = item.get("metadata")
+	if not isinstance(metadata, dict):
+		return lines
+
+	lines.extend(_build_attachment_metadata_lines(metadata.get("files")))
+	lines.extend(_build_document_extraction_lines(metadata.get("document_extractions")))
+	return lines
+
+
+def _build_attachment_metadata_lines(files: Any) -> list[str]:
+	"""Render attachment metadata into compact prompt lines."""
+	if not isinstance(files, list):
+		return []
+
+	lines: list[str] = []
+	for file_entry in files:
+		if not isinstance(file_entry, dict):
+			continue
+
+		parts = []
+		file_name = (file_entry.get("file_name") or "").strip()
+		file_url = (file_entry.get("file_url") or "").strip()
+		file_id = (file_entry.get("name") or "").strip()
+		if file_name:
+			parts.append(f"name={file_name}")
+		if file_url:
+			parts.append(f"url={file_url}")
+		if file_id:
+			parts.append(f"id={file_id}")
+		if parts:
+			lines.append(f"Attachment metadata: {', '.join(parts)}")
+
+	return lines
+
+
+def _build_document_extraction_lines(document_extractions: Any) -> list[str]:
+	"""Render persisted document extraction metadata and JSON into prompt lines."""
+	if not isinstance(document_extractions, list):
+		return []
+
+	lines: list[str] = []
+	for extraction in document_extractions:
+		if not isinstance(extraction, dict):
+			continue
+
+		summary = _build_document_extraction_summary(extraction)
+		if summary:
+			lines.append(summary)
+
+		extraction_prompt = (extraction.get("extraction_prompt") or "").strip()
+		if extraction_prompt:
+			lines.append(f"Extraction request: {extraction_prompt}")
+
+		warning = (extraction.get("warning") or "").strip()
+		if warning:
+			lines.append(f"Extraction warning: {warning}")
+
+		extracted_data_text = _stringify_extracted_data(extraction.get("extracted_data"))
+		if extracted_data_text:
+			lines.append("Extracted document data (JSON):")
+			lines.append(extracted_data_text)
+
+	return lines
+
+
+def _build_document_extraction_summary(extraction: dict[str, Any]) -> str:
+	"""Summarize a stored extraction record for prompt reuse."""
+	parts = []
+	file_name = (extraction.get("file_name") or "").strip()
+	file_url = (extraction.get("file_url") or "").strip()
+	pages_processed = extraction.get("pages_processed")
+	total_pages = extraction.get("total_pages")
+	if file_name:
+		parts.append(f"name={file_name}")
+	if file_url:
+		parts.append(f"url={file_url}")
+	if isinstance(pages_processed, int):
+		parts.append(f"pages_processed={pages_processed}")
+	if isinstance(total_pages, int):
+		parts.append(f"total_pages={total_pages}")
+	return f"Stored document extraction: {', '.join(parts)}" if parts else ""
+
+
+def _stringify_extracted_data(extracted_data: Any) -> str:
+	"""Render stored extraction data as JSON text for the prompt."""
+	if isinstance(extracted_data, str):
+		return extracted_data.strip()
+	if extracted_data is None:
+		return ""
+	return frappe.as_json(extracted_data, indent=2)
 
 
 def run_message(

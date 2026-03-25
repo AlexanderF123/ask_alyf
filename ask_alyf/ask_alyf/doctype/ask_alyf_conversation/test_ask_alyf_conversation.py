@@ -109,9 +109,18 @@ class UnitTestAskALYFConversation(UnitTestCase):
 			messages,
 		)
 		self.assertIn("Stored document extraction:", prompt)
+		self.assertIn("Extraction request: Extract line items and totals.", prompt)
 		self.assertIn("/private/files/invoice.pdf", prompt)
 		self.assertIn('"supplier": "ACME"', prompt)
 		self.assertIn('"total": "123.45"', prompt)
+
+	def test_parse_json_object_text_accepts_markdown_fenced_json(self):
+		parsed = tools._parse_json_object_text(
+			"""```json
+{"supplier":"ACME","total":"123.45"}
+```"""
+		)
+		self.assertEqual(parsed, {"supplier": "ACME", "total": "123.45"})
 
 	def test_invalid_frontend_operation_rejected_server_side(self):
 		with self.assertRaises(frappe.ValidationError):

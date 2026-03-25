@@ -129,6 +129,22 @@ def make_message(role: str, content: str, **metadata) -> dict:
 	}
 
 
+def build_assistant_message_metadata(
+	mode: str,
+	*,
+	pending_operation: dict[str, Any] | None = None,
+	document_extractions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+	"""Build persisted metadata for an assistant message."""
+	metadata = {
+		"mode": mode,
+		"pending_operation": bool(pending_operation),
+	}
+	if isinstance(document_extractions, list) and document_extractions:
+		metadata["document_extractions"] = document_extractions
+	return metadata
+
+
 def find_assistant_message_for_pending_operation(
 	messages: list[dict[str, Any]],
 	pending_operation: dict[str, Any],
@@ -388,14 +404,15 @@ def process_message_job(
 		pending_operation = None
 		document_extractions = None
 
-	message_metadata = {
-		"mode": mode,
-		"pending_operation": bool(pending_operation),
-	}
-	if isinstance(document_extractions, list) and document_extractions:
-		message_metadata["document_extractions"] = document_extractions
-
-	assistant_message = make_message("assistant", response, **message_metadata)
+	assistant_message = make_message(
+		"assistant",
+		response,
+		**build_assistant_message_metadata(
+			mode,
+			pending_operation=pending_operation,
+			document_extractions=document_extractions,
+		),
+	)
 	messages.append(assistant_message)
 	if pending_operation and isinstance(pending_operation, dict):
 		pending_operation = {**pending_operation, "assistant_message_id": assistant_message["id"]}

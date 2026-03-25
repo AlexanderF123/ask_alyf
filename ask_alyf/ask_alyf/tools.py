@@ -5,6 +5,7 @@ import fnmatch
 import json
 import re
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -42,8 +43,35 @@ MAX_FRAPPE_CHART_DATASETS = 20
 MIN_FRAPPE_CHART_HEIGHT = 240
 MAX_FRAPPE_CHART_HEIGHT = 800
 VISION_SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+VISION_MIME_TYPES = {
+	".png": "image/png",
+	".jpg": "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif": "image/gif",
+	".webp": "image/webp",
+}
 MAX_VISION_PAGES = 10
 VISION_DPI = 200
+DEFAULT_DOCUMENT_EXTRACTION_PROMPT = (
+	"Extract all structured data from this document. "
+	"Use clearly labeled fields and include all text, tables, amounts, dates, names, "
+	"addresses, references, and line items you can find."
+)
+JSON_OBJECT_OUTPUT_INSTRUCTION = (
+	"Return only a valid JSON object. "
+	"Do not wrap the JSON in markdown fences. "
+	"Do not add explanatory prose before or after the JSON."
+)
+
+
+@dataclass(frozen=True)
+class VisionModelConfig:
+	"""Resolved provider settings for a document extraction request."""
+
+	provider_name: str
+	api_key: str
+	api_base: str | None
+	model_id: str
 
 
 def coerce_int(value: Any, default: int, *, minimum: int | None = None) -> int:
@@ -605,9 +633,8 @@ def grep(
 
 
 def read_file_record(file_url: str | None = None, file_name: str | None = None) -> dict[str, Any]:
-	filters = {"file_url": file_url} if file_url else {"file_name": file_name}
-	file_doc = frappe.get_doc("File", filters)
-	file_doc.check_permission("read")
+	"""Read textual content from an accessible File record."""
+	file_doc = _get_accessible_file_doc(file_url=file_url, file_name=file_name)
 	content = file_doc.get_content()
 	if isinstance(content, bytes):
 		content = content.decode("utf-8", errors="replace")
@@ -615,19 +642,70 @@ def read_file_record(file_url: str | None = None, file_name: str | None = None) 
 
 
 async def extract_document_data(file_url: str, extraction_prompt: str = "") -> dict[str, Any]:
-	from any_llm import AnyLLM
+	"""Extract structured JSON data from an accessible PDF or image file."""
+	file_doc = _get_accessible_file_doc(file_url=file_url)
+	images, total_pages = _file_to_base64_images(file_doc.get_full_path())
+	if not images:
+		frappe.throw(_("Could not extract visual content from the file."))
 
+	model_config = _get_document_extraction_model_config(get_settings())
+	content_parts = _build_document_extraction_content_parts(
+		_build_document_extraction_prompt(extraction_prompt),
+		images,
+	)
+	response = await _run_document_extraction_completion(model_config, content_parts)
+	extracted_data = _parse_json_object_text(_get_completion_message_content(response))
+	return _build_document_extraction_result(
+		file_doc=file_doc,
+		extracted_data=extracted_data,
+		total_pages=total_pages,
+		pages_processed=len(images),
+	)
+
+
+def _get_accessible_file_doc(
+	*,
+	file_url: str | None = None,
+	file_name: str | None = None,
+):
+	"""Load a File document by URL or name and enforce read permission."""
+	filters = _build_file_lookup_filters(file_url=file_url, file_name=file_name)
+	docname = frappe.db.get_value("File", filters, "name")
+	if not docname:
+		file_label = filters.get("file_url") or filters.get("file_name") or _("requested file")
+		frappe.throw(_("File '{0}' was not found.").format(file_label))
+
+	file_doc = frappe.get_doc("File", docname)
+	file_doc.check_permission("read")
+	return file_doc
+
+
+def _build_file_lookup_filters(
+	*, file_url: str | None = None, file_name: str | None = None
+) -> dict[str, str]:
+	"""Build a File lookup filter from the provided reference."""
+	clean_file_url = (file_url or "").strip()
+	if clean_file_url:
+		return {"file_url": clean_file_url}
+
+	clean_file_name = (file_name or "").strip()
+	if clean_file_name:
+		return {"file_name": clean_file_name}
+
+	frappe.throw(_("Provide a file URL or file name."))
+
+
+def _get_document_extraction_model_config(settings) -> VisionModelConfig:
+	"""Resolve the vision-capable model configuration from settings."""
 	from ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings import get_any_llm_provider
 
-	settings = get_settings()
-
 	if settings.vision_model_is_chat_model:
-		llm_provider = settings.llm_provider
+		provider_label = settings.llm_provider
 		api_base = (settings.base_url or "").strip() or None
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		model_setting = (settings.model or "").strip()
 	else:
-		llm_provider = settings.vision_llm_provider
+		provider_label = settings.vision_llm_provider
 		api_base = (settings.vision_base_url or "").strip() or None
 		api_key = (settings.get_password("vision_api_key", raise_exception=False) or "").strip()
 		model_setting = (settings.vision_model or "").strip()
@@ -637,71 +715,123 @@ async def extract_document_data(file_url: str, extraction_prompt: str = "") -> d
 	if not model_setting:
 		frappe.throw(_("Configure a vision model in Ask ALYF Settings."))
 
-	file_doc = frappe.get_doc("File", {"file_url": file_url})
-	file_doc.check_permission("read")
-	file_path = file_doc.get_full_path()
-
-	images, total_pages = _file_to_base64_images(file_path)
-	if not images:
-		frappe.throw(_("Could not extract visual content from the file."))
-
-	default_prompt = (
-		"Extract all structured data from this document. "
-		"Use clearly labeled fields and include all text, tables, amounts, dates, names, addresses, "
-		"references, and line items you can find."
+	return VisionModelConfig(
+		provider_name=get_any_llm_provider(provider_label),
+		api_key=api_key,
+		api_base=api_base,
+		model_id=_normalize_any_llm_model_id(model_setting),
 	)
-	json_output_instruction = (
-		"Return only a valid JSON object. "
-		"Do not wrap the JSON in markdown fences. "
-		"Do not add explanatory prose before or after the JSON."
-	)
-	prompt_text = (extraction_prompt or "").strip() or default_prompt
-	prompt_text = f"{prompt_text}\n\n{json_output_instruction}"
 
-	content_parts: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
-	for img in images:
-		content_parts.append(
-			{
-				"type": "image_url",
-				"image_url": {
-					"url": f"data:{img['mime_type']};base64,{img['data']}",
-					"detail": "high",
-				},
-			}
-		)
+
+def _normalize_any_llm_model_id(model_setting: str) -> str:
+	"""Strip an optional provider prefix from an any-llm model setting."""
+	from any_llm import AnyLLM
 
 	try:
-		model_id = AnyLLM.split_model_provider(model_setting)[1]
+		return AnyLLM.split_model_provider(model_setting)[1]
 	except ValueError:
-		model_id = model_setting
+		return model_setting
 
-	provider_name = get_any_llm_provider(llm_provider)
-	client = AnyLLM.create(provider=provider_name, api_key=api_key, api_base=api_base)
-	response = await client.acompletion(
-		model=model_id,
+
+def _build_document_extraction_prompt(extraction_prompt: str) -> str:
+	"""Combine the user prompt with strict JSON output instructions."""
+	prompt_text = (extraction_prompt or "").strip() or DEFAULT_DOCUMENT_EXTRACTION_PROMPT
+	return f"{prompt_text}\n\n{JSON_OBJECT_OUTPUT_INSTRUCTION}"
+
+
+def _build_document_extraction_content_parts(
+	prompt_text: str,
+	images: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+	"""Build the multimodal message payload for the vision model."""
+	content_parts: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
+	for image in images:
+		content_parts.append(_build_vision_image_part(image))
+	return content_parts
+
+
+def _build_vision_image_part(image: dict[str, str]) -> dict[str, Any]:
+	"""Build one OpenAI-style image content block."""
+	return {
+		"type": "image_url",
+		"image_url": {
+			"url": f"data:{image['mime_type']};base64,{image['data']}",
+			"detail": "high",
+		},
+	}
+
+
+async def _run_document_extraction_completion(
+	model_config: VisionModelConfig,
+	content_parts: list[dict[str, Any]],
+):
+	"""Execute the vision completion request that returns JSON."""
+	from any_llm import AnyLLM
+
+	client = AnyLLM.create(
+		provider=model_config.provider_name,
+		api_key=model_config.api_key,
+		api_base=model_config.api_base,
+	)
+	return await client.acompletion(
+		model=model_config.model_id,
 		messages=[{"role": "user", "content": content_parts}],
 		temperature=0.1,
 		response_format={"type": "json_object"},
 	)
-	extracted_data = _parse_json_object_text(response.choices[0].message.content or "")
 
+
+def _get_completion_message_content(response: Any) -> Any:
+	"""Read the first completion message content or raise a user-facing error."""
+	choices = getattr(response, "choices", None)
+	if not isinstance(choices, list) or not choices:
+		frappe.throw(_("Document extraction returned no choices."))
+
+	message = getattr(choices[0], "message", None)
+	content = getattr(message, "content", None)
+	if content in (None, ""):
+		frappe.throw(_("Document extraction returned no content."))
+
+	return content
+
+
+def _build_document_extraction_result(
+	*,
+	file_doc,
+	extracted_data: dict[str, Any],
+	total_pages: int,
+	pages_processed: int,
+) -> dict[str, Any]:
+	"""Build the persisted extraction payload returned to the agent."""
 	result: dict[str, Any] = {
 		"file_name": file_doc.file_name,
 		"file_url": file_doc.file_url,
-		"pages_processed": len(images),
+		"pages_processed": pages_processed,
 		"total_pages": total_pages,
 		"extracted_data": extracted_data,
 	}
-	if total_pages > len(images):
+
+	warning = _get_document_extraction_warning(total_pages=total_pages, pages_processed=pages_processed)
+	if warning:
 		result["truncated"] = True
-		result["warning"] = (
-			f"The document has {total_pages} pages but only the first {len(images)} were processed. "
-			"Data from later pages is not included."
-		)
+		result["warning"] = warning
+
 	return result
 
 
+def _get_document_extraction_warning(*, total_pages: int, pages_processed: int) -> str | None:
+	"""Describe when a document had more pages than the extraction cap allows."""
+	if total_pages <= pages_processed:
+		return None
+
+	return (
+		f"The document has {total_pages} pages but only the first {pages_processed} were processed. "
+		"Data from later pages is not included."
+	)
+
+
 def _parse_json_object_text(raw_content: Any) -> dict[str, Any]:
+	"""Parse a JSON object from raw model output."""
 	if isinstance(raw_content, dict):
 		return raw_content
 
@@ -734,26 +864,29 @@ def _parse_json_object_text(raw_content: Any) -> dict[str, Any]:
 
 
 def _file_to_base64_images(file_path: str) -> tuple[list[dict[str, str]], int]:
+	"""Render a supported document into base64-encoded image payloads."""
 	path = Path(file_path)
 	suffix = path.suffix.lower()
 
 	if suffix == ".pdf":
 		return _pdf_to_base64_images(file_path)
-
 	if suffix in VISION_SUPPORTED_EXTENSIONS:
-		mime = {
-			".png": "image/png",
-			".jpg": "image/jpeg",
-			".jpeg": "image/jpeg",
-			".gif": "image/gif",
-			".webp": "image/webp",
-		}.get(suffix, "image/png")
-		return [{"data": base64.b64encode(path.read_bytes()).decode(), "mime_type": mime}], 1
+		return [_read_image_file_as_base64(path)], 1
 
 	frappe.throw(_("Unsupported file type '{0}'. Supported types: PDF, PNG, JPG, GIF, WebP.").format(suffix))
 
 
+def _read_image_file_as_base64(path: Path) -> dict[str, str]:
+	"""Load an image file as a base64 payload for multimodal input."""
+	mime_type = VISION_MIME_TYPES.get(path.suffix.lower(), "image/png")
+	return {
+		"data": base64.b64encode(path.read_bytes()).decode(),
+		"mime_type": mime_type,
+	}
+
+
 def _pdf_to_base64_images(file_path: str) -> tuple[list[dict[str, str]], int]:
+	"""Render the first N PDF pages into PNG payloads for the vision model."""
 	import pymupdf
 
 	doc = pymupdf.open(file_path)
