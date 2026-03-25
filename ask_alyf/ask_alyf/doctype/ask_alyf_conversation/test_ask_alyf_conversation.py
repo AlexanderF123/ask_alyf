@@ -169,6 +169,10 @@ class UnitTestAskALYFConversation(UnitTestCase):
 			"call_id": "call-backend-1",
 		}
 		conversation = self.make_conversation(messages=[], pending_operation=pending_operation)
+		realtime_calls = []
+
+		def record_realtime(event, payload=None, user=None, **kwargs):
+			realtime_calls.append({"event": event, "payload": payload, "user": user, "kwargs": kwargs})
 
 		with patch("ask_alyf.ask_alyf.api.can_access_ask_alyf", return_value=True):
 			with patch(
@@ -182,12 +186,17 @@ class UnitTestAskALYFConversation(UnitTestCase):
 						"pending_operation": None,
 					},
 				) as summarize_call:
-					response = api.confirm_pending_operation(
-						conversation=conversation.name, mode=api.MODE_ASK
-					)
+					with patch("ask_alyf.ask_alyf.api.frappe.publish_realtime", side_effect=record_realtime):
+						response = api.confirm_pending_operation(
+							conversation=conversation.name, mode=api.MODE_ASK
+						)
 
 		execute_operation.assert_called_once_with(pending_operation)
 		summarize_call.assert_called_once()
+		status_updates = [
+			call["payload"]["text"] for call in realtime_calls if call["event"] == "ask_alyf_status"
+		]
+		self.assertEqual(status_updates, ["Confirming action...", "Generating response...", ""])
 		system_message = summarize_call.call_args.kwargs["conversation_history"][-1]
 		self.assertEqual(system_message["role"], "system")
 		self.assertIn('"status": "success"', system_message["content"])
@@ -208,6 +217,10 @@ class UnitTestAskALYFConversation(UnitTestCase):
 			"call_id": "call-frontend-1",
 		}
 		conversation = self.make_conversation(messages=[], pending_operation=pending_operation)
+		realtime_calls = []
+
+		def record_realtime(event, payload=None, user=None, **kwargs):
+			realtime_calls.append({"event": event, "payload": payload, "user": user, "kwargs": kwargs})
 
 		with patch("ask_alyf.ask_alyf.api.can_access_ask_alyf", return_value=True):
 			with patch(
@@ -217,15 +230,20 @@ class UnitTestAskALYFConversation(UnitTestCase):
 					"pending_operation": None,
 				},
 			) as summarize_call:
-				response = api.frontend_action_result(
-					conversation=conversation.name,
-					call_id="call-frontend-1",
-					status="success",
-					mode=api.MODE_ASK,
-					result={"route": ["List", "Sales Invoice"]},
-				)
+				with patch("ask_alyf.ask_alyf.api.frappe.publish_realtime", side_effect=record_realtime):
+					response = api.frontend_action_result(
+						conversation=conversation.name,
+						call_id="call-frontend-1",
+						status="success",
+						mode=api.MODE_ASK,
+						result={"route": ["List", "Sales Invoice"]},
+					)
 
 		summarize_call.assert_called_once()
+		status_updates = [
+			call["payload"]["text"] for call in realtime_calls if call["event"] == "ask_alyf_status"
+		]
+		self.assertEqual(status_updates, ["Generating response...", ""])
 		system_message = summarize_call.call_args.kwargs["conversation_history"][-1]
 		self.assertEqual(system_message["role"], "system")
 		self.assertIn('"status": "success"', system_message["content"])

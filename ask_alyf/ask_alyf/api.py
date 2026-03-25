@@ -276,6 +276,14 @@ def conversation_payload(conversation) -> dict:
 	}
 
 
+def publish_status_update(conversation_name: str, user: str, text: str):
+	frappe.publish_realtime(
+		"ask_alyf_status",
+		{"conversation": conversation_name, "text": text},
+		user=user,
+	)
+
+
 @frappe.whitelist()
 def bootstrap(conversation: str | None = None) -> dict:
 	if not can_access_ask_alyf():
@@ -457,51 +465,58 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 	if pending_operation.get("kind") != OPERATION_KIND_BACKEND:
 		frappe.throw(_("Only backend actions can be confirmed by this endpoint."))
 
+	publish_status_update(doc.name, doc.user, _("Confirming action..."))
 	try:
-		result = execute_pending_operation(pending_operation)
-	except Exception as error:
-		frappe.log_error(frappe.get_traceback(), "Ask ALYF Confirm Action Error")
-		content = _("Could not confirm operation: {0}").format(str(error))
-		messages.append(make_message("assistant", content, mode=normalized_mode))
-		save_messages(doc, messages)
-		return {"error": str(error), "conversation": conversation_payload(doc)}
+		try:
+			result = execute_pending_operation(pending_operation)
+		except Exception as error:
+			frappe.log_error(frappe.get_traceback(), "Ask ALYF Confirm Action Error")
+			content = _("Could not confirm operation: {0}").format(str(error))
+			messages.append(make_message("assistant", content, mode=normalized_mode))
+			save_messages(doc, messages)
+			return {"error": str(error), "conversation": conversation_payload(doc)}
 
-	doc.pending_operation_json = ""
-	operation_payload = pending_operation.get("payload") if isinstance(pending_operation, dict) else {}
-	operation_payload = operation_payload if isinstance(operation_payload, dict) else {}
-	action_result = {
-		"kind": pending_operation.get("kind"),
-		"tool": pending_operation.get("tool"),
-		"summary": pending_operation.get("summary"),
-		"doctype": operation_payload.get("doctype"),
-		"name": operation_payload.get("name"),
-	}
-	if isinstance(result, dict):
-		action_result["name"] = result.get("name") or result.get("new_name") or action_result["name"]
-		action_result["message"] = result.get("message")
-	action_result = {key: value for key, value in action_result.items() if value not in (None, "")}
+		publish_status_update(doc.name, doc.user, _("Generating response..."))
+		doc.pending_operation_json = ""
+		operation_payload = pending_operation.get("payload") if isinstance(pending_operation, dict) else {}
+		operation_payload = operation_payload if isinstance(operation_payload, dict) else {}
+		action_result = {
+			"kind": pending_operation.get("kind"),
+			"tool": pending_operation.get("tool"),
+			"summary": pending_operation.get("summary"),
+			"doctype": operation_payload.get("doctype"),
+			"name": operation_payload.get("name"),
+		}
+		if isinstance(result, dict):
+			action_result["name"] = result.get("name") or result.get("new_name") or action_result["name"]
+			action_result["message"] = result.get("message")
+		action_result = {key: value for key, value in action_result.items() if value not in (None, "")}
 
-	content = summarize_executed_action(
-		doc,
-		normalized_mode,
-		messages,
-		pending_operation,
-		status="success",
-		result_payload=action_result,
-	)
-	if not content:
-		content = _("Confirmed operation: {0}").format(
-			pending_operation.get("summary") or pending_operation.get("tool")
+		content = summarize_executed_action(
+			doc,
+			normalized_mode,
+			messages,
+			pending_operation,
+			status="success",
+			result_payload=action_result,
 		)
-		if action_result.get("doctype") and action_result.get("name"):
-			content += "\n\n" + _("Document: {0} {1}").format(action_result["doctype"], action_result["name"])
-		elif action_result.get("message"):
-			content += "\n\n" + str(action_result["message"])
+		if not content:
+			content = _("Confirmed operation: {0}").format(
+				pending_operation.get("summary") or pending_operation.get("tool")
+			)
+			if action_result.get("doctype") and action_result.get("name"):
+				content += "\n\n" + _("Document: {0} {1}").format(
+					action_result["doctype"], action_result["name"]
+				)
+			elif action_result.get("message"):
+				content += "\n\n" + str(action_result["message"])
 
-	messages.append(make_message("assistant", content, confirmed_action=True, mode=normalized_mode))
-	save_messages(doc, messages)
+		messages.append(make_message("assistant", content, confirmed_action=True, mode=normalized_mode))
+		save_messages(doc, messages)
 
-	return {"result": action_result, "conversation": conversation_payload(doc)}
+		return {"result": action_result, "conversation": conversation_payload(doc)}
+	finally:
+		publish_status_update(doc.name, doc.user, "")
 
 
 @frappe.whitelist(methods=["POST"])
@@ -611,49 +626,53 @@ def frontend_action_result(
 	elif isinstance(result, dict):
 		result_payload = result
 
-	messages = get_messages(doc)
-	if (pending_operation.get("tool") or "").strip() == "show_chart":
-		return _resolve_show_chart_frontend_action(
+	publish_status_update(doc.name, doc.user, _("Generating response..."))
+	try:
+		messages = get_messages(doc)
+		if (pending_operation.get("tool") or "").strip() == "show_chart":
+			return _resolve_show_chart_frontend_action(
+				doc,
+				messages,
+				pending_operation,
+				status_value,
+				error,
+				normalized_mode,
+			)
+
+		summary = pending_operation.get("summary") or pending_operation.get("tool") or _("frontend action")
+		content = summarize_executed_action(
 			doc,
+			normalized_mode,
 			messages,
 			pending_operation,
-			status_value,
-			error,
-			normalized_mode,
+			status=status_value,
+			result_payload=result_payload,
+			error=error,
 		)
+		if not content:
+			if status_value == "success":
+				content = _("Executed frontend action: {0}").format(summary)
+			elif status_value == "rejected":
+				content = _("Cancelled frontend action: {0}").format(summary)
+			else:
+				content = _("Frontend action failed: {0}").format(summary)
+				if error:
+					content += "\n\n" + _("Reason: {0}").format(error)
 
-	summary = pending_operation.get("summary") or pending_operation.get("tool") or _("frontend action")
-	content = summarize_executed_action(
-		doc,
-		normalized_mode,
-		messages,
-		pending_operation,
-		status=status_value,
-		result_payload=result_payload,
-		error=error,
-	)
-	if not content:
-		if status_value == "success":
-			content = _("Executed frontend action: {0}").format(summary)
-		elif status_value == "rejected":
-			content = _("Cancelled frontend action: {0}").format(summary)
-		else:
-			content = _("Frontend action failed: {0}").format(summary)
-			if error:
-				content += "\n\n" + _("Reason: {0}").format(error)
+		message_metadata = {
+			"frontend_action_result": True,
+			"frontend_action_status": status_value,
+			"mode": normalized_mode,
+		}
+		if result_payload:
+			message_metadata["frontend_action_payload"] = result_payload
 
-	message_metadata = {
-		"frontend_action_result": True,
-		"frontend_action_status": status_value,
-		"mode": normalized_mode,
-	}
-	if result_payload:
-		message_metadata["frontend_action_payload"] = result_payload
-
-	messages.append(make_message("assistant", content, **message_metadata))
-	doc.pending_operation_json = ""
-	save_messages(doc, messages)
-	return {"conversation": conversation_payload(doc)}
+		messages.append(make_message("assistant", content, **message_metadata))
+		doc.pending_operation_json = ""
+		save_messages(doc, messages)
+		return {"conversation": conversation_payload(doc)}
+	finally:
+		publish_status_update(doc.name, doc.user, "")
 
 
 @frappe.whitelist(methods=["POST"])

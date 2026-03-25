@@ -1533,6 +1533,12 @@
 
 			this.state.pendingOperation = null;
 			this.renderMessages();
+			this.setLoading(true);
+			this.setStatus(
+				this.isFrontendAction(operation)
+					? __("Applying action...")
+					: __("Confirming action...")
+			);
 			try {
 				if (this.isFrontendAction(operation)) {
 					const actionCompleted = await this.executeFrontendAction(operation);
@@ -1554,6 +1560,9 @@
 				this.state.pendingOperation = operation;
 				this.renderMessages();
 				frappe.msgprint(error.message || __("Failed to confirm pending operation."));
+			} finally {
+				this.setLoading(false);
+				this.setStatus("");
 			}
 		}
 
