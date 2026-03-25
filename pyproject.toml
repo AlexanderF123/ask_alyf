@@ -11,6 +11,7 @@ dependencies = [
     # "frappe~=16.0.0" # Installed and managed by bench.
     "any-agent",
     "any-llm-sdk",
+    "pymupdf",
 ]
 
 [build-system]

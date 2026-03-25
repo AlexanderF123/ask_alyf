@@ -6,7 +6,7 @@ from unittest.mock import patch
 import frappe
 from frappe.tests import UnitTestCase
 
-from ask_alyf.ask_alyf import api, tools
+from ask_alyf.ask_alyf import agent, api, tools
 from ask_alyf.ask_alyf.utils import dumps, loads
 
 
@@ -65,6 +65,53 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		complete_events = [call for call in realtime_calls if call["event"] == "ask_alyf_response_complete"]
 		self.assertEqual(len(complete_events), 1)
 		self.assertEqual(complete_events[0]["payload"]["pending_operation"], expected_with_id)
+
+	def test_process_message_job_persists_document_extractions(self):
+		user_message = api.make_message("user", "What is on this invoice?", mode=api.MODE_ASK)
+		conversation = self.make_conversation(messages=[user_message])
+		document_extractions = [
+			{
+				"file_name": "invoice.pdf",
+				"file_url": "/private/files/invoice.pdf",
+				"pages_processed": 2,
+				"total_pages": 2,
+				"truncated": False,
+				"warning": "",
+				"extraction_prompt": "Extract line items and totals.",
+				"extracted_data": {"supplier": "ACME", "total": "123.45"},
+			}
+		]
+
+		with patch(
+			"ask_alyf.ask_alyf.api.run_message",
+			return_value={
+				"response": "I found the supplier and total.",
+				"pending_operation": None,
+				"document_extractions": document_extractions,
+			},
+		):
+			api.process_message_job(
+				conversation_name=conversation.name,
+				message="What is on this invoice?",
+				mode=api.MODE_ASK,
+				context_data={},
+				user_message_id=user_message["id"],
+			)
+
+		conversation.reload()
+		messages = loads(conversation.messages_json, [])
+		self.assertTrue(messages)
+		self.assertEqual(messages[-1]["content"], "I found the supplier and total.")
+		self.assertEqual(messages[-1]["metadata"].get("document_extractions"), document_extractions)
+
+		prompt = agent.build_prompt(
+			"Create the Purchase Invoice from that document.",
+			messages,
+		)
+		self.assertIn("Stored document extraction:", prompt)
+		self.assertIn("/private/files/invoice.pdf", prompt)
+		self.assertIn('"supplier": "ACME"', prompt)
+		self.assertIn('"total": "123.45"', prompt)
 
 	def test_invalid_frontend_operation_rejected_server_side(self):
 		with self.assertRaises(frappe.ValidationError):

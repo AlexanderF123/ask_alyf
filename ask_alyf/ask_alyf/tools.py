@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import fnmatch
 import json
 import re
@@ -40,6 +41,9 @@ MAX_FRAPPE_CHART_DATASETS = 20
 # values below ~200 yield a non-positive plot height and NaN axis geometry in draw.js.
 MIN_FRAPPE_CHART_HEIGHT = 240
 MAX_FRAPPE_CHART_HEIGHT = 800
+VISION_SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+MAX_VISION_PAGES = 10
+VISION_DPI = 200
 
 
 def coerce_int(value: Any, default: int, *, minimum: int | None = None) -> int:
@@ -608,6 +612,160 @@ def read_file_record(file_url: str | None = None, file_name: str | None = None) 
 	if isinstance(content, bytes):
 		content = content.decode("utf-8", errors="replace")
 	return {"file_name": file_doc.file_name, "file_url": file_doc.file_url, "content": content}
+
+
+async def extract_document_data(file_url: str, extraction_prompt: str = "") -> dict[str, Any]:
+	from any_llm import AnyLLM
+
+	from ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings import get_any_llm_provider
+
+	settings = get_settings()
+
+	if settings.vision_model_is_chat_model:
+		llm_provider = settings.llm_provider
+		api_base = (settings.base_url or "").strip() or None
+		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
+		model_setting = (settings.model or "").strip()
+	else:
+		llm_provider = settings.vision_llm_provider
+		api_base = (settings.vision_base_url or "").strip() or None
+		api_key = (settings.get_password("vision_api_key", raise_exception=False) or "").strip()
+		model_setting = (settings.vision_model or "").strip()
+
+	if not api_key:
+		frappe.throw(_("Configure a vision model API key in Ask ALYF Settings."))
+	if not model_setting:
+		frappe.throw(_("Configure a vision model in Ask ALYF Settings."))
+
+	file_doc = frappe.get_doc("File", {"file_url": file_url})
+	file_doc.check_permission("read")
+	file_path = file_doc.get_full_path()
+
+	images, total_pages = _file_to_base64_images(file_path)
+	if not images:
+		frappe.throw(_("Could not extract visual content from the file."))
+
+	default_prompt = (
+		"Extract all structured data from this document. "
+		"Use clearly labeled fields and include all text, tables, amounts, dates, names, addresses, "
+		"references, and line items you can find."
+	)
+	json_output_instruction = (
+		"Return only a valid JSON object. "
+		"Do not wrap the JSON in markdown fences. "
+		"Do not add explanatory prose before or after the JSON."
+	)
+	prompt_text = (extraction_prompt or "").strip() or default_prompt
+	prompt_text = f"{prompt_text}\n\n{json_output_instruction}"
+
+	content_parts: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
+	for img in images:
+		content_parts.append(
+			{
+				"type": "image_url",
+				"image_url": {
+					"url": f"data:{img['mime_type']};base64,{img['data']}",
+					"detail": "high",
+				},
+			}
+		)
+
+	try:
+		model_id = AnyLLM.split_model_provider(model_setting)[1]
+	except ValueError:
+		model_id = model_setting
+
+	provider_name = get_any_llm_provider(llm_provider)
+	client = AnyLLM.create(provider=provider_name, api_key=api_key, api_base=api_base)
+	response = await client.acompletion(
+		model=model_id,
+		messages=[{"role": "user", "content": content_parts}],
+		temperature=0.1,
+		response_format={"type": "json_object"},
+	)
+	extracted_data = _parse_json_object_text(response.choices[0].message.content or "")
+
+	result: dict[str, Any] = {
+		"file_name": file_doc.file_name,
+		"file_url": file_doc.file_url,
+		"pages_processed": len(images),
+		"total_pages": total_pages,
+		"extracted_data": extracted_data,
+	}
+	if total_pages > len(images):
+		result["truncated"] = True
+		result["warning"] = (
+			f"The document has {total_pages} pages but only the first {len(images)} were processed. "
+			"Data from later pages is not included."
+		)
+	return result
+
+
+def _parse_json_object_text(raw_content: Any) -> dict[str, Any]:
+	if isinstance(raw_content, dict):
+		return raw_content
+
+	if not isinstance(raw_content, str):
+		frappe.throw(_("Document extraction did not return text."))
+
+	text = raw_content.strip()
+	if not text:
+		frappe.throw(_("Document extraction returned an empty response."))
+
+	candidates = [text]
+	fenced_match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, flags=re.DOTALL)
+	if fenced_match:
+		candidates.insert(0, fenced_match.group(1).strip())
+
+	start = text.find("{")
+	end = text.rfind("}")
+	if start != -1 and end != -1 and start < end:
+		candidates.append(text[start : end + 1])
+
+	for candidate in candidates:
+		try:
+			parsed = json.loads(candidate)
+		except Exception:
+			continue
+		if isinstance(parsed, dict):
+			return parsed
+
+	frappe.throw(_("Document extraction did not return valid JSON."))
+
+
+def _file_to_base64_images(file_path: str) -> tuple[list[dict[str, str]], int]:
+	path = Path(file_path)
+	suffix = path.suffix.lower()
+
+	if suffix == ".pdf":
+		return _pdf_to_base64_images(file_path)
+
+	if suffix in VISION_SUPPORTED_EXTENSIONS:
+		mime = {
+			".png": "image/png",
+			".jpg": "image/jpeg",
+			".jpeg": "image/jpeg",
+			".gif": "image/gif",
+			".webp": "image/webp",
+		}.get(suffix, "image/png")
+		return [{"data": base64.b64encode(path.read_bytes()).decode(), "mime_type": mime}], 1
+
+	frappe.throw(_("Unsupported file type '{0}'. Supported types: PDF, PNG, JPG, GIF, WebP.").format(suffix))
+
+
+def _pdf_to_base64_images(file_path: str) -> tuple[list[dict[str, str]], int]:
+	import pymupdf
+
+	doc = pymupdf.open(file_path)
+	total_pages = len(doc)
+	images: list[dict[str, str]] = []
+
+	for page_num in range(min(total_pages, MAX_VISION_PAGES)):
+		pix = doc[page_num].get_pixmap(dpi=VISION_DPI)
+		images.append({"data": base64.b64encode(pix.tobytes("png")).decode(), "mime_type": "image/png"})
+
+	doc.close()
+	return images, total_pages
 
 
 def run_read_only_sql(query: str) -> list[dict[str, Any]]:

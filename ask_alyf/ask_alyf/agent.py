@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
@@ -18,6 +18,7 @@ class ask_alyfRuntime:
 	mode: str
 	request_context: dict[str, Any]
 	pending_operation: dict[str, Any] | None = None
+	document_extractions: list[dict[str, Any]] = field(default_factory=list)
 
 	def emit_status(self, text: str):
 		frappe.publish_realtime(
@@ -442,6 +443,40 @@ class ask_alyfToolset:
 		"""
 		self.runtime.emit_status(_("Reading file..."))
 		return tools.read_file_record(file_url=file_url, file_name=file_name)
+
+	async def extract_document_data(self, file_url: str, extraction_prompt: str = "") -> dict[str, Any]:
+		"""Extract structured data from a PDF or image file using vision AI.
+
+		Call this tool when a user uploads or references a document (invoice, receipt,
+		contract, etc.) and wants to extract information from it. The file is rendered
+		as images and sent to a vision-capable model that reads text, tables, and layouts.
+
+		Supports PDF files (up to 10 pages) and images (PNG, JPG, GIF, WebP).
+
+		Args:
+			file_url: The Frappe file URL to process (e.g. /private/files/invoice.pdf).
+			extraction_prompt: Optional instructions for what data to extract.
+				If omitted, a general-purpose extraction prompt is used.
+
+		Returns:
+			A dictionary with the file name, URL, number of pages processed,
+			and the extracted data as a JSON object.
+		"""
+		self.runtime.emit_status(_("Extracting document data..."))
+		result = await tools.extract_document_data(file_url=file_url, extraction_prompt=extraction_prompt)
+		self.runtime.document_extractions.append(
+			{
+				"file_name": result.get("file_name"),
+				"file_url": result.get("file_url"),
+				"pages_processed": result.get("pages_processed"),
+				"total_pages": result.get("total_pages"),
+				"truncated": bool(result.get("truncated")),
+				"warning": result.get("warning"),
+				"extraction_prompt": extraction_prompt,
+				"extracted_data": result.get("extracted_data"),
+			}
+		)
+		return result
 
 	def run_read_only_sql(self, query: str) -> list[dict[str, Any]]:
 		"""Run a read-only SQL query when the current user is allowed to do so.
@@ -975,6 +1010,10 @@ Always follow these rules:
 - Respect the current user's permissions. If a tool says something is not allowed, explain that plainly.
 - If request context `lang` is not English, always call `translate_ui_labels` before using user-facing UI terms (DocType names, field labels, button labels, tabs, menus, and status labels) in your response.
 - Render responses as Markdown when that helps.
+- If conversation history includes attachment metadata, use the exact file name, file URL, or file ID shown there. Never guess or invent a file URL.
+- When the user asks about the contents of an attached PDF or image, prefer `extract_document_data`. Use `read_file_record` for text-like files.
+- If conversation history includes stored document extraction data, reuse it for follow-up questions instead of re-running extraction unless the user asks for a fresh read.
+- If a file tool returns a truncation warning, tell the user clearly that only part of the file was processed.
 - Current request context:
 {context}
 
@@ -1015,6 +1054,7 @@ Mode awareness and behavior:
 			self.toolset.scroll_to_field,
 			self.toolset.show_chart,
 			self.toolset.read_file_record,
+			self.toolset.extract_document_data,
 			self.toolset.run_read_only_sql,
 			self.toolset.get_app_version,
 			self.toolset.read_github_releases,
@@ -1057,6 +1097,7 @@ Mode awareness and behavior:
 		return {
 			"response": str(trace.final_output or "").strip(),
 			"pending_operation": self.runtime.pending_operation,
+			"document_extractions": self.runtime.document_extractions,
 		}
 
 
@@ -1073,6 +1114,56 @@ def build_prompt(message: str, conversation_history: list[dict[str, Any]]) -> st
 		role = (item.get("role") or "user").capitalize()
 		content = item.get("content") or ""
 		lines.append(f"{role}: {content}")
+		metadata = item.get("metadata")
+		files = metadata.get("files") if isinstance(metadata, dict) else None
+		if isinstance(files, list):
+			for file_entry in files:
+				if not isinstance(file_entry, dict):
+					continue
+				parts = []
+				file_name = (file_entry.get("file_name") or "").strip()
+				file_url = (file_entry.get("file_url") or "").strip()
+				file_id = (file_entry.get("name") or "").strip()
+				if file_name:
+					parts.append(f"name={file_name}")
+				if file_url:
+					parts.append(f"url={file_url}")
+				if file_id:
+					parts.append(f"id={file_id}")
+				if parts:
+					lines.append(f"Attachment metadata: {', '.join(parts)}")
+		document_extractions = metadata.get("document_extractions") if isinstance(metadata, dict) else None
+		if isinstance(document_extractions, list):
+			for extraction in document_extractions:
+				if not isinstance(extraction, dict):
+					continue
+				summary_parts = []
+				file_name = (extraction.get("file_name") or "").strip()
+				file_url = (extraction.get("file_url") or "").strip()
+				pages_processed = extraction.get("pages_processed")
+				total_pages = extraction.get("total_pages")
+				if file_name:
+					summary_parts.append(f"name={file_name}")
+				if file_url:
+					summary_parts.append(f"url={file_url}")
+				if isinstance(pages_processed, int):
+					summary_parts.append(f"pages_processed={pages_processed}")
+				if isinstance(total_pages, int):
+					summary_parts.append(f"total_pages={total_pages}")
+				if summary_parts:
+					lines.append(f"Stored document extraction: {', '.join(summary_parts)}")
+				warning = (extraction.get("warning") or "").strip()
+				if warning:
+					lines.append(f"Extraction warning: {warning}")
+				extracted_data = extraction.get("extracted_data")
+				extracted_data_text = ""
+				if isinstance(extracted_data, str):
+					extracted_data_text = extracted_data.strip()
+				elif extracted_data is not None:
+					extracted_data_text = frappe.as_json(extracted_data, indent=2)
+				if extracted_data_text:
+					lines.append("Extracted document data (JSON):")
+					lines.append(extracted_data_text)
 
 	lines.extend(["", f"User: {message}"])
 	return "\n".join(lines)
