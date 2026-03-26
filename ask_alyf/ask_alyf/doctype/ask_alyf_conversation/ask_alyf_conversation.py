@@ -1,4 +1,7 @@
+import frappe
 from frappe.model.document import Document
+from frappe.query_builder import Interval
+from frappe.query_builder.functions import Now
 
 
 class AskALYFConversation(Document):
@@ -20,4 +23,7 @@ class AskALYFConversation(Document):
 		user: DF.Link
 	# end: auto-generated types
 
-	pass
+	@staticmethod
+	def clear_old_logs(days: int = 90):
+		table = frappe.qb.DocType("Ask ALYF Conversation")
+		frappe.db.delete(table, filters=(table.creation < (Now() - Interval(days=days))))

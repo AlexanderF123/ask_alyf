@@ -118,6 +118,8 @@ Conversations are persisted in an **Ask ALYF Conversation** DocType. This provid
 - an audit trail of what the agent did, especially for Agent mode actions
 - data for usage analytics and debugging
 
+Old conversations are automatically deleted after 90 days by default. The retention period is configurable per site via **Log Settings**.
+
 ### Configuration
 
 **Ask ALYF Settings** (Single DocType):
