@@ -749,6 +749,33 @@
 			this.syncModeControl();
 			this.renderHistoryList();
 			this.renderMessages();
+			this.restoreProcessingState();
+		}
+
+		isAwaitingResponse() {
+			const messages = this.state.messages;
+			if (!messages.length || this.state.pendingOperation) {
+				return false;
+			}
+			const lastMessage = messages[messages.length - 1];
+			if (lastMessage.role !== "user") {
+				return false;
+			}
+			const createdAt = lastMessage.created_at;
+			if (createdAt) {
+				const ageMs = Date.now() - new Date(createdAt).getTime();
+				if (ageMs > 5 * 60 * 1000) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		restoreProcessingState() {
+			if (this.isAwaitingResponse()) {
+				this.setLoading(true);
+				this.setStatus(__("Processing..."));
+			}
 		}
 
 		onTabClick(event) {
@@ -1255,13 +1282,15 @@
 				});
 				this.applyConversation(response.message.conversation);
 				this.setModeToAskDefault();
-				this.setStatus("");
+				if (!this.isAwaitingResponse()) {
+					this.setLoading(false);
+					this.setStatus("");
+				}
 			} catch (error) {
+				this.setLoading(false);
 				this.setStatus("");
 				frappe.msgprint(error.message || __("Failed to open conversation."));
 				this.renderHistoryList();
-			} finally {
-				this.setLoading(false);
 			}
 		}
 
