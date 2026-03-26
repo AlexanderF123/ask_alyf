@@ -1115,8 +1115,8 @@
 			const context = {
 				route: route.join("/"),
 				route_parts: route,
-				lang: frappe.boot.lang || document.documentElement.lang || "en",
-				locale: navigator.language || "en",
+				lang: frappe?.boot?.lang || document.documentElement.lang || "en",
+				user_defaults: { ...(frappe?.boot?.user?.defaults || {}) },
 			};
 
 			if (route[0] === "Form" && window.cur_frm?.doc) {

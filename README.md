@@ -97,7 +97,8 @@ Everything from Ask mode, plus:
 - current user's route
 - current document `doctype` and `name` (if on a form view)
 - current list view filters (if on a list view)
-- user's language / locale
+- user's Frappe language (`frappe.boot.lang`)
+- `frappe.boot.user.defaults`
 
 ### Guardrails
 
