@@ -30,7 +30,6 @@ class UnitTestCodeTools(UnitTestCase):
 	def make_runner(self, *, allow_code_search: bool, mode: str = "Ask"):
 		runtime = SimpleNamespace(
 			conversation_name="TEST-CONVERSATION",
-			user=frappe.session.user,
 			mode=mode,
 			request_context={},
 			conversation_history=[],
@@ -165,7 +164,6 @@ class UnitTestCodeTools(UnitTestCase):
 	def test_attach_file_proposal_uses_linked_file_name_summary(self):
 		runtime = SimpleNamespace(
 			conversation_name="TEST-CONVERSATION",
-			user=frappe.session.user,
 			mode="Agent",
 			request_context={},
 			conversation_history=[],
@@ -193,7 +191,6 @@ class UnitTestCodeTools(UnitTestCase):
 	def test_source_code_analyzer_tool_delegates_to_specialist(self):
 		runtime = SimpleNamespace(
 			conversation_name="TEST-CONVERSATION",
-			user=frappe.session.user,
 			mode="Ask",
 			request_context={},
 			conversation_history=[],
@@ -228,7 +225,6 @@ class UnitTestCodeTools(UnitTestCase):
 	def test_source_code_analyzer_initializes_internal_agent_async(self):
 		runtime = SimpleNamespace(
 			conversation_name="TEST-CONVERSATION",
-			user=frappe.session.user,
 			mode="Ask",
 			request_context={},
 			conversation_history=[],
@@ -256,7 +252,6 @@ class UnitTestCodeTools(UnitTestCase):
 	def test_document_planner_tool_delegates_to_specialist(self):
 		runtime = SimpleNamespace(
 			conversation_name="TEST-CONVERSATION",
-			user=frappe.session.user,
 			mode="Agent",
 			request_context={},
 			conversation_history=[],
@@ -298,7 +293,6 @@ class UnitTestCodeTools(UnitTestCase):
 	def test_document_planner_initializes_internal_agent_async(self):
 		runtime = SimpleNamespace(
 			conversation_name="TEST-CONVERSATION",
-			user=frappe.session.user,
 			mode="Agent",
 			request_context={},
 			conversation_history=[],

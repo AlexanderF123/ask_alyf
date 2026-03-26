@@ -24,7 +24,6 @@ ALLOWED_DOCUMENT_PLANNER_TOOLS = frozenset({"insert", "save", "set_value"})
 @dataclass
 class ask_alyfRuntime:
 	conversation_name: str
-	user: str
 	mode: str
 	request_context: dict[str, Any]
 	conversation_history: list[dict[str, Any]] = field(default_factory=list)
@@ -36,7 +35,7 @@ class ask_alyfRuntime:
 		frappe.publish_realtime(
 			"ask_alyf_status",
 			{"conversation": self.conversation_name, "text": text},
-			user=self.user,
+			user=frappe.session.user,
 		)
 
 	def remember_document_extraction(self, extraction: dict[str, Any], *, extraction_prompt: str = ""):
@@ -1813,7 +1812,6 @@ def run_message(
 ) -> dict[str, Any]:
 	runtime = ask_alyfRuntime(
 		conversation_name=conversation_name,
-		user=frappe.session.user,
 		mode=mode,
 		request_context=request_context,
 		conversation_history=conversation_history,

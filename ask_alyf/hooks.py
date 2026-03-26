@@ -117,13 +117,9 @@ add_to_apps_screen = [
 # -----------
 # Permissions evaluated in scripted ways
 
-permission_query_conditions = {
-	"Ask ALYF Conversation": "ask_alyf.ask_alyf.permissions.get_conversation_permission_query_conditions",
-}
+permission_query_conditions = {}
 
-has_permission = {
-	"Ask ALYF Conversation": "ask_alyf.ask_alyf.permissions.has_conversation_permission",
-}
+has_permission = {}
 
 # Document Events
 # ---------------

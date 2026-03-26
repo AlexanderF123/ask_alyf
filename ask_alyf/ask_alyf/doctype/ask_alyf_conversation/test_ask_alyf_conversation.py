@@ -14,14 +14,11 @@ from ask_alyf.ask_alyf.utils import dumps, loads
 class UnitTestAskALYFConversation(UnitTestCase):
 	def make_conversation(self, *, messages: list[dict] | None = None, pending_operation: dict | None = None):
 		doc = frappe.get_doc(
-			{
-				"doctype": "Ask ALYF Conversation",
-				"title": "Test Conversation",
-				"user": frappe.session.user,
-				"status": "Active",
-				"messages_json": dumps(messages or []),
-				"pending_operation_json": dumps(pending_operation) if pending_operation else "",
-			}
+			doctype="Ask ALYF Conversation",
+			title="Test Conversation",
+			status="Active",
+			messages_json=dumps(messages or []),
+			pending_operation_json=dumps(pending_operation) if pending_operation else "",
 		)
 		doc.insert(ignore_permissions=True)
 		return doc

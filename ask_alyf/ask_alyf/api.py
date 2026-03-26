@@ -178,7 +178,7 @@ def get_or_create_conversation(conversation_name: str | None = None):
 
 	existing = frappe.get_list(
 		"Ask ALYF Conversation",
-		filters={"user": frappe.session.user, "status": "Active"},
+		filters={"owner": frappe.session.user, "status": "Active"},
 		fields=["name"],
 		order_by="modified desc",
 		limit=1,
@@ -187,13 +187,10 @@ def get_or_create_conversation(conversation_name: str | None = None):
 		return frappe.get_doc("Ask ALYF Conversation", existing[0].name)
 
 	doc = frappe.get_doc(
-		{
-			"doctype": "Ask ALYF Conversation",
-			"title": _("New Conversation"),
-			"user": frappe.session.user,
-			"status": "Active",
-			"messages_json": "[]",
-		}
+		doctype="Ask ALYF Conversation",
+		title=_("New Conversation"),
+		status="Active",
+		messages_json="[]",
 	)
 	doc.insert()
 	return doc
@@ -304,7 +301,7 @@ def list_conversations(limit: int = 20) -> list[dict]:
 	limit = max(1, cint(limit))
 	conversations = frappe.get_list(
 		"Ask ALYF Conversation",
-		filters={"user": frappe.session.user},
+		filters={"owner": frappe.session.user},
 		fields=["name", "title", "status", "modified", "last_message_at"],
 		order_by="modified desc",
 		limit=limit,
@@ -319,13 +316,10 @@ def start_new_conversation() -> dict:
 		frappe.throw(_("You do not have access to Ask ALYF."))
 
 	doc = frappe.get_doc(
-		{
-			"doctype": "Ask ALYF Conversation",
-			"title": _("New Conversation"),
-			"user": frappe.session.user,
-			"status": "Active",
-			"messages_json": "[]",
-		}
+		doctype="Ask ALYF Conversation",
+		title=_("New Conversation"),
+		status="Active",
+		messages_json="[]",
 	)
 	doc.insert()
 	return conversation_payload(doc)
@@ -388,7 +382,7 @@ def process_message_job(
 	frappe.publish_realtime(
 		"ask_alyf_response_start",
 		{"conversation": conversation_name},
-		user=doc.user,
+		user=doc.owner,
 	)
 
 	try:
@@ -435,7 +429,7 @@ def process_message_job(
 				"message_id": assistant_message["id"],
 				"chunk": chunk + " ",
 			},
-			user=doc.user,
+			user=doc.owner,
 		)
 
 	frappe.publish_realtime(
@@ -445,7 +439,7 @@ def process_message_job(
 			"message_id": assistant_message["id"],
 			"pending_operation": pending_operation,
 		},
-		user=doc.user,
+		user=doc.owner,
 	)
 
 
@@ -465,7 +459,7 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 	if pending_operation.get("kind") != OPERATION_KIND_BACKEND:
 		frappe.throw(_("Only backend actions can be confirmed by this endpoint."))
 
-	publish_status_update(doc.name, doc.user, _("Confirming action..."))
+	publish_status_update(doc.name, doc.owner, _("Confirming action..."))
 	try:
 		try:
 			result = execute_pending_operation(pending_operation)
@@ -476,7 +470,7 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 			save_messages(doc, messages)
 			return {"error": str(error), "conversation": conversation_payload(doc)}
 
-		publish_status_update(doc.name, doc.user, _("Generating response..."))
+		publish_status_update(doc.name, doc.owner, _("Generating response..."))
 		doc.pending_operation_json = ""
 		operation_payload = pending_operation.get("payload") if isinstance(pending_operation, dict) else {}
 		operation_payload = operation_payload if isinstance(operation_payload, dict) else {}
@@ -517,7 +511,7 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 
 		return {"result": action_result, "conversation": conversation_payload(doc)}
 	finally:
-		publish_status_update(doc.name, doc.user, "")
+		publish_status_update(doc.name, doc.owner, "")
 
 
 @frappe.whitelist(methods=["POST"])
@@ -627,7 +621,7 @@ def frontend_action_result(
 	elif isinstance(result, dict):
 		result_payload = result
 
-	publish_status_update(doc.name, doc.user, _("Generating response..."))
+	publish_status_update(doc.name, doc.owner, _("Generating response..."))
 	try:
 		messages = get_messages(doc)
 		if (pending_operation.get("tool") or "").strip() == "show_chart":
@@ -673,7 +667,7 @@ def frontend_action_result(
 		save_messages(doc, messages)
 		return {"conversation": conversation_payload(doc)}
 	finally:
-		publish_status_update(doc.name, doc.user, "")
+		publish_status_update(doc.name, doc.owner, "")
 
 
 @frappe.whitelist(methods=["POST"])

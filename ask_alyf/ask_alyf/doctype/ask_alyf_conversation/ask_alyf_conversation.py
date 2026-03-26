@@ -20,7 +20,6 @@ class AskALYFConversation(Document):
 		route: DF.Data | None
 		status: DF.Literal["Active", "Closed"]
 		title: DF.Data
-		user: DF.Link
 	# end: auto-generated types
 
 	@staticmethod
