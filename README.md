@@ -36,26 +36,40 @@ Schema and permissions:
 - `get_meta` — get DocType metadata (fields, types, options, permissions)
 - `has_permission` — check if current user has a specific permission on a document
 - `get_doc_permissions` — get the full evaluated permission dict for a document
-- get list of DocTypes the current user can read or write
-- get list of reports the current user can access
-- get current user's roles
+- `list_accessible_doctypes` — get list of DocTypes the current user can read or write
+- `list_accessible_reports` — get list of reports the current user can access
+- `get_current_user_roles` — get current user's roles
 - `translate_ui_labels` — translate UI labels/terms so responses use the same wording the user sees in their language
 
-Code and documentation:
+Code search (when enabled):
 
-- search / read code (using codebase search, restricted to the `apps/` folder) — helps the agent understand the codebase and diagnose bugs
-- get installed app version — useful for comparing your current version with available releases
-- read GitHub releases — uses the Repository URL from `pyproject.toml` `[project.urls]`
-- search / read official docs — uses the Documentation URL from `pyproject.toml` `[project.urls]`
+- `search_code` — search installed app code for matching text
+- `read_code_file` — read a specific installed app file with line ranges
+- `ls` — list files and directories in an installed app
+- `find` — find files and directories in an installed app by pattern
+- `grep` — search installed app file contents for matching text
+
+App metadata and documentation:
+
+- `get_app_version` — useful for comparing your current version with available releases
+- `read_github_releases` — uses the Repository URL from `pyproject.toml` `[project.urls]`
+- `read_documentation_page` — read official docs using the Documentation URL from `pyproject.toml` `[project.urls]`
 
 Files:
 
 - `get_file_id` — resolve a **File** ID from attachment references
-- read file content from **File** records by File ID
+- `read_file_record` — read file content from **File** records by File ID
+- `extract_document_data` — extract structured data from PDF or image **File** records
 
 SQL (Administrator and System Manager only):
 
-- run read-only SQL queries — same capability as the existing **System Console**
+- `run_read_only_sql` — run read-only SQL queries, similar to the existing **System Console**
+
+Frontend actions:
+
+- `set_route` — navigate to a Desk route
+- `new_doc` — open a new document form, optionally with prefilled route options
+- `scroll_to_field` — scroll to a field on the active form
 
 #### Agent mode
 
@@ -70,7 +84,9 @@ Everything from Ask mode, plus:
 - `delete` — delete a document (framework requires cancel before delete for submitted docs; some documents cannot be deleted due to links, e.g. cancelled invoices linked to submitted payment ledger entries)
 - `rename_doc` — rename a document
 - `attach_file` — attach a file to a document by File ID
-- run whitelisted methods — call any `@frappe.whitelist()` method the current user has access to (e.g. `erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice`)
+- `run_whitelisted_method` — call any `@frappe.whitelist()` method the current user has access to (e.g. `erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice`)
+- `frm_set_value` — set a field on the active form in the browser
+- `frm_add_child` — add a child table row on the active form in the browser
 
 #### Charts
 
