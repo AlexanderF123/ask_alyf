@@ -1384,8 +1384,8 @@
 			if (expectedDoctype && expectedDoctype !== cur_frm.doc.doctype) {
 				throw new Error(
 					__("Current form is {0}, expected {1}.", [
-						cur_frm.doc.doctype,
-						expectedDoctype,
+						__(cur_frm.doc.doctype),
+						__(expectedDoctype),
 					])
 				);
 			}

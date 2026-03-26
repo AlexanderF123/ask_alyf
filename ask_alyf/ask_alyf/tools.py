@@ -281,7 +281,7 @@ def get_excluded_doctypes() -> set[str]:
 
 def ensure_editable_doctype(doctype: str):
 	if doctype in get_excluded_doctypes():
-		frappe.throw(_("DocType '{0}' is excluded from Agent mode.").format(doctype))
+		frappe.throw(_("DocType '{0}' is excluded from Agent mode.").format(_(doctype)))
 
 
 def get_list(
@@ -1152,7 +1152,7 @@ def execute_action(action: dict[str, Any]) -> dict[str, Any]:
 		doctype = action["doctype"]
 		ensure_editable_doctype(doctype)
 		client.delete(doctype=doctype, name=action["name"])
-		return {"message": _("Deleted {0} {1}").format(doctype, action["name"])}
+		return {"message": _("Deleted {0} {1}").format(_(doctype), action["name"])}
 
 	if action_type == "rename_doc":
 		doctype = action["doctype"]
@@ -1518,11 +1518,17 @@ def validate_table_field_shapes(doctype: str, values: dict[str, Any]) -> str | N
 
 		if not isinstance(field_value, list):
 			return _("Field '{0}' in {1} is a child table ({2}) and must be a list of row objects.").format(
-				fieldname, doctype, child_doctype
+				fieldname,
+				_(doctype),
+				_(child_doctype),
 			)
 
 		for index, row in enumerate(field_value, start=1):
 			if not isinstance(row, dict):
-				return _("Field '{0}' row #{1} in {2} must be an object.").format(fieldname, index, doctype)
+				return _("Field '{0}' row #{1} in {2} must be an object.").format(
+					fieldname,
+					index,
+					_(doctype),
+				)
 
 	return None

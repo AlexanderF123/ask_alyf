@@ -506,7 +506,8 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 			)
 			if action_result.get("doctype") and action_result.get("name"):
 				content += "\n\n" + _("Document: {0} {1}").format(
-					action_result["doctype"], action_result["name"]
+					_(action_result["doctype"]),
+					action_result["name"],
 				)
 			elif action_result.get("message"):
 				content += "\n\n" + str(action_result["message"])

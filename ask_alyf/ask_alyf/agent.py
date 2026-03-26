@@ -567,7 +567,7 @@ class ask_alyfToolset:
 		"""
 		return self._backend_proposal(
 			"insert",
-			_("Create {0}").format(doctype),
+			_("Create {0}").format(_(doctype)),
 			reason,
 			validation_error_status=_("Create proposal needs correction."),
 			prepared_status=_("Prepared create proposal."),
@@ -596,7 +596,7 @@ class ask_alyfToolset:
 		"""
 		return self._backend_proposal(
 			"save",
-			_("Update {0} {1}").format(doctype, name),
+			_("Update {0} {1}").format(_(doctype), name),
 			reason,
 			validation_error_status=_("Update proposal needs correction."),
 			prepared_status=_("Prepared update proposal."),
@@ -627,7 +627,7 @@ class ask_alyfToolset:
 		"""
 		return self._backend_proposal(
 			"set_value",
-			_("Set {0} on {1} {2}").format(fieldname, doctype, name),
+			_("Set {0} on {1} {2}").format(fieldname, _(doctype), name),
 			reason,
 			validation_error_status=_("Set value proposal needs correction."),
 			prepared_status=_("Prepared set value proposal."),
@@ -650,7 +650,7 @@ class ask_alyfToolset:
 		"""
 		return self._backend_proposal(
 			"submit",
-			_("Submit {0} {1}").format(doctype, name),
+			_("Submit {0} {1}").format(_(doctype), name),
 			reason,
 			validation_error_status=_("Submit proposal needs correction."),
 			prepared_status=_("Prepared submit proposal."),
@@ -671,7 +671,7 @@ class ask_alyfToolset:
 		"""
 		return self._backend_proposal(
 			"cancel",
-			_("Cancel {0} {1}").format(doctype, name),
+			_("Cancel {0} {1}").format(_(doctype), name),
 			reason,
 			validation_error_status=_("Cancel proposal needs correction."),
 			prepared_status=_("Prepared cancel proposal."),
@@ -692,7 +692,7 @@ class ask_alyfToolset:
 		"""
 		return self._backend_proposal(
 			"amend",
-			_("Amend {0} {1}").format(doctype, name),
+			_("Amend {0} {1}").format(_(doctype), name),
 			reason,
 			validation_error_status=_("Amend proposal needs correction."),
 			prepared_status=_("Prepared amend proposal."),
@@ -713,7 +713,7 @@ class ask_alyfToolset:
 		"""
 		return self._backend_proposal(
 			"delete",
-			_("Delete {0} {1}").format(doctype, name),
+			_("Delete {0} {1}").format(_(doctype), name),
 			reason,
 			validation_error_status=_("Delete proposal needs correction."),
 			prepared_status=_("Prepared delete proposal."),
@@ -743,7 +743,7 @@ class ask_alyfToolset:
 		"""
 		return self._backend_proposal(
 			"rename_doc",
-			_("Rename {0} {1} to {2}").format(doctype, name, new_name),
+			_("Rename {0} {1} to {2}").format(_(doctype), name, new_name),
 			reason,
 			validation_error_status=_("Rename proposal needs correction."),
 			prepared_status=_("Prepared rename proposal."),
@@ -774,7 +774,11 @@ class ask_alyfToolset:
 		file_doc = tools._get_accessible_file_doc(file_id=file_id)
 		return self._backend_proposal(
 			"attach_file",
-			_("Attach file {0} to {1} {2}").format(_build_file_markdown_link(file_doc), doctype, name),
+			_("Attach file {0} to {1} {2}").format(
+				_build_file_markdown_link(file_doc),
+				_(doctype),
+				name,
+			),
 			reason,
 			validation_error_status=_("Attach file proposal needs correction."),
 			prepared_status=_("Prepared attach file proposal."),
@@ -847,7 +851,7 @@ class ask_alyfToolset:
 		"""
 		return self._frontend_proposal(
 			"new_doc",
-			_("Open new {0}").format(doctype),
+			_("Open new {0}").format(_(doctype)),
 			reason,
 			validation_error_status=_("New document action needs correction."),
 			prepared_status=_("Prepared new document action."),
