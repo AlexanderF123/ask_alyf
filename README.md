@@ -38,7 +38,6 @@ Schema and permissions:
 - `get_doc_permissions` — get the full evaluated permission dict for a document
 - `list_accessible_doctypes` — get list of DocTypes the current user can read or write
 - `list_accessible_reports` — get list of reports the current user can access
-- `get_current_user_roles` — get current user's roles
 - `translate_ui_labels` — translate UI labels/terms so responses use the same wording the user sees in their language
 
 Code search (when enabled):
@@ -96,6 +95,7 @@ Everything from Ask mode, plus:
 - current list view filters (if on a list view)
 - user's Frappe language (`frappe.boot.lang`)
 - `frappe.boot.user.defaults`
+- user's roles (omitted for Administrator)
 
 ### Guardrails
 

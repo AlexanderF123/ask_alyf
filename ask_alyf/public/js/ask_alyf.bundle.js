@@ -1119,6 +1119,10 @@
 				user_defaults: { ...(frappe?.boot?.user?.defaults || {}) },
 			};
 
+			if (frappe.session?.user !== "Administrator") {
+				context.user_roles = frappe.user_roles || [];
+			}
+
 			if (route[0] === "Form" && window.cur_frm?.doc) {
 				context.current_doctype = cur_frm.doc.doctype;
 				context.current_docname = cur_frm.doc.name;

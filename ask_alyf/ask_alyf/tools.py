@@ -433,10 +433,6 @@ def get_file_id(
 	return matches[0]["name"]
 
 
-def get_current_user_roles() -> list[str]:
-	return frappe.get_roles()
-
-
 def translate_ui_labels(labels: list[str] | str, language: str | None = None) -> dict[str, Any]:
 	if isinstance(labels, str):
 		labels = [labels]

@@ -589,14 +589,6 @@ class ask_alyfToolset:
 		self.runtime.emit_status(_("Listing accessible reports..."))
 		return tools.list_accessible_reports()
 
-	def get_current_user_roles(self) -> list[str]:
-		"""List the current user's roles.
-
-		Returns:
-			A list of role names.
-		"""
-		return tools.get_current_user_roles()
-
 	def translate_ui_labels(
 		self,
 		labels: list[str],
@@ -1428,7 +1420,6 @@ class DocumentPlanner:
 			toolset.has_permission,
 			toolset.get_doc_permissions,
 			toolset.list_accessible_doctypes,
-			toolset.get_current_user_roles,
 		]
 		self.instructions = f"""
 You are DocumentPlanner, an internal Ask ALYF specialist for planning Frappe document changes.
@@ -1570,6 +1561,7 @@ class ask_alyfAgentRunner:
 You are Ask ALYF, an ERPNext and Frappe assistant embedded inside the user's desk.
 
 Always follow these rules:
+- Adapt your language to the user. Prefer short, direct answers for everyday operational questions. Offer more detail only when the question calls for it or the user asks. Avoid ERP jargon and internal field names in your prose — use the labels the user sees on screen. If the user writes informally, respond in kind.
 - Use the available read tools whenever the user asks about instance data, permissions, metadata, code, files, or reports.
 - Be concise, accurate, and explicit about uncertainty.
 - Respect the current user's permissions. If a tool says something is not allowed, explain that plainly.{code_search_usage_instruction}
@@ -1579,7 +1571,7 @@ Always follow these rules:
 - When the user asks about the contents of an attached PDF or image, prefer `extract_document_data`. Use `read_file_record` for text-like files.
 - If conversation history includes stored document extraction data, reuse it for follow-up questions instead of re-running extraction unless the user asks for a fresh read.
 - If a file tool returns a truncation warning, tell the user clearly that only part of the file was processed.
-- Current request context:
+- Current request context (includes `user_roles` for non-Administrator users):
 {context}
 
 Mode awareness and behavior:
@@ -1612,7 +1604,6 @@ Mode awareness and behavior:
 			self.toolset.get_doc_permissions,
 			self.toolset.list_accessible_doctypes,
 			self.toolset.list_accessible_reports,
-			self.toolset.get_current_user_roles,
 			self.toolset.translate_ui_labels,
 			self.toolset.set_route,
 			self.toolset.new_doc,
