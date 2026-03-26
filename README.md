@@ -13,6 +13,10 @@ The agent supports multi-turn tool calls (chaining multiple operations in one re
 
 Input can be text or voice. Voice input is transcribed to text before being sent to the agent; the agent's response can optionally be read aloud via text-to-speech.
 
+### Staying Close to Frappe
+
+Ask ALYF tries to stay close to the Frappe Framework instead of inventing a parallel experience. It uses a familiar UI, integrates native building blocks like **Frappe Charts** and the standard file uploader, and stays within the same role-based permission system instead of bypassing framework permissions.
+
 ### Tools
 
 All data-access tools wrap `frappe.client` functions, which enforce the same permission checks as the REST API. The agent can only do what the logged-in user can already do via the API.
