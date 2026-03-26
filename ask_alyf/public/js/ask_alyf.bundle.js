@@ -740,6 +740,8 @@
 		}
 
 		applyConversation(conversation) {
+			this.pendingStreamMessageId = null;
+			this.handledFrontendCallIds = new Set();
 			this.state.conversation = conversation;
 			this.state.messages = conversation.messages || [];
 			this.state.pendingOperation = conversation.pending_operation || null;
