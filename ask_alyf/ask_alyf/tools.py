@@ -85,6 +85,28 @@ def coerce_int(value: Any, default: int, *, minimum: int | None = None) -> int:
 	return coerced
 
 
+def coerce_field_list(value: str | list[str] | None) -> list[str] | None:
+	if value is None:
+		return None
+
+	if isinstance(value, list):
+		return [str(entry).strip() for entry in value if str(entry).strip()]
+
+	stripped = str(value).strip()
+	if not stripped:
+		return None
+
+	try:
+		parsed = json.loads(stripped)
+	except (TypeError, json.JSONDecodeError):
+		parsed = None
+
+	if isinstance(parsed, list):
+		return [str(entry).strip() for entry in parsed if str(entry).strip()]
+
+	return [part.strip() for part in stripped.split(",") if part.strip()]
+
+
 def get_settings():
 	return frappe.get_single("Ask ALYF Settings")
 
@@ -286,13 +308,14 @@ def ensure_editable_doctype(doctype: str):
 
 def get_list(
 	doctype: str,
-	fields: list[str] | None = None,
+	fields: str | list[str] | None = None,
 	filters: dict[str, Any] | list | None = None,
 	order_by: str | None = None,
 	limit: int = 20,
 	group_by: str | None = None,
 ) -> list[dict[str, Any]]:
 	limit = coerce_int(limit, 20, minimum=1)
+	fields = coerce_field_list(fields)
 	return client.get_list(
 		doctype=doctype,
 		fields=fields,

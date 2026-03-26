@@ -43,11 +43,7 @@ Schema and permissions:
 
 Code search (when enabled):
 
-- `search_code` — search installed app code for matching text
-- `read_code_file` — read a specific installed app file with line ranges
-- `ls` — list files and directories in an installed app
-- `find` — find files and directories in an installed app by pattern
-- `grep` — search installed app file contents for matching text
+- `source_code_analyzer` — delegate code questions to a restricted specialist that can search, list, and read installed app files, then return a grounded summary with evidence
 
 App metadata and documentation:
 
@@ -75,6 +71,7 @@ Frontend actions:
 
 Everything from Ask mode, plus:
 
+- `document_planner` — prepare `insert`, `save`, or `set_value` payloads using read-only metadata and record lookups before the main agent creates a pending proposal
 - `insert` — create a new document
 - `save` — update an existing document
 - `set_value` — set specific field(s) on a document

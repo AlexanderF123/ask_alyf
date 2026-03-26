@@ -1,3 +1,5 @@
+import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -11,6 +13,13 @@ from frappe import _
 
 from ask_alyf.ask_alyf import tools
 
+SPECIALIST_JSON_OUTPUT_INSTRUCTION = (
+	"Return only a valid JSON object. "
+	"Do not wrap the JSON in markdown fences. "
+	"Do not add explanatory prose before or after the JSON."
+)
+ALLOWED_DOCUMENT_PLANNER_TOOLS = frozenset({"insert", "save", "set_value"})
+
 
 @dataclass
 class ask_alyfRuntime:
@@ -18,6 +27,7 @@ class ask_alyfRuntime:
 	user: str
 	mode: str
 	request_context: dict[str, Any]
+	conversation_history: list[dict[str, Any]] = field(default_factory=list)
 	pending_operation: dict[str, Any] | None = None
 	document_extractions: list[dict[str, Any]] = field(default_factory=list)
 
@@ -36,9 +46,304 @@ class ask_alyfRuntime:
 		)
 
 
+def _get_api_key_from_settings(settings) -> str:
+	api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
+	if not api_key:
+		frappe.throw(_("Configure an API key in Ask ALYF Settings before sending messages."))
+	return api_key
+
+
+def _get_model_id_from_settings(settings) -> str:
+	model_id = (settings.model or "").strip()
+	if not model_id:
+		frappe.throw(_("Configure a model in Ask ALYF Settings before sending messages."))
+
+	try:
+		AnyLLM.split_model_provider(model_id)
+		return model_id
+	except ValueError:
+		pass
+
+	if settings.llm_provider in {"OpenAI", "OpenAI Compatible"}:
+		return f"openai:{model_id}"
+
+	return model_id
+
+
+def _build_internal_agent_config(
+	*,
+	settings,
+	name: str,
+	instructions: str,
+	tool_defs: list[Callable[..., Any]],
+):
+	return AgentConfig(
+		name=name,
+		model_id=_get_model_id_from_settings(settings),
+		api_base=(settings.base_url or "").strip() or None,
+		api_key=_get_api_key_from_settings(settings),
+		instructions=instructions,
+		tools=tool_defs,
+		model_args={"temperature": 0.1},
+	)
+
+
+async def _create_internal_agent_async(
+	*,
+	settings,
+	name: str,
+	instructions: str,
+	tool_defs: list[Callable[..., Any]],
+):
+	return await AnyAgent.create_async(
+		AgentFramework.TINYAGENT,
+		_build_internal_agent_config(
+			settings=settings,
+			name=name,
+			instructions=instructions,
+			tool_defs=tool_defs,
+		),
+	)
+
+
+def _build_specialist_history_context(runtime: ask_alyfRuntime, limit: int = 6) -> str:
+	history = getattr(runtime, "conversation_history", None) or []
+	if not history:
+		return ""
+
+	lines = [_("Recent conversation context:")]
+	for item in history[-limit:]:
+		lines.extend(_build_history_item_lines(item))
+	return "\n".join(lines)
+
+
+def _parse_json_object_output(raw_output: Any) -> dict[str, Any] | None:
+	if isinstance(raw_output, dict):
+		return raw_output
+	if not isinstance(raw_output, str):
+		return None
+
+	text = raw_output.strip()
+	if not text:
+		return None
+
+	candidates = [text]
+	fenced_match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, flags=re.DOTALL)
+	if fenced_match:
+		candidates.insert(0, fenced_match.group(1).strip())
+
+	start = text.find("{")
+	end = text.rfind("}")
+	if start != -1 and end != -1 and start < end:
+		candidates.append(text[start : end + 1])
+
+	for candidate in candidates:
+		try:
+			parsed = json.loads(candidate)
+		except Exception:
+			continue
+		if isinstance(parsed, dict):
+			return parsed
+
+	return None
+
+
+def _coerce_string_list(value: Any, *, limit: int = 12) -> list[str]:
+	if not isinstance(value, list):
+		return []
+
+	items: list[str] = []
+	for entry in value:
+		if not isinstance(entry, str):
+			continue
+		text = entry.strip()
+		if not text:
+			continue
+		items.append(text[:500])
+		if len(items) >= limit:
+			break
+
+	return items
+
+
+def _coerce_evidence_entries(value: Any) -> list[dict[str, Any]]:
+	if not isinstance(value, list):
+		return []
+
+	evidence: list[dict[str, Any]] = []
+	for entry in value[:12]:
+		if not isinstance(entry, dict):
+			continue
+
+		path = entry.get("path")
+		if not isinstance(path, str) or not path.strip():
+			continue
+
+		start_line = entry.get("start_line")
+		end_line = entry.get("end_line")
+		note = entry.get("note") or entry.get("reason") or ""
+		item: dict[str, Any] = {"path": path.strip()}
+		if isinstance(start_line, int) and start_line > 0:
+			item["start_line"] = start_line
+		if isinstance(end_line, int) and end_line > 0:
+			item["end_line"] = end_line
+		if isinstance(note, str) and note.strip():
+			item["note"] = note.strip()[:500]
+		evidence.append(item)
+
+	return evidence
+
+
+def _normalize_source_code_analysis(result: dict[str, Any], *, raw_output: str = "") -> dict[str, Any]:
+	answer = result.get("answer")
+	summary = result.get("summary")
+	uncertainty = result.get("uncertainty")
+
+	answer_text = answer.strip() if isinstance(answer, str) else ""
+	summary_text = summary.strip() if isinstance(summary, str) else ""
+	uncertainty_text = uncertainty.strip() if isinstance(uncertainty, str) else ""
+	evidence = _coerce_evidence_entries(result.get("evidence"))
+	searched_paths = _coerce_string_list(result.get("searched_paths"))
+
+	if not answer_text:
+		answer_text = summary_text or raw_output.strip()
+	if not summary_text:
+		summary_text = answer_text
+
+	return {
+		"answer": answer_text,
+		"summary": summary_text,
+		"evidence": evidence,
+		"uncertainty": uncertainty_text,
+		"searched_paths": searched_paths,
+	}
+
+
+def _build_document_planner_failure(
+	message: str,
+	*,
+	recommended_tool: str = "",
+	payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+	return {
+		"ready": False,
+		"recommended_tool": recommended_tool if recommended_tool in ALLOWED_DOCUMENT_PLANNER_TOOLS else "",
+		"payload": payload or {},
+		"reason": "",
+		"missing_information": [message],
+		"checks": [],
+		"warnings": [],
+	}
+
+
+def _normalize_document_plan(
+	result: dict[str, Any],
+	*,
+	default_doctype: str = "",
+	default_operation: str = "",
+	default_name: str = "",
+	raw_output: str = "",
+) -> dict[str, Any]:
+	requested_operation = default_operation.strip().lower()
+	recommended_tool = result.get("recommended_tool")
+	if isinstance(recommended_tool, str):
+		recommended_tool = recommended_tool.strip().lower()
+	else:
+		recommended_tool = ""
+
+	if recommended_tool not in ALLOWED_DOCUMENT_PLANNER_TOOLS:
+		recommended_tool = (
+			requested_operation if requested_operation in ALLOWED_DOCUMENT_PLANNER_TOOLS else ""
+		)
+
+	payload = result.get("payload")
+	payload = payload if isinstance(payload, dict) else {}
+	if default_doctype and "doctype" not in payload:
+		payload["doctype"] = default_doctype
+	if default_name and recommended_tool in {"save", "set_value"} and "name" not in payload:
+		payload["name"] = default_name
+
+	reason = result.get("reason")
+	reason_text = reason.strip()[:1000] if isinstance(reason, str) else ""
+	missing_information = _coerce_string_list(result.get("missing_information"))
+	checks = _coerce_string_list(result.get("checks"))
+	warnings = _coerce_string_list(result.get("warnings"))
+	ready = bool(result.get("ready")) and not missing_information and bool(recommended_tool)
+
+	if recommended_tool in {"insert", "save"}:
+		values = payload.get("values")
+		if not isinstance(values, dict):
+			payload["values"] = {}
+			ready = False
+			warnings.append("DocumentPlanner did not return an object in payload.values.")
+
+	if recommended_tool == "save":
+		name = payload.get("name")
+		if not isinstance(name, str) or not name.strip():
+			ready = False
+			missing_information.append("Target document name is missing.")
+
+	if recommended_tool == "set_value":
+		fieldname = payload.get("fieldname")
+		name = payload.get("name")
+		if not isinstance(fieldname, str) or not fieldname.strip():
+			ready = False
+			missing_information.append("Target fieldname is missing.")
+		if "value" not in payload:
+			ready = False
+			missing_information.append("Target field value is missing.")
+		if not isinstance(name, str) or not name.strip():
+			ready = False
+			missing_information.append("Target document name is missing.")
+
+	doctype = payload.get("doctype")
+	if recommended_tool and (not isinstance(doctype, str) or not doctype.strip()):
+		ready = False
+		missing_information.append("Target DocType is missing.")
+
+	if raw_output and not result:
+		warnings.append("DocumentPlanner returned invalid JSON.")
+
+	return {
+		"ready": ready,
+		"recommended_tool": recommended_tool,
+		"payload": payload,
+		"reason": reason_text,
+		"missing_information": list(dict.fromkeys(missing_information)),
+		"checks": checks,
+		"warnings": list(dict.fromkeys(warnings)),
+	}
+
+
 class ask_alyfToolset:
-	def __init__(self, runtime: ask_alyfRuntime):
+	def __init__(self, runtime: ask_alyfRuntime, settings=None):
 		self.runtime = runtime
+		self.settings = settings
+		self._source_code_analyzer = None
+		self._document_planner = None
+
+	def _get_settings(self):
+		if self.settings is None:
+			self.settings = tools.get_settings()
+		return self.settings
+
+	def _get_source_code_analyzer(self):
+		if self._source_code_analyzer is None:
+			self._source_code_analyzer = SourceCodeAnalyzer(
+				runtime=self.runtime,
+				settings=self._get_settings(),
+				toolset=self,
+			)
+		return self._source_code_analyzer
+
+	def _get_document_planner(self):
+		if self._document_planner is None:
+			self._document_planner = DocumentPlanner(
+				runtime=self.runtime,
+				settings=self._get_settings(),
+				toolset=self,
+			)
+		return self._document_planner
 
 	def _proposal(
 		self,
@@ -127,7 +432,7 @@ class ask_alyfToolset:
 	def get_list(
 		self,
 		doctype: str,
-		fields: list[str] | None = None,
+		fields: str | list[str] | None = None,
 		filters: dict[str, Any] | list[Any] | None = None,
 		order_by: str | None = None,
 		limit: int = 20,
@@ -137,7 +442,7 @@ class ask_alyfToolset:
 
 		Args:
 			doctype: The DocType to query.
-			fields: Optional fields to return.
+			fields: Optional field name or field list to return.
 			filters: Optional Frappe filters.
 			order_by: Optional ordering expression.
 			limit: Maximum number of rows to return.
@@ -439,6 +744,25 @@ class ask_alyfToolset:
 			limit=limit,
 		)
 
+	async def source_code_analyzer(self, question: str, relative_path: str = "") -> dict[str, Any]:
+		"""Analyze installed app source code via a restricted specialist agent.
+
+		Use this for code questions that require searching, reading, and interpreting
+		multiple files. The specialist only has access to read-only code tools.
+
+		Args:
+			question: The code question to investigate.
+			relative_path: Optional installed-app-relative path to narrow the search.
+
+		Returns:
+			A structured summary with an answer and supporting evidence.
+		"""
+		self.runtime.emit_status(_("Delegating code analysis..."))
+		return await self._get_source_code_analyzer().analyze(
+			question=question,
+			relative_path=relative_path,
+		)
+
 	def get_file_id(
 		self,
 		reference_doctype: str,
@@ -552,6 +876,38 @@ class ask_alyfToolset:
 		"""
 		self.runtime.emit_status(_("Reading documentation..."))
 		return tools.read_documentation_page(app_name=app_name, relative_path=relative_path)
+
+	async def document_planner(
+		self,
+		user_request: str,
+		doctype: str = "",
+		operation: str = "insert",
+		name: str = "",
+		values_hint: dict[str, Any] | None = None,
+	) -> dict[str, Any]:
+		"""Plan a document create or update flow via a read-only specialist agent.
+
+		Use this before non-trivial insert, save, or set_value operations that need
+		schema inspection or Link resolution. The specialist only has read tools.
+
+		Args:
+			user_request: The user's requested outcome in natural language.
+			doctype: The target DocType to plan for.
+			operation: One of insert, save, or set_value.
+			name: Optional existing document name for save or set_value.
+			values_hint: Optional partial field values already known.
+
+		Returns:
+			A structured plan with readiness, payload, missing information, and checks.
+		"""
+		self.runtime.emit_status(_("Planning document change..."))
+		return await self._get_document_planner().plan(
+			user_request=user_request,
+			doctype=doctype,
+			operation=operation,
+			name=name,
+			values_hint=values_hint,
+		)
 
 	def insert(self, doctype: str, values: dict[str, Any], reason: str = "") -> dict[str, Any]:
 		"""Propose creating a new document. Use get_meta first to know the schema.
@@ -986,11 +1342,200 @@ class ask_alyfToolset:
 		)
 
 
+class SourceCodeAnalyzer:
+	def __init__(self, runtime: ask_alyfRuntime, settings, toolset: ask_alyfToolset):
+		self.runtime = runtime
+		self.settings = settings
+		self.tool_defs = [
+			toolset.search_code,
+			toolset.read_code_file,
+			toolset.ls,
+			toolset.find,
+			toolset.grep,
+		]
+		self.instructions = """
+You are SourceCodeAnalyzer, an internal Ask ALYF specialist for installed app code.
+
+You can only use the provided source-code tools.
+
+Rules:
+- Search or list first, then read the smallest relevant file ranges.
+- Prefer the narrowest path scope available.
+- Do not answer from memory when the tools can verify it.
+- If evidence is incomplete or ambiguous, say so clearly.
+- Include bench-relative paths and line ranges in evidence whenever possible.
+- Return a compact JSON object with keys:
+  - `answer` (string)
+  - `summary` (string)
+  - `evidence` (list of objects with `path`, optional `start_line`, optional `end_line`, and optional `note`)
+  - `uncertainty` (string)
+  - `searched_paths` (list of strings)
+
+Return only a valid JSON object.
+Do not wrap the JSON in markdown fences.
+Do not add explanatory prose before or after the JSON.
+""".strip()
+		self.agent = None
+
+	async def _get_agent(self):
+		if self.agent is None:
+			self.agent = await _create_internal_agent_async(
+				settings=self.settings,
+				name="SourceCodeAnalyzer",
+				instructions=self.instructions,
+				tool_defs=self.tool_defs,
+			)
+		return self.agent
+
+	async def analyze(self, question: str, relative_path: str = "") -> dict[str, Any]:
+		clean_question = (question or "").strip()
+		if not clean_question:
+			return _normalize_source_code_analysis({})
+
+		history_context = _build_specialist_history_context(self.runtime)
+		request_context = frappe.as_json(getattr(self.runtime, "request_context", {}), indent=2)
+		path_hint = (relative_path or "").strip() or _("all installed app code roots available to you")
+		prompt = "\n".join(
+			[
+				"Investigate this source-code question for the parent Ask ALYF agent.",
+				f"Question: {clean_question}",
+				f"Preferred scope: {path_hint}",
+				"Use the preferred scope when it is specific enough.",
+				"",
+				"Request context JSON:",
+				request_context,
+				"",
+				history_context or _("No recent conversation context."),
+			]
+		)
+		agent = await self._get_agent()
+		trace = await agent.run_async(prompt)
+		raw_output = str(trace.final_output or "").strip()
+		parsed = _parse_json_object_output(raw_output) or {}
+		return _normalize_source_code_analysis(parsed, raw_output=raw_output)
+
+
+class DocumentPlanner:
+	def __init__(self, runtime: ask_alyfRuntime, settings, toolset: ask_alyfToolset):
+		self.runtime = runtime
+		self.settings = settings
+		self.tool_defs = [
+			toolset.get_list,
+			toolset.get,
+			toolset.get_value,
+			toolset.get_single_value,
+			toolset.get_meta,
+			toolset.has_permission,
+			toolset.get_doc_permissions,
+			toolset.list_accessible_doctypes,
+			toolset.get_current_user_roles,
+		]
+		self.instructions = f"""
+You are DocumentPlanner, an internal Ask ALYF specialist for planning Frappe document changes.
+
+You only have read-only access to metadata and documents. You never execute writes.
+
+You may only plan these operations:
+- `insert`
+- `save`
+- `set_value`
+
+Rules:
+- Always inspect `get_meta` before planning `insert`, `save`, or `set_value`.
+- Use the read tools to resolve Link targets or confirm existing values when possible.
+- Never invent document names, Link targets, or required values.
+- Treat `values_hint` as tentative until it is confirmed by the user or by a read tool.
+- If information is missing, set `ready` to `false` and list each missing item in `missing_information`.
+- The `payload` must match the parent tool signature for the recommended operation.
+- Return a JSON object with keys:
+  - `ready` (boolean)
+  - `recommended_tool` (`insert`, `save`, or `set_value`)
+  - `payload` (object)
+  - `reason` (string)
+  - `missing_information` (list of strings)
+  - `checks` (list of strings)
+  - `warnings` (list of strings)
+
+{SPECIALIST_JSON_OUTPUT_INSTRUCTION}
+""".strip()
+		self.agent = None
+
+	async def _get_agent(self):
+		if self.agent is None:
+			self.agent = await _create_internal_agent_async(
+				settings=self.settings,
+				name="DocumentPlanner",
+				instructions=self.instructions,
+				tool_defs=self.tool_defs,
+			)
+		return self.agent
+
+	async def plan(
+		self,
+		user_request: str,
+		doctype: str = "",
+		operation: str = "insert",
+		name: str = "",
+		values_hint: dict[str, Any] | None = None,
+	) -> dict[str, Any]:
+		clean_doctype = (doctype or "").strip()
+		clean_operation = (operation or "").strip().lower() or "insert"
+		clean_name = (name or "").strip()
+		clean_request = (user_request or "").strip()
+		clean_values_hint = values_hint if isinstance(values_hint, dict) else {}
+
+		if not clean_doctype:
+			return _build_document_planner_failure("Target DocType is required.")
+		if clean_operation not in ALLOWED_DOCUMENT_PLANNER_TOOLS:
+			return _build_document_planner_failure(
+				"Operation must be one of insert, save, or set_value.",
+				recommended_tool="insert",
+				payload={"doctype": clean_doctype},
+			)
+		if not clean_request:
+			return _build_document_planner_failure(
+				"User request is required.",
+				recommended_tool=clean_operation,
+				payload={"doctype": clean_doctype},
+			)
+
+		history_context = _build_specialist_history_context(self.runtime)
+		request_context = frappe.as_json(getattr(self.runtime, "request_context", {}), indent=2)
+		prompt = "\n".join(
+			[
+				"Plan the next document action for the parent Ask ALYF agent.",
+				f"User request: {clean_request}",
+				f"Requested operation: {clean_operation}",
+				f"Target DocType: {clean_doctype}",
+				f"Target document name: {clean_name or '(not provided)'}",
+				"",
+				"values_hint JSON:",
+				frappe.as_json(clean_values_hint, indent=2),
+				"",
+				"Request context JSON:",
+				request_context,
+				"",
+				history_context or _("No recent conversation context."),
+			]
+		)
+		agent = await self._get_agent()
+		trace = await agent.run_async(prompt)
+		raw_output = str(trace.final_output or "").strip()
+		parsed = _parse_json_object_output(raw_output) or {}
+		return _normalize_document_plan(
+			parsed,
+			default_doctype=clean_doctype,
+			default_operation=clean_operation,
+			default_name=clean_name,
+			raw_output=raw_output,
+		)
+
+
 class ask_alyfAgentRunner:
 	def __init__(self, runtime: ask_alyfRuntime):
 		self.runtime = runtime
 		self.settings = tools.get_settings()
-		self.toolset = ask_alyfToolset(runtime)
+		self.toolset = ask_alyfToolset(runtime, settings=self.settings)
 		self.agent = AnyAgent.create(
 			AgentFramework.TINYAGENT,
 			AgentConfig(
@@ -1005,31 +1550,21 @@ class ask_alyfAgentRunner:
 		)
 
 	def _get_api_key(self) -> str:
-		api_key = (self.settings.get_password("api_key", raise_exception=False) or "").strip()
-		if not api_key:
-			frappe.throw(_("Configure an API key in Ask ALYF Settings before sending messages."))
-		return api_key
+		return _get_api_key_from_settings(self.settings)
 
 	def _get_model_id(self) -> str:
-		model_id = (self.settings.model or "").strip()
-		if not model_id:
-			frappe.throw(_("Configure a model in Ask ALYF Settings before sending messages."))
-
-		try:
-			AnyLLM.split_model_provider(model_id)
-			return model_id
-		except ValueError:
-			pass
-
-		if self.settings.llm_provider in {"OpenAI", "OpenAI Compatible"}:
-			return f"openai:{model_id}"
-
-		return model_id
+		return _get_model_id_from_settings(self.settings)
 
 	def _build_instructions(self) -> str:
 		context = frappe.as_json(self.runtime.request_context, indent=2)
 		excluded_doctypes = ", ".join(sorted(tools.get_excluded_doctypes())) or "None"
 		system_prompt = (self.settings.system_prompt or "").strip()
+		code_search_usage_instruction = ""
+		if self.settings.is_code_search_enabled():
+			code_search_usage_instruction = (
+				"\n- When code search is enabled, use `source_code_analyzer` for code questions "
+				"instead of reasoning from memory."
+			)
 
 		base_instructions = f"""
 You are Ask ALYF, an ERPNext and Frappe assistant embedded inside the user's desk.
@@ -1037,7 +1572,7 @@ You are Ask ALYF, an ERPNext and Frappe assistant embedded inside the user's des
 Always follow these rules:
 - Use the available read tools whenever the user asks about instance data, permissions, metadata, code, files, or reports.
 - Be concise, accurate, and explicit about uncertainty.
-- Respect the current user's permissions. If a tool says something is not allowed, explain that plainly.
+- Respect the current user's permissions. If a tool says something is not allowed, explain that plainly.{code_search_usage_instruction}
 - If request context `lang` is not English, always call `translate_ui_labels` before using user-facing UI terms (DocType names, field labels, button labels, tabs, menus, and status labels) in your response.
 - Render responses as Markdown when that helps.
 - If conversation history includes attachment metadata, use the exact file ID shown there. If you only know a document reference, file name, or file URL, call `get_file_id` first. Never guess or invent a file ID.
@@ -1053,10 +1588,10 @@ Mode awareness and behavior:
 - `Agent` mode supports mutation workflows with write tools while still handling read-only questions with read tools, and every write action becomes a pending proposal that requires explicit user confirmation before execution.
 - Frontend action tools can navigate or adjust the current form in the browser, or display Frappe Charts under the assistant message via `show_chart` (pass `frappe_charts` as a list of chart option objects; validated server-side). See the `show_chart` tool docstring for the options shape.
 - Frontend actions with `requires_confirmation` must be confirmed before the browser executes them.
+- In `Agent` mode, prefer `document_planner` before non-trivial `insert`, `save`, or `set_value` operations. If it returns `ready=false`, ask the user for the missing information instead of guessing. If it returns `ready=true`, use the matching write tool with the returned payload.
 - Before insert or save, call get_meta for the target DocType and follow field types exactly.
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
 - After a write tool succeeds, explain what will happen when the user confirms it.
-- When code search is enabled, `search_code`, `read_code_file`, `ls`, `find`, and `grep` are read-only and restricted to installed app directories.
 - Excluded DocTypes for Agent mode: {excluded_doctypes}
 """.strip()
 
@@ -1093,19 +1628,12 @@ Mode awareness and behavior:
 		]
 
 		if self.settings.is_code_search_enabled():
-			tool_defs.extend(
-				[
-					self.toolset.search_code,
-					self.toolset.read_code_file,
-					self.toolset.ls,
-					self.toolset.find,
-					self.toolset.grep,
-				]
-			)
+			tool_defs.append(self.toolset.source_code_analyzer)
 
 		if self.runtime.mode == "Agent":
 			tool_defs.extend(
 				[
+					self.toolset.document_planner,
 					self.toolset.insert,
 					self.toolset.save,
 					self.toolset.set_value,
@@ -1297,6 +1825,7 @@ def run_message(
 		user=frappe.session.user,
 		mode=mode,
 		request_context=request_context,
+		conversation_history=conversation_history,
 	)
 	runner = ask_alyfAgentRunner(runtime)
 	return runner.run(message, conversation_history)
