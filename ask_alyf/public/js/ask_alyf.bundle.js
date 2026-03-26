@@ -163,6 +163,7 @@
 			this.statusWrapperEl = null;
 			this.statusBodyEl = null;
 			this.pendingOperationEl = null;
+			this.suggestedPromptsEl = null;
 		}
 
 		disposeActiveFrappeCharts(messageKey = null) {
@@ -990,6 +991,196 @@
 			}
 		}
 
+		getRolePrompts() {
+			return [
+				{
+					roles: ["Sales User", "Sales Manager"],
+					label: __("Selling"),
+					prompts: [
+						__("Chart my monthly sales revenue for the last 6 months"),
+						__("What Sales Orders are pending delivery?"),
+						__("How many quotations were sent this month?"),
+					],
+				},
+				{
+					roles: ["Purchase User", "Purchase Manager"],
+					label: __("Buying"),
+					prompts: [
+						__("Chart spending by supplier for this quarter"),
+						__("Which Purchase Orders are overdue?"),
+						__("How many pending purchase receipts do I have?"),
+					],
+				},
+				{
+					roles: ["Accounts User", "Accounts Manager"],
+					label: __("Accounts"),
+					prompts: [
+						__("Chart monthly expenses by cost center"),
+						__("Show me unpaid Sales Invoices older than 30 days"),
+						__("What's the total outstanding receivables?"),
+					],
+				},
+				{
+					roles: ["HR User", "HR Manager"],
+					label: __("HR"),
+					prompts: [
+						__("Show employee headcount by department as a chart"),
+						__("Which employees are on leave today?"),
+						__("How many leave applications are pending approval?"),
+					],
+				},
+				{
+					roles: ["Stock User", "Stock Manager"],
+					label: __("Stock"),
+					prompts: [
+						__("Chart stock value by warehouse"),
+						__("Which items are below their reorder level?"),
+						__("What were the top 10 most moved items this month?"),
+					],
+				},
+				{
+					roles: ["Manufacturing User", "Manufacturing Manager"],
+					label: __("Manufacturing"),
+					prompts: [
+						__("Chart production output by item this week"),
+						__("Show me open Work Orders and their status"),
+						__("How many Work Orders are behind schedule?"),
+					],
+				},
+				{
+					roles: ["Projects User", "Projects Manager"],
+					label: __("Projects"),
+					prompts: [
+						__("Show project progress as a chart"),
+						__("What open tasks are assigned to me?"),
+						__("Which project tasks are overdue?"),
+					],
+				},
+				{
+					roles: ["Support Team"],
+					label: __("Support"),
+					prompts: [
+						__("Chart open issues by priority"),
+						__("Show me unresolved issues from this week"),
+						__("What's the average resolution time for issues?"),
+					],
+				},
+				{
+					roles: ["System Manager", "Administrator"],
+					label: __("System"),
+					prompts: [
+						__("Show me the top 10 DocTypes by record count"),
+						__("What are the recent Error Logs?"),
+						__("Which users logged in today?"),
+					],
+				},
+			];
+		}
+
+		getSuggestedPrompts() {
+			const userRoles = new Set(frappe.user_roles || []);
+			if (!userRoles.size) {
+				return [];
+			}
+
+			const matchingGroups = this.getRolePrompts().filter((group) =>
+				group.roles.some((role) => userRoles.has(role))
+			);
+			if (!matchingGroups.length) {
+				return [];
+			}
+
+			const shuffled = this.shuffleArray(
+				matchingGroups.map((group) => ({
+					label: group.label,
+					prompts: this.shuffleArray([...group.prompts]),
+				}))
+			);
+
+			const prompts = [];
+			const indices = shuffled.map(() => 0);
+			for (let round = 0; prompts.length < 3 && round < 3; round++) {
+				for (let i = 0; i < shuffled.length && prompts.length < 3; i++) {
+					const group = shuffled[i];
+					const idx = indices[i];
+					if (idx < group.prompts.length) {
+						prompts.push({ group: group.label, text: group.prompts[idx] });
+						indices[i]++;
+					}
+				}
+			}
+
+			return prompts;
+		}
+
+		shuffleArray(array) {
+			for (let i = array.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[array[i], array[j]] = [array[j], array[i]];
+			}
+			return array;
+		}
+
+		renderSuggestedPrompts() {
+			if (!this.messagesEl) {
+				return;
+			}
+
+			if (this.suggestedPromptsEl) {
+				this.suggestedPromptsEl.remove();
+				this.suggestedPromptsEl = null;
+			}
+
+			if (this.state.messages.length) {
+				return;
+			}
+
+			const prompts = this.getSuggestedPrompts();
+			if (!prompts.length) {
+				return;
+			}
+
+			const grouped = new Map();
+			for (const prompt of prompts) {
+				if (!grouped.has(prompt.group)) {
+					grouped.set(prompt.group, []);
+				}
+				grouped.get(prompt.group).push(prompt.text);
+			}
+
+			const container = document.createElement("div");
+			container.className = "ask_alyf-suggested-prompts";
+
+			for (const [groupLabel, groupPrompts] of grouped) {
+				const groupEl = document.createElement("div");
+				groupEl.className = "ask_alyf-prompt-group";
+
+				if (groupLabel) {
+					const labelEl = document.createElement("div");
+					labelEl.className = "ask_alyf-prompt-group-label";
+					labelEl.textContent = groupLabel;
+					groupEl.appendChild(labelEl);
+				}
+
+				for (const text of groupPrompts) {
+					const button = document.createElement("button");
+					button.type = "button";
+					button.className = "ask_alyf-suggested-prompt";
+					button.textContent = text;
+					button.addEventListener("click", () => {
+						this.inputEl.value = text;
+						this.sendMessage();
+					});
+					groupEl.appendChild(button);
+				}
+
+				container.appendChild(groupEl);
+			}
+
+			this.suggestedPromptsEl = container;
+			this.messagesEl.appendChild(container);
+		}
+
 		renderHistoryList() {
 			if (!this.historyListEl) {
 				return;
@@ -1632,6 +1823,7 @@
 			this.renderedMessageKeys = nextMessageKeys;
 			this.renderStatusMessage();
 			this.renderPendingOperation();
+			this.renderSuggestedPrompts();
 			this.scrollToBottom();
 
 			requestAnimationFrame(() => {
