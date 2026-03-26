@@ -414,25 +414,6 @@ def get_current_user_roles() -> list[str]:
 	return frappe.get_roles()
 
 
-def get_language_candidates(language: str | None) -> list[str]:
-	lang_value = (language or "").strip()
-	if not lang_value:
-		lang_value = (getattr(frappe.local, "lang", "") or "").strip() or "en"
-
-	normalized = lang_value.replace("_", "-")
-	candidates: list[str] = []
-	for candidate in (normalized, normalized.lower()):
-		if candidate and candidate not in candidates:
-			candidates.append(candidate)
-
-	if "-" in normalized:
-		base_lang = normalized.split("-", 1)[0].lower()
-		if base_lang and base_lang not in candidates:
-			candidates.append(base_lang)
-
-	return candidates or ["en"]
-
-
 def translate_ui_labels(labels: list[str] | str, language: str | None = None) -> dict[str, Any]:
 	if isinstance(labels, str):
 		labels = [labels]
@@ -450,20 +431,10 @@ def translate_ui_labels(labels: list[str] | str, language: str | None = None) ->
 	if not cleaned_labels:
 		frappe.throw(_("Provide at least one label to translate."))
 
-	candidates = get_language_candidates(language)
-	resolved_language = candidates[0]
-	translations: dict[str, str] = {}
-
-	for label in dict.fromkeys(cleaned_labels):
-		translated_label = frappe._(label, lang=resolved_language)
-		if translated_label == label:
-			for candidate in candidates[1:]:
-				candidate_translation = frappe._(label, lang=candidate)
-				if candidate_translation != label:
-					translated_label = candidate_translation
-					break
-
-		translations[label] = translated_label
+	resolved_language = ((language or getattr(frappe.local, "lang", "") or "en").strip() or "en").replace(
+		"_", "-"
+	)
+	translations = {label: _(label, lang=resolved_language) for label in dict.fromkeys(cleaned_labels)}
 
 	return {
 		"language": resolved_language,
