@@ -176,7 +176,7 @@ def get_or_create_conversation(conversation_name: str | None = None):
 		doc.check_permission("read")
 		return doc
 
-	existing = frappe.get_all(
+	existing = frappe.get_list(
 		"Ask ALYF Conversation",
 		filters={"user": frappe.session.user, "status": "Active"},
 		fields=["name"],
@@ -302,7 +302,7 @@ def list_conversations(limit: int = 20) -> list[dict]:
 		frappe.throw(_("You do not have access to Ask ALYF."))
 
 	limit = max(1, cint(limit))
-	conversations = frappe.get_all(
+	conversations = frappe.get_list(
 		"Ask ALYF Conversation",
 		filters={"user": frappe.session.user},
 		fields=["name", "title", "status", "modified", "last_message_at"],
