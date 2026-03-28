@@ -1159,6 +1159,45 @@ def execute_action(action: dict[str, Any]) -> dict[str, Any]:
 		doc = {"doctype": doctype, **values}
 		return client.insert(doc=doc)
 
+	if action_type == "batch_insert":
+		doctype = action["doctype"]
+		ensure_editable_doctype(doctype)
+		records = action.get("records")
+		validation_error = validate_pending_action_payload(
+			"batch_insert", {"doctype": doctype, "records": records}
+		)
+		if validation_error:
+			frappe.throw(validation_error)
+
+		created_names: list[str] = []
+		failures: list[dict[str, Any]] = []
+		for row_number, values in enumerate(records, start=1):
+			try:
+				created_doc = client.insert(doc={"doctype": doctype, **values})
+			except Exception as error:
+				failures.append(
+					{
+						"row": row_number,
+						"error": str(error).strip() or _("Unknown error."),
+					}
+				)
+				continue
+
+			created_name = ""
+			if isinstance(created_doc, dict):
+				created_name = str(created_doc.get("name") or "").strip()
+			else:
+				created_name = str(getattr(created_doc, "name", "") or "").strip()
+			if created_name:
+				created_names.append(created_name)
+
+		return build_batch_insert_result(
+			doctype=doctype,
+			total_records=len(records),
+			created_names=created_names,
+			failures=failures,
+		)
+
 	if action_type == "save":
 		doctype = action["doctype"]
 		ensure_editable_doctype(doctype)
@@ -1261,6 +1300,55 @@ def coerce_object_payload(value: Any, fieldname: str) -> dict[str, Any]:
 	frappe.throw(_("Action field '{0}' must be an object.").format(fieldname))
 
 
+def build_batch_insert_result(
+	*,
+	doctype: str,
+	total_records: int,
+	created_names: list[str],
+	failures: list[dict[str, Any]],
+) -> dict[str, Any]:
+	created_count = len(created_names)
+	failed_count = len(failures)
+	message = _("Created {0} of {1} {2} records.").format(created_count, total_records, _(doctype))
+	failure_summary = summarize_batch_insert_failures(failures)
+	if failure_summary:
+		message += " " + failure_summary
+
+	return {
+		"message": message,
+		"total": total_records,
+		"created_count": created_count,
+		"failed_count": failed_count,
+		"created_names": created_names,
+		"failed": failures,
+	}
+
+
+def summarize_batch_insert_failures(failures: list[dict[str, Any]], limit: int = 10) -> str:
+	if not failures:
+		return ""
+
+	items: list[str] = []
+	for failure in failures[:limit]:
+		row = failure.get("row")
+		error = (failure.get("error") or "").strip()
+		if isinstance(row, int) and row > 0 and error:
+			items.append(_("row {0}: {1}").format(row, error))
+		elif isinstance(row, int) and row > 0:
+			items.append(_("row {0}").format(row))
+		elif error:
+			items.append(error)
+
+	if not items:
+		return _("Some rows failed.")
+
+	summary = _("Failed rows: {0}").format("; ".join(items))
+	remaining = len(failures) - len(items)
+	if remaining > 0:
+		summary += " " + _("And {0} more.").format(remaining)
+	return summary
+
+
 def validate_pending_action_payload(action_type: str, payload: dict[str, Any]) -> str | None:
 	if action_type in {"insert", "save"}:
 		doctype = payload.get("doctype")
@@ -1272,6 +1360,24 @@ def validate_pending_action_payload(action_type: str, payload: dict[str, Any]) -
 			return _("Action field 'values' must be an object.")
 
 		return validate_table_field_shapes(doctype, values)
+
+	if action_type == "batch_insert":
+		doctype = payload.get("doctype")
+		if not isinstance(doctype, str) or not doctype.strip():
+			return _("Action field 'doctype' is required.")
+
+		records = payload.get("records")
+		if not isinstance(records, list) or not records:
+			return _("Action field 'records' must be a non-empty list.")
+
+		for row_number, values in enumerate(records, start=1):
+			if not isinstance(values, dict):
+				return _("Action field 'records' row #{0} must be an object.").format(row_number)
+			table_shape_error = validate_table_field_shapes(doctype, values)
+			if table_shape_error:
+				return table_shape_error
+
+		return None
 
 	if action_type == "attach_file":
 		file_id = payload.get("file_id")

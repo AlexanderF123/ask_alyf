@@ -76,6 +76,7 @@ Everything from Ask mode, plus:
 
 - `document_planner` — prepare `insert`, `save`, or `set_value` payloads using read-only metadata and record lookups before the main agent creates a pending proposal
 - `insert` — create a new document
+- `batch_insert` — create multiple documents of the same DocType from a list of record payloads; each row is still inserted through the framework and any per-row failures are reported back
 - `save` — update an existing document
 - `set_value` — set specific field(s) on a document
 - `submit` — submit a submittable document
@@ -104,7 +105,7 @@ Everything from Ask mode, plus:
 ### Guardrails
 
 - **Confirmation before mutations**: Every write operation (create, update, delete, submit, cancel, amend, rename) requires explicit user confirmation before execution. The agent proposes the action, the user approves or rejects.
-- **No bulk operations**: The agent cannot use `insert_many`, `bulk_update`, or batch deletes. Every mutation is a single confirmed operation.
+- **No unsafe bulk operations**: The agent cannot use `insert_many`, `bulk_update`, or batch deletes. It may use `batch_insert` for multiple records of the same DocType, but that still runs as one confirmed proposal with each row inserted individually through the framework.
 - **Framework constraints respected**: The agent does not bypass framework validation. For example, it cannot delete a submitted document without cancelling it first, and it cannot delete cancelled documents that have linked submitted entries.
 - **Configurable DocType exclusions**: Admins can exclude specific DocTypes from Agent mode via **Ask ALYF Settings**.
 

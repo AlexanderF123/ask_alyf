@@ -60,10 +60,12 @@ class UnitTestCodeTools(UnitTestCase):
 		ask_runner = self.make_runner(allow_code_search=False, mode="Ask")
 		ask_tool_names = {tool.__name__ for tool in ask_runner._build_tools()}
 		self.assertNotIn("document_planner", ask_tool_names)
+		self.assertNotIn("batch_insert", ask_tool_names)
 
 		agent_runner = self.make_runner(allow_code_search=False, mode="Agent")
 		agent_tool_names = {tool.__name__ for tool in agent_runner._build_tools()}
 		self.assertIn("document_planner", agent_tool_names)
+		self.assertIn("batch_insert", agent_tool_names)
 
 	def test_code_tools_require_setting_to_be_enabled(self):
 		with patch(
@@ -187,6 +189,69 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertEqual(result["proposal"]["payload"]["file_id"], file_doc.name)
 		self.assertIn(f"[{file_doc.file_name}](", result["proposal"]["summary"])
 		self.assertIn(file_doc.file_url, result["proposal"]["summary"])
+
+	def test_batch_insert_proposal_uses_record_count_summary(self):
+		runtime = SimpleNamespace(
+			conversation_name="TEST-CONVERSATION",
+			mode="Agent",
+			request_context={},
+			conversation_history=[],
+			pending_operation=None,
+			document_extractions=[],
+			emit_status=lambda _text: None,
+		)
+		toolset = ask_alyfToolset(runtime)
+		records = [{"description": "Call customer"}, {"description": "Send quotation"}]
+
+		result = toolset.batch_insert("ToDo", records, reason="Imported open tasks.")
+
+		self.assertTrue(result["success"])
+		self.assertEqual(result["proposal"]["tool"], "batch_insert")
+		self.assertEqual(result["proposal"]["payload"]["doctype"], "ToDo")
+		self.assertEqual(result["proposal"]["payload"]["records"], records)
+		self.assertEqual(result["proposal"]["summary"], "Create 2 ToDo records")
+
+	def test_validate_pending_action_payload_rejects_invalid_batch_insert_rows(self):
+		self.assertEqual(
+			tools.validate_pending_action_payload("batch_insert", {"doctype": "ToDo", "records": []}),
+			"Action field 'records' must be a non-empty list.",
+		)
+		self.assertEqual(
+			tools.validate_pending_action_payload(
+				"batch_insert",
+				{"doctype": "ToDo", "records": [{"description": "Call customer"}, "bad row"]},
+			),
+			"Action field 'records' row #2 must be an object.",
+		)
+
+	def test_execute_action_batch_insert_collects_successes_and_failures(self):
+		records = [
+			{"description": "Call customer"},
+			{"description": "Send quotation"},
+			{"description": "Review delivery"},
+		]
+		insert_side_effect = [
+			{"name": "TODO-0001"},
+			Exception("Missing description"),
+			SimpleNamespace(name="TODO-0003"),
+		]
+
+		with (
+			patch("ask_alyf.ask_alyf.tools.ensure_editable_doctype"),
+			patch("ask_alyf.ask_alyf.tools.client.insert", side_effect=insert_side_effect) as insert,
+		):
+			result = tools.execute_action({"action": "batch_insert", "doctype": "ToDo", "records": records})
+
+		self.assertEqual(insert.call_count, 3)
+		insert.assert_any_call(doc={"doctype": "ToDo", "description": "Call customer"})
+		insert.assert_any_call(doc={"doctype": "ToDo", "description": "Send quotation"})
+		insert.assert_any_call(doc={"doctype": "ToDo", "description": "Review delivery"})
+		self.assertEqual(result["created_count"], 2)
+		self.assertEqual(result["failed_count"], 1)
+		self.assertEqual(result["created_names"], ["TODO-0001", "TODO-0003"])
+		self.assertEqual(result["failed"], [{"row": 2, "error": "Missing description"}])
+		self.assertIn("Created 2 of 3 ToDo records.", result["message"])
+		self.assertIn("row 2: Missing description", result["message"])
 
 	def test_source_code_analyzer_tool_delegates_to_specialist(self):
 		runtime = SimpleNamespace(

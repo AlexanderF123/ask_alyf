@@ -967,6 +967,30 @@ class ask_alyfToolset:
 			values=values,
 		)
 
+	def batch_insert(self, doctype: str, records: list[dict[str, Any]], reason: str = "") -> dict[str, Any]:
+		"""Propose creating multiple documents of the same DocType.
+		Use get_meta first to know the schema for each record.
+		For child tables, each record must use a list of row objects.
+
+		Args:
+			doctype: The DocType to create.
+			records: A list of field-value dictionaries, one per new document.
+			reason: Optional explanation of why this batch change is needed.
+
+		Returns:
+			A pending action proposal that requires confirmation.
+		"""
+		record_count = len(records) if isinstance(records, list) else 0
+		return self._backend_proposal(
+			"batch_insert",
+			_("Create {0} {1} records").format(record_count, _(doctype)),
+			reason,
+			validation_error_status=_("Batch create proposal needs correction."),
+			prepared_status=_("Prepared batch create proposal."),
+			doctype=doctype,
+			records=records,
+		)
+
 	def save(
 		self,
 		doctype: str,
@@ -1626,6 +1650,7 @@ Mode awareness and behavior:
 - Frontend action tools can navigate or adjust the current form in the browser, or display Frappe Charts under the assistant message via `show_chart` (pass `frappe_charts` as a list of chart option objects; validated server-side). See the `show_chart` tool docstring for the options shape.
 - Frontend actions with `requires_confirmation` must be confirmed before the browser executes them.
 - In `Agent` mode, prefer `document_planner` before non-trivial `insert`, `save`, or `set_value` operations. If it returns `ready=false`, ask the user for the missing information instead of guessing. If it returns `ready=true`, use the matching write tool with the returned payload.
+- When the user wants to create multiple documents of the same DocType, prefer `batch_insert` instead of preparing many separate `insert` proposals.
 - Before insert or save, call get_meta for the target DocType and follow field types exactly.
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
 - After a write tool succeeds, explain what will happen when the user confirms it.
@@ -1672,6 +1697,7 @@ Mode awareness and behavior:
 				[
 					self.toolset.document_planner,
 					self.toolset.insert,
+					self.toolset.batch_insert,
 					self.toolset.save,
 					self.toolset.set_value,
 					self.toolset.submit,
