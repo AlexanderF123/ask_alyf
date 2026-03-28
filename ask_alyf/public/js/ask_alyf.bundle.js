@@ -692,6 +692,15 @@
 				this.setStatus(__("Thinking..."));
 			});
 
+			frappe.realtime.on("ask_alyf_file_attachment", (message) => {
+				if (message.conversation !== this.state.conversation?.name) return;
+				if (message.message) {
+					this.state.messages.push(message.message);
+					this.renderMessages();
+					this.scrollToBottom();
+				}
+			});
+
 			frappe.realtime.on("ask_alyf_response_chunk", (message) => {
 				if (message.conversation !== this.state.conversation?.name) return;
 				this.appendAssistantChunk(message.message_id, message.chunk || "");

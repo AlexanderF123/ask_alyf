@@ -29,6 +29,7 @@ class ask_alyfRuntime:
 	conversation_history: list[dict[str, Any]] = field(default_factory=list)
 	pending_operation: dict[str, Any] | None = None
 	document_extractions: list[dict[str, Any]] = field(default_factory=list)
+	attached_files: list[dict[str, Any]] = field(default_factory=list)
 
 	def emit_status(self, text: str):
 		"""Send a short status update to the current user."""
@@ -43,6 +44,10 @@ class ask_alyfRuntime:
 		self.document_extractions.append(
 			_build_document_extraction_history_entry(extraction, extraction_prompt=extraction_prompt)
 		)
+
+	def remember_attached_file(self, file_entry: dict[str, Any]):
+		"""Store a file attachment to be shown in the conversation history."""
+		self.attached_files.append(file_entry)
 
 
 def _get_api_key_from_settings(settings) -> str:
@@ -818,6 +823,42 @@ class ask_alyfToolset:
 		self.runtime.remember_document_extraction(result, extraction_prompt=extraction_prompt)
 		return result
 
+	def get_print(
+		self,
+		doctype: str,
+		name: str,
+		print_format: str = "",
+		letterhead: str = "",
+	) -> dict[str, Any]:
+		"""Generate a PDF print of a document and attach it to the conversation.
+
+		Uses the default print format and default letter head unless overridden.
+		Permissions are enforced automatically by the tool.
+
+		The generated PDF is automatically shown to the user as a clickable file
+		attachment in the conversation UI. Do not repeat the file name, URL, or
+		link in your text — just confirm briefly what was printed.
+
+		Args:
+			doctype: The DocType of the document to print.
+			name: The document name.
+			print_format: Optional print format name. Defaults to the DocType's default.
+			letterhead: Optional letter head name. Defaults to the site's default.
+
+		Returns:
+			A dictionary with the generated file metadata (name, file_name, file_url).
+		"""
+		self.runtime.emit_status(_("Generating print..."))
+		file_entry = tools.get_print(
+			doctype=doctype,
+			name=name,
+			conversation_name=self.runtime.conversation_name,
+			print_format=print_format,
+			letterhead=letterhead,
+		)
+		self.runtime.remember_attached_file(file_entry)
+		return file_entry
+
 	def run_read_only_sql(self, query: str) -> list[dict[str, Any]]:
 		"""Run a read-only SQL query when the current user is allowed to do so.
 
@@ -1570,6 +1611,7 @@ Always follow these rules:
 - When the user asks about the contents of an attached PDF or image, prefer `extract_document_data`. Use `read_file_record` for text-like files.
 - If conversation history includes stored document extraction data, reuse it for follow-up questions instead of re-running extraction unless the user asks for a fresh read.
 - If a file tool returns a truncation warning, tell the user clearly that only part of the file was processed.
+
 - Current request context (includes `user_roles` for non-Administrator users):
 {context}
 
@@ -1611,6 +1653,7 @@ Mode awareness and behavior:
 			self.toolset.get_file_id,
 			self.toolset.read_file_record,
 			self.toolset.extract_document_data,
+			self.toolset.get_print,
 			self.toolset.run_read_only_sql,
 			self.toolset.get_app_version,
 			self.toolset.read_github_releases,
@@ -1647,6 +1690,7 @@ Mode awareness and behavior:
 			"response": str(trace.final_output or "").strip(),
 			"pending_operation": self.runtime.pending_operation,
 			"document_extractions": self.runtime.document_extractions,
+			"attached_files": self.runtime.attached_files,
 		}
 
 

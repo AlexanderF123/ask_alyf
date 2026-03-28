@@ -939,6 +939,63 @@ def _pdf_to_base64_images(file_path: str) -> tuple[list[dict[str, str]], int]:
 	return images, total_pages
 
 
+def get_print(
+	doctype: str,
+	name: str,
+	conversation_name: str,
+	print_format: str = "",
+	letterhead: str = "",
+) -> dict[str, Any]:
+	"""Generate a PDF print of a document and attach it to the conversation."""
+	from frappe.utils.file_manager import save_file
+	from frappe.utils.print_utils import get_print as frappe_get_print
+
+	clean_doctype = (doctype or "").strip()
+	clean_name = (name or "").strip()
+	clean_conversation = (conversation_name or "").strip()
+
+	if not clean_doctype:
+		frappe.throw(_("DocType is required."))
+	if not clean_name:
+		frappe.throw(_("Document name is required."))
+	if not clean_conversation:
+		frappe.throw(_("Conversation name is required."))
+	if not frappe.db.exists(clean_doctype, clean_name):
+		frappe.throw(_("{0} '{1}' was not found.").format(_(clean_doctype), clean_name))
+
+	doc = frappe.get_doc(clean_doctype, clean_name)
+	doc.check_permission("print")
+
+	resolved_print_format = (print_format or "").strip() or doc.meta.default_print_format or "Standard"
+	resolved_letterhead = (letterhead or "").strip()
+	if not resolved_letterhead:
+		resolved_letterhead = frappe.db.get_value("Letter Head", {"is_default": 1}, "name") or ""
+
+	pdf_content = frappe_get_print(
+		doctype=clean_doctype,
+		name=clean_name,
+		print_format=resolved_print_format,
+		as_pdf=True,
+		no_letterhead=0 if resolved_letterhead else 1,
+		letterhead=resolved_letterhead,
+	)
+
+	file_name = f"{clean_name}.pdf".replace(" ", "-").replace("/", "-")
+	file_doc = save_file(
+		file_name,
+		pdf_content,
+		"Ask ALYF Conversation",
+		clean_conversation,
+		is_private=1,
+	)
+
+	return {
+		"name": file_doc.name,
+		"file_name": file_doc.file_name,
+		"file_url": file_doc.file_url,
+	}
+
+
 def run_read_only_sql(query: str) -> list[dict[str, Any]]:
 	roles = set(frappe.get_roles())
 	if frappe.session.user != "Administrator" and "System Manager" not in roles:

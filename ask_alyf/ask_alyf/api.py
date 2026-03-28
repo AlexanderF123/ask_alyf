@@ -396,6 +396,7 @@ def process_message_job(
 		response = result.get("response") or ""
 		pending_operation = result.get("pending_operation")
 		document_extractions = result.get("document_extractions")
+		attached_files = result.get("attached_files")
 		if pending_operation and not response:
 			response = _(
 				"I prepared the requested operation. Please review it and confirm if it looks correct."
@@ -405,6 +406,13 @@ def process_message_job(
 		response = str(error).strip() or _("I hit an error while processing that request. Please try again.")
 		pending_operation = None
 		document_extractions = None
+		attached_files = None
+
+	file_message = None
+	if isinstance(attached_files, list) and attached_files:
+		file_names = ", ".join(f.get("file_name") or f.get("name") or "" for f in attached_files)
+		file_message = make_message("system", file_names, files=attached_files)
+		messages.append(file_message)
 
 	assistant_message = make_message(
 		"assistant",
@@ -416,10 +424,21 @@ def process_message_job(
 		),
 	)
 	messages.append(assistant_message)
+
 	if pending_operation and isinstance(pending_operation, dict):
 		pending_operation = {**pending_operation, "assistant_message_id": assistant_message["id"]}
 	doc.pending_operation_json = dumps(pending_operation) if pending_operation else ""
 	save_messages(doc, messages)
+
+	if file_message:
+		frappe.publish_realtime(
+			"ask_alyf_file_attachment",
+			{
+				"conversation": conversation_name,
+				"message": file_message,
+			},
+			user=doc.owner,
+		)
 
 	for chunk in chunk_text(response or " "):
 		frappe.publish_realtime(
