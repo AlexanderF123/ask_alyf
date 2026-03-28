@@ -829,6 +829,7 @@ class ask_alyfToolset:
 		name: str,
 		print_format: str = "",
 		letterhead: str = "",
+		language: str = "",
 	) -> dict[str, Any]:
 		"""Generate a PDF print of a document and attach it to the conversation.
 
@@ -844,6 +845,8 @@ class ask_alyfToolset:
 			name: The document name.
 			print_format: Optional print format name. Defaults to the DocType's default.
 			letterhead: Optional letter head name. Defaults to the site's default.
+			language: Optional language code for the print. Defaults to the document's
+				language field if it exists, otherwise the current session language.
 
 		Returns:
 			A dictionary with the generated file metadata (name, file_name, file_url).
@@ -855,6 +858,7 @@ class ask_alyfToolset:
 			conversation_name=self.runtime.conversation_name,
 			print_format=print_format,
 			letterhead=letterhead,
+			language=language,
 		)
 		self.runtime.remember_attached_file(file_entry)
 		return file_entry

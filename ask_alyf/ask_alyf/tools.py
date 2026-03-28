@@ -945,8 +945,10 @@ def get_print(
 	conversation_name: str,
 	print_format: str = "",
 	letterhead: str = "",
+	language: str = "",
 ) -> dict[str, Any]:
 	"""Generate a PDF print of a document and attach it to the conversation."""
+	from frappe.translate import print_language
 	from frappe.utils.file_manager import save_file
 	from frappe.utils.print_utils import get_print as frappe_get_print
 
@@ -971,14 +973,17 @@ def get_print(
 	if not resolved_letterhead:
 		resolved_letterhead = frappe.db.get_value("Letter Head", {"is_default": 1}, "name") or ""
 
-	pdf_content = frappe_get_print(
-		doctype=clean_doctype,
-		name=clean_name,
-		print_format=resolved_print_format,
-		as_pdf=True,
-		no_letterhead=0 if resolved_letterhead else 1,
-		letterhead=resolved_letterhead,
-	)
+	resolved_language = (language or "").strip() or getattr(doc, "language", "") or ""
+
+	with print_language(resolved_language):
+		pdf_content = frappe_get_print(
+			doctype=clean_doctype,
+			name=clean_name,
+			print_format=resolved_print_format,
+			as_pdf=True,
+			no_letterhead=0 if resolved_letterhead else 1,
+			letterhead=resolved_letterhead,
+		)
 
 	file_name = f"{clean_name}.pdf".replace(" ", "-").replace("/", "-")
 	file_doc = save_file(
