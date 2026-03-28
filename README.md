@@ -50,6 +50,10 @@ App metadata and documentation:
 - `read_github_releases` — uses the Repository URL from `pyproject.toml` `[project.urls]`
 - `read_documentation_page` — read official docs using the Documentation URL from `pyproject.toml` `[project.urls]`
 
+Printing:
+
+- `get_print` — generate a PDF print of a document using the default (or specified) print format and letter head; respects `print` permission and the document's `language` field; the PDF is attached to the conversation and shown as a clickable file
+
 Files:
 
 - `get_file_id` — resolve a **File** ID from attachment references
