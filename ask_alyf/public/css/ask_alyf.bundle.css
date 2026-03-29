@@ -360,6 +360,12 @@
 
 .ask_alyf-user .ask_alyf-message-body {
 	background: color-mix(in srgb, var(--primary), white 88%);
+	color: var(--text-color);
+}
+
+[data-theme="dark"] .ask_alyf-user .ask_alyf-message-body {
+	background: color-mix(in srgb, var(--primary), white 12%);
+	color: var(--text-color);
 }
 
 .ask_alyf-status-message .ask_alyf-message-body {
