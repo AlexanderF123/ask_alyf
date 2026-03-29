@@ -433,6 +433,68 @@
 	font-weight: 700;
 }
 
+.ask_alyf-proposal-summary {
+	display: flex;
+	flex-direction: column;
+	gap: 0.65rem;
+}
+
+.ask_alyf-proposal-details {
+	margin: 0;
+}
+
+.ask_alyf-proposal-details summary {
+	cursor: pointer;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+.ask_alyf-proposal-table-wrap {
+	margin-top: 0.55rem;
+	overflow: auto;
+	border: 1px solid var(--border-color);
+	border-radius: 0.75rem;
+	background: color-mix(in srgb, var(--bg-color), white 30%);
+}
+
+.ask_alyf-proposal-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.75rem;
+	line-height: 1.35;
+}
+
+.ask_alyf-proposal-table th,
+.ask_alyf-proposal-table td {
+	padding: 0.45rem 0.55rem;
+	border-bottom: 1px solid var(--border-color);
+	text-align: left;
+	vertical-align: top;
+}
+
+.ask_alyf-proposal-table thead th {
+	background: color-mix(in srgb, var(--bg-color), white 12%);
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.ask_alyf-proposal-table td {
+	white-space: pre-wrap;
+	word-break: break-word;
+	min-width: 8rem;
+}
+
+.ask_alyf-proposal-table tbody tr:last-child th,
+.ask_alyf-proposal-table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.ask_alyf-proposal-row-number {
+	width: 1%;
+	white-space: nowrap;
+}
+
 .ask_alyf-proposal-actions {
 	display: flex;
 	gap: 0.5rem;

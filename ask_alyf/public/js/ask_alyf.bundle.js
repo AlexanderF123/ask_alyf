@@ -1595,7 +1595,119 @@
 		}
 
 		getPendingOperationSummaryHtml(operation) {
-			return this.renderInlineMarkdown(this.getPendingOperationSummary(operation));
+			const summaryHtml = this.renderInlineMarkdown(
+				this.getPendingOperationSummary(operation)
+			);
+			const previewHtml = this.getPendingOperationPreviewHtml(operation);
+			return previewHtml ? `${summaryHtml}${previewHtml}` : summaryHtml;
+		}
+
+		getPendingOperationPreviewHtml(operation) {
+			if (operation?.tool !== "batch_insert") {
+				return "";
+			}
+
+			const records = Array.isArray(operation?.payload?.records)
+				? operation.payload.records
+				: [];
+			if (!records.length) {
+				return "";
+			}
+
+			const columns = this.getBatchInsertPreviewColumns(records);
+			if (!columns.length) {
+				return "";
+			}
+
+			const headerHtml = columns
+				.map((column) => {
+					const label = this.getBatchInsertPreviewColumnLabel(operation, column);
+					return `<th scope="col">${this.escapeHtml(label)}</th>`;
+				})
+				.join("");
+			const bodyHtml = records
+				.map((record, index) => {
+					const safeRecord =
+						record && typeof record === "object" && !Array.isArray(record)
+							? record
+							: {};
+					const cells = columns
+						.map((column) => {
+							const value = this.formatBatchInsertPreviewValue(safeRecord[column]);
+							return `<td>${this.escapeHtml(value)}</td>`;
+						})
+						.join("");
+					return `<tr><th scope="row" class="ask_alyf-proposal-row-number">${
+						index + 1
+					}</th>${cells}</tr>`;
+				})
+				.join("");
+
+			return `
+				<details class="ask_alyf-proposal-details">
+					<summary>${this.escapeHtml(__("Records to create ({0})", [records.length]))}</summary>
+					<div class="ask_alyf-proposal-table-wrap">
+						<table class="ask_alyf-proposal-table">
+							<thead>
+								<tr>
+									<th scope="col" class="ask_alyf-proposal-row-number">#</th>
+									${headerHtml}
+								</tr>
+							</thead>
+							<tbody>${bodyHtml}</tbody>
+						</table>
+					</div>
+				</details>
+			`;
+		}
+
+		getBatchInsertPreviewColumns(records) {
+			const columns = [];
+			const seen = new Set();
+			for (const record of records) {
+				if (!record || typeof record !== "object" || Array.isArray(record)) {
+					continue;
+				}
+				for (const key of Object.keys(record)) {
+					if (seen.has(key)) {
+						continue;
+					}
+					seen.add(key);
+					columns.push(key);
+				}
+			}
+			return columns;
+		}
+
+		getBatchInsertPreviewColumnLabel(operation, column) {
+			const labels =
+				operation?.preview_field_labels &&
+				typeof operation.preview_field_labels === "object" &&
+				!Array.isArray(operation.preview_field_labels)
+					? operation.preview_field_labels
+					: null;
+			const label = labels?.[column];
+			return typeof label === "string" && label.trim() ? label : column;
+		}
+
+		formatBatchInsertPreviewValue(value) {
+			if (value === null || value === undefined) {
+				return "";
+			}
+			if (typeof value === "string") {
+				return value;
+			}
+			if (typeof value === "number" || typeof value === "bigint") {
+				return String(value);
+			}
+			if (typeof value === "boolean") {
+				return value ? __("Yes") : __("No");
+			}
+			try {
+				return JSON.stringify(value);
+			} catch (error) {
+				return String(value);
+			}
 		}
 
 		renderInlineMarkdown(value) {
@@ -2200,9 +2312,7 @@
 		}
 
 		escapeHtml(value) {
-			const div = document.createElement("div");
-			div.textContent = value;
-			return div.innerHTML;
+			return frappe.utils.escape_html((value ?? "").toString());
 		}
 	}
 
