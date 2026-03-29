@@ -145,6 +145,45 @@ def build_assistant_message_metadata(
 	return metadata
 
 
+def apply_agent_result_to_conversation(
+	doc,
+	messages: list[dict[str, Any]],
+	result: dict[str, Any],
+	mode: str,
+	**extra_metadata: Any,
+) -> dict[str, Any] | None:
+	"""Apply a run_message result to the conversation and save. Returns the pending_operation if any."""
+	response = result.get("response") or ""
+	pending_operation = result.get("pending_operation")
+	document_extractions = result.get("document_extractions")
+	attached_files = result.get("attached_files")
+
+	if pending_operation and not response:
+		response = _("I've prepared the operation. Please review and confirm.")
+
+	if isinstance(attached_files, list) and attached_files:
+		file_names = ", ".join(f.get("file_name") or f.get("name") or "" for f in attached_files)
+		messages.append(make_message("system", file_names, files=attached_files))
+
+	assistant_message = make_message(
+		"assistant",
+		response,
+		**build_assistant_message_metadata(
+			mode,
+			pending_operation=pending_operation,
+			document_extractions=document_extractions,
+		),
+		**extra_metadata,
+	)
+	messages.append(assistant_message)
+
+	if pending_operation and isinstance(pending_operation, dict):
+		pending_operation = {**pending_operation, "assistant_message_id": assistant_message["id"]}
+	doc.pending_operation_json = dumps(pending_operation) if pending_operation else ""
+	save_messages(doc, messages)
+	return pending_operation
+
+
 def find_assistant_message_for_pending_operation(
 	messages: list[dict[str, Any]],
 	pending_operation: dict[str, Any],
@@ -206,7 +245,7 @@ def save_messages(conversation, messages: list[dict]):
 	conversation.save()
 
 
-def summarize_executed_action(
+def continue_after_action(
 	conversation,
 	mode: str,
 	messages: list[dict[str, Any]],
@@ -215,7 +254,8 @@ def summarize_executed_action(
 	status: str,
 	result_payload: dict[str, Any] | None = None,
 	error: str | None = None,
-) -> str | None:
+) -> dict[str, Any] | None:
+	"""Run the agent after an action result so it can confirm, handle errors, or propose follow-ups."""
 	request_context = loads(conversation.last_context_json, {})
 	if not isinstance(request_context, dict):
 		request_context = {}
@@ -236,29 +276,38 @@ def summarize_executed_action(
 	if error:
 		system_payload["error"] = error
 
-	system_message = (
-		"The user already approved this action and it has been executed. "
-		"Use this system context to explain what happened next. "
-		"Do not ask for confirmation again and do not propose a new action.\n"
-		f"{dumps(system_payload)}"
-	)
+	if status == "rejected":
+		system_message = (
+			"The user rejected this proposed action. "
+			"Acknowledge briefly. If you can suggest an alternative, do so.\n"
+			f"{dumps(system_payload)}"
+		)
+	else:
+		system_message = (
+			"This action has been executed. "
+			"Use the result context below to continue.\n"
+			f"{dumps(system_payload)}"
+		)
+
 	history_with_result = list(messages)
 	history_with_result.append({"role": "system", "content": system_message})
 
 	try:
-		summary_result = run_message(
+		return run_message(
 			conversation_name=conversation.name,
-			message="Summarize the action result for the user in a very short, concise, and practical way (1-2 sentences max). Do not repeat the data that was already shown in the preview.",
+			message=(
+				"Confirm the action result briefly. "
+				"If the user's original request is not fully completed, "
+				"proceed with the next write action now. "
+				"Do not repeat data already shown."
+			),
 			mode=mode,
 			request_context=request_context,
 			conversation_history=history_with_result,
 		)
 	except Exception:
-		frappe.log_error(frappe.get_traceback(), "Ask ALYF Action Summary Error")
+		frappe.log_error("Ask ALYF Action Follow-Up Error")
 		return None
-
-	response = (summary_result.get("response") or "").strip()
-	return response or None
 
 
 def conversation_payload(conversation) -> dict:
@@ -400,7 +449,7 @@ def process_message_job(
 		if pending_operation and not response:
 			response = _("I've prepared the operation. Please review and confirm.")
 	except Exception as error:
-		frappe.log_error(frappe.get_traceback(), "Ask ALYF Agent Error")
+		frappe.log_error("Ask ALYF Agent Error")
 		response = str(error).strip() or _("I hit an error while processing that request. Please try again.")
 		pending_operation = None
 		document_extractions = None
@@ -478,14 +527,13 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 
 	publish_status_update(doc.name, doc.owner, _("Confirming action..."))
 	try:
+		execution_error = None
 		try:
 			result = execute_pending_operation(pending_operation)
 		except Exception as error:
-			frappe.log_error(frappe.get_traceback(), "Ask ALYF Confirm Action Error")
-			content = _("Could not confirm operation: {0}").format(str(error))
-			messages.append(make_message("assistant", content, mode=normalized_mode))
-			save_messages(doc, messages)
-			return {"error": str(error), "conversation": conversation_payload(doc)}
+			frappe.log_error("Ask ALYF Confirm Action Error")
+			execution_error = str(error)
+			result = None
 
 		publish_status_update(doc.name, doc.owner, _("Generating response..."))
 		doc.pending_operation_json = ""
@@ -503,30 +551,47 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 			action_result["message"] = result.get("message")
 		action_result = {key: value for key, value in action_result.items() if value not in (None, "")}
 
-		content = summarize_executed_action(
+		status = "failed" if execution_error else "success"
+		agent_result = continue_after_action(
 			doc,
 			normalized_mode,
 			messages,
 			pending_operation,
-			status="success",
+			status=status,
 			result_payload=action_result,
+			error=execution_error,
 		)
-		if not content:
-			content = _("Confirmed operation: {0}").format(
-				pending_operation.get("summary") or pending_operation.get("tool")
+		if agent_result:
+			apply_agent_result_to_conversation(
+				doc,
+				messages,
+				agent_result,
+				normalized_mode,
+				confirmed_action=True,
 			)
-			if action_result.get("doctype") and action_result.get("name"):
-				content += "\n\n" + _("Document: {0} {1}").format(
-					_(action_result["doctype"]),
-					action_result["name"],
+		else:
+			if execution_error:
+				content = _("Could not confirm operation: {0}").format(execution_error)
+			else:
+				content = _("Confirmed operation: {0}").format(
+					pending_operation.get("summary") or pending_operation.get("tool")
 				)
-			elif action_result.get("message"):
-				content += "\n\n" + str(action_result["message"])
+				if action_result.get("doctype") and action_result.get("name"):
+					content += "\n\n" + _("Document: {0} {1}").format(
+						_(action_result["doctype"]),
+						action_result["name"],
+					)
+				elif action_result.get("message"):
+					content += "\n\n" + str(action_result["message"])
+			messages.append(make_message("assistant", content, confirmed_action=True, mode=normalized_mode))
+			save_messages(doc, messages)
 
-		messages.append(make_message("assistant", content, confirmed_action=True, mode=normalized_mode))
-		save_messages(doc, messages)
-
-		return {"result": action_result, "conversation": conversation_payload(doc)}
+		response_payload: dict[str, Any] = {"conversation": conversation_payload(doc)}
+		if execution_error:
+			response_payload["error"] = execution_error
+		else:
+			response_payload["result"] = action_result
+		return response_payload
 	finally:
 		publish_status_update(doc.name, doc.owner, "")
 
@@ -545,17 +610,39 @@ def reject_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 	normalized_mode = normalize_mode(mode)
 	doc.pending_operation_json = ""
 	messages = get_messages(doc)
-	summary = pending_operation.get("summary") or pending_operation.get("tool")
-	messages.append(
-		make_message(
-			"assistant",
-			_("Cancelled the pending operation: {0}.").format(summary),
-			rejected_action=True,
-			mode=normalized_mode,
+
+	publish_status_update(doc.name, doc.owner, _("Generating response..."))
+	try:
+		agent_result = continue_after_action(
+			doc,
+			normalized_mode,
+			messages,
+			pending_operation,
+			status="rejected",
 		)
-	)
-	save_messages(doc, messages)
-	return {"conversation": conversation_payload(doc)}
+		if agent_result:
+			apply_agent_result_to_conversation(
+				doc,
+				messages,
+				agent_result,
+				normalized_mode,
+				rejected_action=True,
+			)
+		else:
+			summary = pending_operation.get("summary") or pending_operation.get("tool")
+			messages.append(
+				make_message(
+					"assistant",
+					_("Cancelled the pending operation: {0}.").format(summary),
+					rejected_action=True,
+					mode=normalized_mode,
+				)
+			)
+			save_messages(doc, messages)
+
+		return {"conversation": conversation_payload(doc)}
+	finally:
+		publish_status_update(doc.name, doc.owner, "")
 
 
 def _resolve_show_chart_frontend_action(
@@ -651,8 +738,15 @@ def frontend_action_result(
 				normalized_mode,
 			)
 
-		summary = pending_operation.get("summary") or pending_operation.get("tool") or _("frontend action")
-		content = summarize_executed_action(
+		doc.pending_operation_json = ""
+		extra_metadata: dict[str, Any] = {
+			"frontend_action_result": True,
+			"frontend_action_status": status_value,
+		}
+		if result_payload:
+			extra_metadata["frontend_action_payload"] = result_payload
+
+		agent_result = continue_after_action(
 			doc,
 			normalized_mode,
 			messages,
@@ -661,7 +755,18 @@ def frontend_action_result(
 			result_payload=result_payload,
 			error=error,
 		)
-		if not content:
+		if agent_result:
+			apply_agent_result_to_conversation(
+				doc,
+				messages,
+				agent_result,
+				normalized_mode,
+				**extra_metadata,
+			)
+		else:
+			summary = (
+				pending_operation.get("summary") or pending_operation.get("tool") or _("frontend action")
+			)
 			if status_value == "success":
 				content = _("Executed frontend action: {0}").format(summary)
 			elif status_value == "rejected":
@@ -671,17 +776,9 @@ def frontend_action_result(
 				if error:
 					content += "\n\n" + _("Reason: {0}").format(error)
 
-		message_metadata = {
-			"frontend_action_result": True,
-			"frontend_action_status": status_value,
-			"mode": normalized_mode,
-		}
-		if result_payload:
-			message_metadata["frontend_action_payload"] = result_payload
+			messages.append(make_message("assistant", content, mode=normalized_mode, **extra_metadata))
+			save_messages(doc, messages)
 
-		messages.append(make_message("assistant", content, **message_metadata))
-		doc.pending_operation_json = ""
-		save_messages(doc, messages)
 		return {"conversation": conversation_payload(doc)}
 	finally:
 		publish_status_update(doc.name, doc.owner, "")

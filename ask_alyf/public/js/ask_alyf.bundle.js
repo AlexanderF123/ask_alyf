@@ -1906,6 +1906,7 @@
 			});
 			if (response.message?.conversation) {
 				await this.applyConversation(response.message.conversation);
+				this.maybeAutoExecuteFrontendAction();
 			}
 			this.refreshConversationList();
 		}
@@ -1984,6 +1985,7 @@
 				});
 				await this.applyConversation(response.message.conversation);
 				this.refreshConversationList();
+				this.maybeAutoExecuteFrontendAction();
 			} catch (error) {
 				this.state.pendingOperation = operation;
 				this.renderMessages();
@@ -2018,6 +2020,7 @@
 				});
 				await this.applyConversation(response.message.conversation);
 				this.refreshConversationList();
+				this.maybeAutoExecuteFrontendAction();
 			} catch (error) {
 				this.state.pendingOperation = operation;
 				this.renderMessages();

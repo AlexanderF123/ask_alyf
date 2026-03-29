@@ -362,6 +362,18 @@ class ask_alyfToolset:
 		**payload: Any,
 	) -> dict[str, Any]:
 		"""Create a pending operation proposal."""
+		if self.runtime.pending_operation is not None:
+			return {
+				"success": False,
+				"requires_confirmation": False,
+				"error": (
+					"A pending operation is already active for this turn. "
+					"Only one write proposal can be created per turn. "
+					"Stop here — after the user confirms or rejects the current proposal, "
+					"you will be called again and can propose the next one."
+				),
+			}
+
 		validation_error = tools.validate_pending_operation_payload(kind, tool, payload)
 		if validation_error:
 			self.runtime.emit_status(validation_error_status)
@@ -1646,7 +1658,7 @@ Always follow these rules:
 Mode awareness and behavior:
 - The current mode is `{self.runtime.mode}` and is authoritative for this turn.
 - `Ask` mode is strictly read-only: write tools are unavailable, so if intent is mutation (create, update, submit, cancel, amend, rename, delete, attach, or a write method), immediately recommend switching to `Agent` mode and do not claim anything was done or queued.
-- `Agent` mode supports mutation workflows with write tools while still handling read-only questions with read tools, and every write action becomes a pending proposal that requires explicit user confirmation before execution.
+- `Agent` mode supports mutation workflows with write tools while still handling read-only questions with read tools. Every write tool call creates a pending proposal that requires user confirmation before execution. Only one proposal can be active per turn — if the request needs multiple writes, propose one now and continue with the rest in follow-up turns after confirmation.
 - Frontend action tools can navigate or adjust the current form in the browser, or display Frappe Charts under the assistant message via `show_chart` (pass `frappe_charts` as a list of chart option objects; validated server-side). See the `show_chart` tool docstring for the options shape.
 - Frontend actions with `requires_confirmation` must be confirmed before the browser executes them.
 - In `Agent` mode, prefer `document_planner` before non-trivial `insert`, `save`, or `set_value` operations. If it returns `ready=false`, ask the user for the missing information instead of guessing. If it returns `ready=true`, use the matching write tool with the returned payload.
@@ -1655,6 +1667,7 @@ Mode awareness and behavior:
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
 - Act on clear intent immediately with sensible defaults. Only ask when required information is truly missing and cannot be inferred.
 - Never repeat the user's data in your response. The UI shows a detailed preview of every pending write. After calling a write tool, confirm readiness in one sentence.
+- When you receive an action result (success, failure, or rejection), confirm the outcome briefly. If a natural follow-up action exists (e.g. submitting a newly created document), proceed with it. Do not ask "would you like me to..." — just do it.
 - Excluded DocTypes for Agent mode: {excluded_doctypes}
 """.strip()
 
