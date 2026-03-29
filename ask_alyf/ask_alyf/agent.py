@@ -1653,7 +1653,8 @@ Mode awareness and behavior:
 - When the user wants to create multiple documents of the same DocType, prefer `batch_insert` instead of preparing many separate `insert` proposals.
 - Before insert or save, call get_meta for the target DocType and follow field types exactly.
 - Child table fields (fieldtype Table) must be arrays of row objects, never plain strings.
-- After a write tool succeeds, explain what will happen when the user confirms it.
+- Act on clear intent immediately with sensible defaults. Only ask when required information is truly missing and cannot be inferred.
+- Never repeat the user's data in your response. The UI shows a detailed preview of every pending write. After calling a write tool, confirm readiness in one sentence.
 - Excluded DocTypes for Agent mode: {excluded_doctypes}
 """.strip()
 

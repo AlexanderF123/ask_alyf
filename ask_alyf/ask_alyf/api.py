@@ -248,7 +248,7 @@ def summarize_executed_action(
 	try:
 		summary_result = run_message(
 			conversation_name=conversation.name,
-			message="Summarize the action result for the user in a concise helpful way.",
+			message="Summarize the action result for the user in a very short, concise, and practical way (1-2 sentences max). Do not repeat the data that was already shown in the preview.",
 			mode=mode,
 			request_context=request_context,
 			conversation_history=history_with_result,
@@ -398,9 +398,7 @@ def process_message_job(
 		document_extractions = result.get("document_extractions")
 		attached_files = result.get("attached_files")
 		if pending_operation and not response:
-			response = _(
-				"I prepared the requested operation. Please review it and confirm if it looks correct."
-			)
+			response = _("I've prepared the operation. Please review and confirm.")
 	except Exception as error:
 		frappe.log_error(frappe.get_traceback(), "Ask ALYF Agent Error")
 		response = str(error).strip() or _("I hit an error while processing that request. Please try again.")
