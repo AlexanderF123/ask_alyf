@@ -1,3 +1,4 @@
+import functools
 import json
 import re
 from collections.abc import Callable
@@ -1590,6 +1591,22 @@ Rules:
 		)
 
 
+def _clear_messages_on_tool_error(func):
+	"""Wrap a tool callable so that queued Frappe messages are discarded on
+	exception.  The error still propagates to the agent framework (so the LLM
+	sees it), but the user won't receive a popup."""
+
+	@functools.wraps(func)
+	def wrapper(*args, **kwargs):
+		try:
+			return func(*args, **kwargs)
+		except Exception:
+			frappe.clear_messages()
+			raise
+
+	return wrapper
+
+
 class ask_alyfAgentRunner:
 	def __init__(self, runtime: ask_alyfRuntime):
 		self.runtime = runtime
@@ -1714,7 +1731,7 @@ Mode awareness and behavior:
 				]
 			)
 
-		return tool_defs
+		return [_clear_messages_on_tool_error(fn) for fn in tool_defs]
 
 	def run(self, message: str, conversation_history: list[dict[str, Any]]) -> dict[str, Any]:
 		trace = self.agent.run(build_prompt(message, conversation_history))

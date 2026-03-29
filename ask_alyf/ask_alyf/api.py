@@ -376,6 +376,7 @@ def continue_after_action(
 		)
 	except Exception:
 		frappe.log_error("Ask ALYF Action Follow-Up Error")
+		frappe.clear_messages()
 		return None
 
 
@@ -521,6 +522,7 @@ def process_message_job(
 			response = _("I've prepared the operation. Please review and confirm.")
 	except Exception as error:
 		frappe.log_error("Ask ALYF Agent Error")
+		frappe.clear_messages()
 		response = str(error).strip() or _("I hit an error while processing that request. Please try again.")
 		pending_operations = []
 		document_extractions = None
@@ -608,6 +610,7 @@ def confirm_pending_operation(conversation: str, call_id: str = "", mode: str = 
 			result = execute_pending_operation(pending_operation)
 		except Exception as error:
 			frappe.log_error("Ask ALYF Confirm Action Error")
+			frappe.clear_messages()
 			execution_error = str(error)
 			result = None
 
