@@ -450,6 +450,22 @@
 	color: var(--text-color);
 }
 
+.ask_alyf-proposal-list {
+	margin: 0.55rem 0 0 0;
+	padding: 0 0 0 1.25rem;
+	font-size: 0.8rem;
+	line-height: 1.4;
+	color: var(--text-color);
+}
+
+.ask_alyf-proposal-list li {
+	margin-bottom: 0.25rem;
+}
+
+.ask_alyf-proposal-list li:last-child {
+	margin-bottom: 0;
+}
+
 .ask_alyf-proposal-table-wrap {
 	margin-top: 0.55rem;
 	overflow: auto;

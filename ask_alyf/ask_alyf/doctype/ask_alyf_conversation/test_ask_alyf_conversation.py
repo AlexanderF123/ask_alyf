@@ -120,6 +120,58 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		}
 		self.assertEqual(payload["pending_operation"], expected_with_id)
 
+	def test_process_message_job_enriches_single_insert_preview_field_labels(self):
+		user_message = api.make_message("user", "Create a ToDo", mode=api.MODE_AGENT)
+		conversation = self.make_conversation(messages=[user_message])
+		expected_operation = {
+			"kind": "backend_action",
+			"tool": "insert",
+			"summary": "Create ToDo",
+			"requires_confirmation": True,
+			"payload": {
+				"doctype": "ToDo",
+				"values": {"description": "Call customer", "status": "Open"},
+			},
+			"call_id": "call-insert-123",
+		}
+		field_labels = {
+			"description": "Beschreibung",
+			"status": "Status",
+		}
+
+		with (
+			patch(
+				"ask_alyf.ask_alyf.api.run_message",
+				return_value={"response": "Done", "pending_operation": expected_operation},
+			),
+			patch(
+				"ask_alyf.ask_alyf.api.get_localized_doctype_field_labels",
+				return_value=field_labels,
+			) as get_labels,
+		):
+			api.process_message_job(
+				conversation_name=conversation.name,
+				message="Create a ToDo",
+				mode=api.MODE_AGENT,
+				context_data={"lang": "de"},
+				user_message_id=user_message["id"],
+			)
+
+		get_labels.assert_called_once_with(
+			"ToDo",
+			["description", "status"],
+			language="de",
+		)
+		conversation.reload()
+		payload = api.conversation_payload(conversation)
+		assistant = payload["messages"][-1]
+		expected_with_id = {
+			**expected_operation,
+			"preview_field_labels": field_labels,
+			"assistant_message_id": assistant["id"],
+		}
+		self.assertEqual(payload["pending_operation"], expected_with_id)
+
 	def test_process_message_job_persists_document_extractions(self):
 		user_message = api.make_message("user", "What is on this invoice?", mode=api.MODE_ASK)
 		conversation = self.make_conversation(messages=[user_message])

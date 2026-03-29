@@ -706,12 +706,17 @@
 				this.appendAssistantChunk(message.message_id, message.chunk || "");
 			});
 
-			frappe.realtime.on("ask_alyf_response_complete", (message) => {
+			frappe.realtime.on("ask_alyf_response_complete", async (message) => {
 				if (message.conversation !== this.state.conversation?.name) return;
 				this.setLoading(false);
 				this.setStatus("");
 				this.state.pendingOperation = message.pending_operation || null;
 				this.pendingStreamMessageId = null;
+
+				if (this.state.pendingOperation) {
+					await this.ensureDoctypeMeta(this.state.pendingOperation);
+				}
+
 				this.renderMessages();
 				this.refreshConversationList();
 				this.maybeAutoExecuteFrontendAction();
@@ -734,7 +739,7 @@
 				},
 			});
 			const askAlyfBoot = response.message.ask_alyf || {};
-			this.applyConversation(response.message.conversation);
+			await this.applyConversation(response.message.conversation);
 			this.setModeToAskDefault();
 			this.syncSupportPhoneAction(askAlyfBoot);
 			this.syncFileUploadButton();
@@ -748,12 +753,27 @@
 			}
 		}
 
-		applyConversation(conversation) {
+		async ensureDoctypeMeta(operation) {
+			const doctype = operation?.payload?.doctype;
+			if (!doctype) return;
+			try {
+				await frappe.model.with_doctype(doctype);
+			} catch (e) {
+				// Ignore errors if doctype doesn't exist or user lacks permission
+			}
+		}
+
+		async applyConversation(conversation) {
 			this.pendingStreamMessageId = null;
 			this.handledFrontendCallIds = new Set();
 			this.state.conversation = conversation;
 			this.state.messages = conversation.messages || [];
 			this.state.pendingOperation = conversation.pending_operation || null;
+
+			if (this.state.pendingOperation) {
+				await this.ensureDoctypeMeta(this.state.pendingOperation);
+			}
+
 			this.cacheRenderedMessageKeys(this.state.messages);
 			this.syncModeControl();
 			this.renderHistoryList();
@@ -892,7 +912,7 @@
 					},
 				});
 				if (response.message?.conversation) {
-					this.applyConversation(response.message.conversation);
+					await this.applyConversation(response.message.conversation);
 				}
 			} catch (error) {
 				frappe.msgprint(error.message || __("Failed to attach file to conversation."));
@@ -1289,7 +1309,7 @@
 					method: "ask_alyf.api.bootstrap",
 					args: { conversation: conversationName },
 				});
-				this.applyConversation(response.message.conversation);
+				await this.applyConversation(response.message.conversation);
 				this.setModeToAskDefault();
 				if (!this.isAwaitingResponse()) {
 					this.setLoading(false);
@@ -1567,7 +1587,7 @@
 				type: "POST",
 			});
 			this.setActiveTab("chat");
-			this.applyConversation(response.message);
+			await this.applyConversation(response.message);
 			this.setModeToAskDefault();
 			this.refreshConversationList();
 			this.setStatus("");
@@ -1603,10 +1623,55 @@
 		}
 
 		getPendingOperationPreviewHtml(operation) {
-			if (operation?.tool !== "batch_insert") {
+			if (operation?.tool === "batch_insert") {
+				return this.getBatchInsertPreviewHtml(operation);
+			}
+			if (["insert", "save", "set_value"].includes(operation?.tool)) {
+				return this.getSingleOperationPreviewHtml(operation);
+			}
+			return "";
+		}
+
+		getSingleOperationPreviewHtml(operation) {
+			const payload = operation?.payload || {};
+			let fields = {};
+
+			if (["insert", "save"].includes(operation.tool)) {
+				fields = payload.values || {};
+			} else if (operation.tool === "set_value") {
+				if (payload.fieldname) {
+					fields[payload.fieldname] = payload.value;
+				}
+			}
+
+			const keys = Object.keys(fields);
+			if (!keys.length) {
 				return "";
 			}
 
+			const listHtml = keys
+				.map((key) => {
+					const label = this.getBatchInsertPreviewColumnLabel(operation, key);
+					const value = this.formatBatchInsertPreviewValue(
+						fields[key],
+						payload.doctype,
+						key
+					);
+					return `<li><em>${this.escapeHtml(label)}</em>: ${value}</li>`;
+				})
+				.join("");
+
+			return `
+				<details class="ask_alyf-proposal-details" open>
+					<summary>${this.escapeHtml(__("Changes preview"))}</summary>
+					<ul class="ask_alyf-proposal-list">
+						${listHtml}
+					</ul>
+				</details>
+			`;
+		}
+
+		getBatchInsertPreviewHtml(operation) {
 			const records = Array.isArray(operation?.payload?.records)
 				? operation.payload.records
 				: [];
@@ -1633,8 +1698,12 @@
 							: {};
 					const cells = columns
 						.map((column) => {
-							const value = this.formatBatchInsertPreviewValue(safeRecord[column]);
-							return `<td>${this.escapeHtml(value)}</td>`;
+							const value = this.formatBatchInsertPreviewValue(
+								safeRecord[column],
+								operation?.payload?.doctype,
+								column
+							);
+							return `<td>${value}</td>`;
 						})
 						.join("");
 					return `<tr><th scope="row" class="ask_alyf-proposal-row-number">${
@@ -1690,23 +1759,29 @@
 			return typeof label === "string" && label.trim() ? label : column;
 		}
 
-		formatBatchInsertPreviewValue(value) {
+		formatBatchInsertPreviewValue(value, doctype, fieldname) {
 			if (value === null || value === undefined) {
 				return "";
 			}
+			if (doctype && fieldname) {
+				const df = frappe.meta.get_docfield(doctype, fieldname);
+				if (df) {
+					return frappe.format(value, df);
+				}
+			}
 			if (typeof value === "string") {
-				return value;
+				return this.escapeHtml(value);
 			}
 			if (typeof value === "number" || typeof value === "bigint") {
-				return String(value);
+				return frappe.format(value, { fieldtype: "Float" });
 			}
 			if (typeof value === "boolean") {
-				return value ? __("Yes") : __("No");
+				return frappe.format(value, { fieldtype: "Check" });
 			}
 			try {
-				return JSON.stringify(value);
+				return this.escapeHtml(JSON.stringify(value));
 			} catch (error) {
-				return String(value);
+				return this.escapeHtml(String(value));
 			}
 		}
 
@@ -1824,7 +1899,7 @@
 				args,
 			});
 			if (response.message?.conversation) {
-				this.applyConversation(response.message.conversation);
+				await this.applyConversation(response.message.conversation);
 			}
 			this.refreshConversationList();
 		}
@@ -1901,7 +1976,7 @@
 					type: "POST",
 					args: { conversation: this.state.conversation.name, mode: this.state.mode },
 				});
-				this.applyConversation(response.message.conversation);
+				await this.applyConversation(response.message.conversation);
 				this.refreshConversationList();
 			} catch (error) {
 				this.state.pendingOperation = operation;
@@ -1935,7 +2010,7 @@
 					type: "POST",
 					args: { conversation: this.state.conversation.name, mode: this.state.mode },
 				});
-				this.applyConversation(response.message.conversation);
+				await this.applyConversation(response.message.conversation);
 				this.refreshConversationList();
 			} catch (error) {
 				this.state.pendingOperation = operation;

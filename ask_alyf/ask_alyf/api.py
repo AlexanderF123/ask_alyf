@@ -192,6 +192,20 @@ def get_localized_doctype_field_labels(
 	return labels
 
 
+def get_operation_preview_columns(tool: str, payload: dict[str, Any]) -> list[str]:
+	if tool == "batch_insert":
+		return get_batch_insert_preview_columns(payload.get("records"))
+	if tool in {"insert", "save"}:
+		values = payload.get("values")
+		if isinstance(values, dict):
+			return [k for k in values.keys() if isinstance(k, str) and k.strip()]
+	if tool == "set_value":
+		fieldname = payload.get("fieldname")
+		if isinstance(fieldname, str) and fieldname.strip():
+			return [fieldname.strip()]
+	return []
+
+
 def enrich_pending_operation_for_ui(
 	pending_operation: dict[str, Any] | None,
 	*,
@@ -200,7 +214,8 @@ def enrich_pending_operation_for_ui(
 	if not isinstance(pending_operation, dict):
 		return pending_operation
 
-	if (pending_operation.get("tool") or "").strip() != "batch_insert":
+	tool = (pending_operation.get("tool") or "").strip()
+	if tool not in {"batch_insert", "insert", "save", "set_value"}:
 		return pending_operation
 
 	payload = pending_operation.get("payload")
@@ -208,7 +223,7 @@ def enrich_pending_operation_for_ui(
 		return pending_operation
 
 	doctype = (payload.get("doctype") or "").strip()
-	columns = get_batch_insert_preview_columns(payload.get("records"))
+	columns = get_operation_preview_columns(tool, payload)
 	if not doctype or not columns:
 		return pending_operation
 
@@ -220,7 +235,7 @@ def enrich_pending_operation_for_ui(
 		field_labels = get_localized_doctype_field_labels(doctype, columns, language=language)
 	except Exception:
 		frappe.logger("ask_alyf").error(
-			f"Failed to build batch insert preview labels for DocType {doctype}",
+			f"Failed to build preview labels for DocType {doctype}",
 			exc_info=True,
 		)
 		return pending_operation
