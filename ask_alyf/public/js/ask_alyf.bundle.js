@@ -1766,8 +1766,14 @@
 			if (doctype && fieldname) {
 				const df = frappe.meta.get_docfield(doctype, fieldname);
 				if (df) {
+					if (df.fieldtype === "Table" && Array.isArray(value)) {
+						return this.escapeHtml(__("{0} rows", [value.length]));
+					}
 					return frappe.format(value, df);
 				}
+			}
+			if (Array.isArray(value)) {
+				return this.escapeHtml(__("{0} items", [value.length]));
 			}
 			if (typeof value === "string") {
 				return this.escapeHtml(value);
