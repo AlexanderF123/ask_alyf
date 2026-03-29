@@ -129,16 +129,20 @@ def make_message(role: str, content: str, **metadata) -> dict:
 	}
 
 
+def load_pending_operations(json_str: str) -> list[dict[str, Any]]:
+	return loads(json_str, []) or []
+
+
 def build_assistant_message_metadata(
 	mode: str,
 	*,
-	pending_operation: dict[str, Any] | None = None,
+	pending_operations: list[dict[str, Any]] | None = None,
 	document_extractions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
 	"""Build persisted metadata for an assistant message."""
 	metadata = {
 		"mode": mode,
-		"pending_operation": bool(pending_operation),
+		"pending_operation": bool(pending_operations),
 	}
 	if isinstance(document_extractions, list) and document_extractions:
 		metadata["document_extractions"] = document_extractions
@@ -151,14 +155,16 @@ def apply_agent_result_to_conversation(
 	result: dict[str, Any],
 	mode: str,
 	**extra_metadata: Any,
-) -> dict[str, Any] | None:
-	"""Apply a run_message result to the conversation and save. Returns the pending_operation if any."""
+) -> list[dict[str, Any]]:
+	"""Apply a run_message result to the conversation and save. Returns all pending operations."""
 	response = result.get("response") or ""
-	pending_operation = result.get("pending_operation")
+	new_operations = result.get("pending_operations") or []
+	if not isinstance(new_operations, list):
+		new_operations = []
 	document_extractions = result.get("document_extractions")
 	attached_files = result.get("attached_files")
 
-	if pending_operation and not response:
+	if new_operations and not response:
 		response = _("I've prepared the operation. Please review and confirm.")
 
 	if isinstance(attached_files, list) and attached_files:
@@ -170,18 +176,32 @@ def apply_agent_result_to_conversation(
 		response,
 		**build_assistant_message_metadata(
 			mode,
-			pending_operation=pending_operation,
+			pending_operations=new_operations,
 			document_extractions=document_extractions,
 		),
 		**extra_metadata,
 	)
 	messages.append(assistant_message)
 
-	if pending_operation and isinstance(pending_operation, dict):
-		pending_operation = {**pending_operation, "assistant_message_id": assistant_message["id"]}
-	doc.pending_operation_json = dumps(pending_operation) if pending_operation else ""
+	stamped = [{**op, "assistant_message_id": assistant_message["id"]} for op in new_operations]
+	existing = load_pending_operations(doc.pending_operation_json)
+	all_operations = existing + stamped
+	doc.pending_operation_json = dumps(all_operations) if all_operations else ""
 	save_messages(doc, messages)
-	return pending_operation
+	return all_operations
+
+
+def _find_operation_by_call_id(
+	operations: list[dict[str, Any]],
+	call_id: str,
+) -> dict[str, Any]:
+	"""Find a pending operation by call_id, falling back to the first operation."""
+	if call_id:
+		for op in operations:
+			if op.get("call_id") == call_id:
+				return op
+		frappe.throw(_("No pending operation matches call_id '{0}'.").format(call_id))
+	return operations[0]
 
 
 def find_assistant_message_for_pending_operation(
@@ -245,6 +265,46 @@ def save_messages(conversation, messages: list[dict]):
 	conversation.save()
 
 
+def _build_confirm_ack_content(
+	pending_operation: dict[str, Any],
+	action_result: dict[str, Any],
+	execution_error: str | None,
+) -> str:
+	if execution_error:
+		return _("Could not confirm operation: {0}").format(execution_error)
+
+	content = _("Confirmed operation: {0}").format(
+		pending_operation.get("summary") or pending_operation.get("tool")
+	)
+	if action_result.get("doctype") and action_result.get("name"):
+		content += "\n\n" + _("Document: {0} {1}").format(
+			_(action_result["doctype"]),
+			action_result["name"],
+		)
+	elif action_result.get("message"):
+		content += "\n\n" + str(action_result["message"])
+	return content
+
+
+def _collect_completed_action_summaries(messages: list[dict[str, Any]]) -> list[str]:
+	"""Collect one-line summaries of successfully executed or rejected actions.
+
+	Failed actions are intentionally excluded so the agent may retry them.
+	"""
+	summaries = []
+	for msg in messages:
+		if msg.get("role") != "assistant":
+			continue
+		meta = msg.get("metadata") or {}
+		content = (msg.get("content") or "").split("\n", 1)[0].strip()
+		status = meta.get("action_status") or meta.get("frontend_action_status")
+		if meta.get("rejected_action") or status == "rejected":
+			summaries.append(f"- Rejected by user: {content}")
+		elif status == "success":
+			summaries.append(f"- Executed successfully: {content}")
+	return summaries
+
+
 def continue_after_action(
 	conversation,
 	mode: str,
@@ -289,6 +349,14 @@ def continue_after_action(
 			f"{dumps(system_payload)}"
 		)
 
+	prior_actions = _collect_completed_action_summaries(messages)
+	if prior_actions:
+		system_message += (
+			"\n\nActions already completed earlier in this conversation:\n"
+			+ "\n".join(prior_actions)
+			+ "\n\nDo NOT re-propose any action that was already executed or rejected."
+		)
+
 	history_with_result = list(messages)
 	history_with_result.append({"role": "system", "content": system_message})
 
@@ -299,7 +367,8 @@ def continue_after_action(
 				"Confirm the action result briefly. "
 				"If the user's original request is not fully completed, "
 				"proceed with the next write action now. "
-				"Do not repeat data already shown."
+				"NEVER re-propose an action that was already executed or confirmed. "
+				"If all requested changes are done, summarize the results and stop."
 			),
 			mode=mode,
 			request_context=request_context,
@@ -317,7 +386,7 @@ def conversation_payload(conversation) -> dict:
 		"status": conversation.status,
 		"route": conversation.route,
 		"messages": get_messages(conversation),
-		"pending_operation": loads(conversation.pending_operation_json, None),
+		"pending_operations": load_pending_operations(conversation.pending_operation_json),
 		"last_context": loads(conversation.last_context_json, {}),
 	}
 
@@ -443,15 +512,17 @@ def process_message_job(
 			conversation_history=history,
 		)
 		response = result.get("response") or ""
-		pending_operation = result.get("pending_operation")
+		pending_operations = result.get("pending_operations") or []
+		if not isinstance(pending_operations, list):
+			pending_operations = []
 		document_extractions = result.get("document_extractions")
 		attached_files = result.get("attached_files")
-		if pending_operation and not response:
+		if pending_operations and not response:
 			response = _("I've prepared the operation. Please review and confirm.")
 	except Exception as error:
 		frappe.log_error("Ask ALYF Agent Error")
 		response = str(error).strip() or _("I hit an error while processing that request. Please try again.")
-		pending_operation = None
+		pending_operations = []
 		document_extractions = None
 		attached_files = None
 
@@ -466,15 +537,14 @@ def process_message_job(
 		response,
 		**build_assistant_message_metadata(
 			mode,
-			pending_operation=pending_operation,
+			pending_operations=pending_operations,
 			document_extractions=document_extractions,
 		),
 	)
 	messages.append(assistant_message)
 
-	if pending_operation and isinstance(pending_operation, dict):
-		pending_operation = {**pending_operation, "assistant_message_id": assistant_message["id"]}
-	doc.pending_operation_json = dumps(pending_operation) if pending_operation else ""
+	stamped = [{**op, "assistant_message_id": assistant_message["id"]} for op in pending_operations]
+	doc.pending_operation_json = dumps(stamped) if stamped else ""
 	save_messages(doc, messages)
 
 	if file_message:
@@ -503,27 +573,33 @@ def process_message_job(
 		{
 			"conversation": conversation_name,
 			"message_id": assistant_message["id"],
-			"pending_operation": pending_operation,
+			"pending_operations": stamped,
 		},
 		user=doc.owner,
 	)
 
 
 @frappe.whitelist(methods=["POST"])
-def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
+def confirm_pending_operation(conversation: str, call_id: str = "", mode: str = MODE_ASK) -> dict:
 	if not can_access_ask_alyf():
 		frappe.throw(_("You do not have access to Ask ALYF."))
 
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	doc.check_permission("write")
-	pending_operation = loads(doc.pending_operation_json, None)
-	if not pending_operation:
+	all_operations = load_pending_operations(doc.pending_operation_json)
+	if not all_operations:
 		frappe.throw(_("There is no pending operation to confirm."))
+
+	call_id = (call_id or "").strip()
+	pending_operation = _find_operation_by_call_id(all_operations, call_id)
 
 	messages = get_messages(doc)
 	normalized_mode = normalize_mode(mode)
 	if pending_operation.get("kind") != OPERATION_KIND_BACKEND:
 		frappe.throw(_("Only backend actions can be confirmed by this endpoint."))
+
+	remaining = [op for op in all_operations if op.get("call_id") != pending_operation.get("call_id")]
+	doc.pending_operation_json = dumps(remaining) if remaining else ""
 
 	publish_status_update(doc.name, doc.owner, _("Confirming action..."))
 	try:
@@ -535,8 +611,6 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 			execution_error = str(error)
 			result = None
 
-		publish_status_update(doc.name, doc.owner, _("Generating response..."))
-		doc.pending_operation_json = ""
 		operation_payload = pending_operation.get("payload") if isinstance(pending_operation, dict) else {}
 		operation_payload = operation_payload if isinstance(operation_payload, dict) else {}
 		action_result = {
@@ -552,39 +626,36 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 		action_result = {key: value for key, value in action_result.items() if value not in (None, "")}
 
 		status = "failed" if execution_error else "success"
-		agent_result = continue_after_action(
-			doc,
-			normalized_mode,
-			messages,
-			pending_operation,
-			status=status,
-			result_payload=action_result,
-			error=execution_error,
-		)
-		if agent_result:
-			apply_agent_result_to_conversation(
-				doc,
-				messages,
-				agent_result,
-				normalized_mode,
-				confirmed_action=True,
-			)
-		else:
-			if execution_error:
-				content = _("Could not confirm operation: {0}").format(execution_error)
-			else:
-				content = _("Confirmed operation: {0}").format(
-					pending_operation.get("summary") or pending_operation.get("tool")
-				)
-				if action_result.get("doctype") and action_result.get("name"):
-					content += "\n\n" + _("Document: {0} {1}").format(
-						_(action_result["doctype"]),
-						action_result["name"],
-					)
-				elif action_result.get("message"):
-					content += "\n\n" + str(action_result["message"])
-			messages.append(make_message("assistant", content, confirmed_action=True, mode=normalized_mode))
+
+		ack_meta = {"confirmed_action": True, "action_status": status}
+
+		if remaining:
+			content = _build_confirm_ack_content(pending_operation, action_result, execution_error)
+			messages.append(make_message("assistant", content, mode=normalized_mode, **ack_meta))
 			save_messages(doc, messages)
+		else:
+			publish_status_update(doc.name, doc.owner, _("Generating response..."))
+			agent_result = continue_after_action(
+				doc,
+				normalized_mode,
+				messages,
+				pending_operation,
+				status=status,
+				result_payload=action_result,
+				error=execution_error,
+			)
+			if agent_result:
+				apply_agent_result_to_conversation(
+					doc,
+					messages,
+					agent_result,
+					normalized_mode,
+					**ack_meta,
+				)
+			else:
+				content = _build_confirm_ack_content(pending_operation, action_result, execution_error)
+				messages.append(make_message("assistant", content, mode=normalized_mode, **ack_meta))
+				save_messages(doc, messages)
 
 		response_payload: dict[str, Any] = {"conversation": conversation_payload(doc)}
 		if execution_error:
@@ -597,39 +668,29 @@ def confirm_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 
 
 @frappe.whitelist(methods=["POST"])
-def reject_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
+def reject_pending_operation(conversation: str, call_id: str = "", mode: str = MODE_ASK) -> dict:
 	if not can_access_ask_alyf():
 		frappe.throw(_("You do not have access to Ask ALYF."))
 
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	doc.check_permission("write")
-	pending_operation = loads(doc.pending_operation_json, None)
-	if not pending_operation:
+	all_operations = load_pending_operations(doc.pending_operation_json)
+	if not all_operations:
 		return {"conversation": conversation_payload(doc)}
 
+	call_id = (call_id or "").strip()
+	pending_operation = _find_operation_by_call_id(all_operations, call_id)
+
+	remaining = [op for op in all_operations if op.get("call_id") != pending_operation.get("call_id")]
+	doc.pending_operation_json = dumps(remaining) if remaining else ""
+
 	normalized_mode = normalize_mode(mode)
-	doc.pending_operation_json = ""
 	messages = get_messages(doc)
 
-	publish_status_update(doc.name, doc.owner, _("Generating response..."))
 	try:
-		agent_result = continue_after_action(
-			doc,
-			normalized_mode,
-			messages,
-			pending_operation,
-			status="rejected",
-		)
-		if agent_result:
-			apply_agent_result_to_conversation(
-				doc,
-				messages,
-				agent_result,
-				normalized_mode,
-				rejected_action=True,
-			)
-		else:
-			summary = pending_operation.get("summary") or pending_operation.get("tool")
+		summary = pending_operation.get("summary") or pending_operation.get("tool")
+
+		if remaining:
 			messages.append(
 				make_message(
 					"assistant",
@@ -639,6 +700,33 @@ def reject_pending_operation(conversation: str, mode: str = MODE_ASK) -> dict:
 				)
 			)
 			save_messages(doc, messages)
+		else:
+			publish_status_update(doc.name, doc.owner, _("Generating response..."))
+			agent_result = continue_after_action(
+				doc,
+				normalized_mode,
+				messages,
+				pending_operation,
+				status="rejected",
+			)
+			if agent_result:
+				apply_agent_result_to_conversation(
+					doc,
+					messages,
+					agent_result,
+					normalized_mode,
+					rejected_action=True,
+				)
+			else:
+				messages.append(
+					make_message(
+						"assistant",
+						_("Cancelled the pending operation: {0}.").format(summary),
+						rejected_action=True,
+						mode=normalized_mode,
+					)
+				)
+				save_messages(doc, messages)
 
 		return {"conversation": conversation_payload(doc)}
 	finally:
@@ -649,11 +737,12 @@ def _resolve_show_chart_frontend_action(
 	doc,
 	messages: list[dict[str, Any]],
 	pending_operation: dict[str, Any],
+	remaining_operations: list[dict[str, Any]],
 	status_value: str,
 	error: str | None,
 	normalized_mode: str,
 ) -> dict[str, Any]:
-	doc.pending_operation_json = ""
+	doc.pending_operation_json = dumps(remaining_operations) if remaining_operations else ""
 
 	if status_value == "success":
 		payload = pending_operation.get("payload")
@@ -702,15 +791,17 @@ def frontend_action_result(
 
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	doc.check_permission("write")
-	pending_operation = loads(doc.pending_operation_json, None)
-	if not pending_operation:
+	all_operations = load_pending_operations(doc.pending_operation_json)
+	if not all_operations:
 		frappe.throw(_("There is no pending frontend action to resolve."))
+
+	call_id = (call_id or "").strip()
+	pending_operation = _find_operation_by_call_id(all_operations, call_id)
 
 	if pending_operation.get("kind") != OPERATION_KIND_FRONTEND:
 		frappe.throw(_("The pending operation is not a frontend action."))
 
-	if (pending_operation.get("call_id") or "") != (call_id or "").strip():
-		frappe.throw(_("Frontend action call ID does not match the pending operation."))
+	remaining = [op for op in all_operations if op.get("call_id") != pending_operation.get("call_id")]
 
 	status_value = (status or "").strip().lower()
 	if status_value not in {"success", "failed", "rejected"}:
@@ -733,12 +824,13 @@ def frontend_action_result(
 				doc,
 				messages,
 				pending_operation,
+				remaining,
 				status_value,
 				error,
 				normalized_mode,
 			)
 
-		doc.pending_operation_json = ""
+		doc.pending_operation_json = dumps(remaining) if remaining else ""
 		extra_metadata: dict[str, Any] = {
 			"frontend_action_result": True,
 			"frontend_action_status": status_value,
@@ -746,27 +838,9 @@ def frontend_action_result(
 		if result_payload:
 			extra_metadata["frontend_action_payload"] = result_payload
 
-		agent_result = continue_after_action(
-			doc,
-			normalized_mode,
-			messages,
-			pending_operation,
-			status=status_value,
-			result_payload=result_payload,
-			error=error,
-		)
-		if agent_result:
-			apply_agent_result_to_conversation(
-				doc,
-				messages,
-				agent_result,
-				normalized_mode,
-				**extra_metadata,
-			)
-		else:
-			summary = (
-				pending_operation.get("summary") or pending_operation.get("tool") or _("frontend action")
-			)
+		summary = pending_operation.get("summary") or pending_operation.get("tool") or _("frontend action")
+
+		if remaining:
 			if status_value == "success":
 				content = _("Executed frontend action: {0}").format(summary)
 			elif status_value == "rejected":
@@ -775,9 +849,37 @@ def frontend_action_result(
 				content = _("Frontend action failed: {0}").format(summary)
 				if error:
 					content += "\n\n" + _("Reason: {0}").format(error)
-
 			messages.append(make_message("assistant", content, mode=normalized_mode, **extra_metadata))
 			save_messages(doc, messages)
+		else:
+			agent_result = continue_after_action(
+				doc,
+				normalized_mode,
+				messages,
+				pending_operation,
+				status=status_value,
+				result_payload=result_payload,
+				error=error,
+			)
+			if agent_result:
+				apply_agent_result_to_conversation(
+					doc,
+					messages,
+					agent_result,
+					normalized_mode,
+					**extra_metadata,
+				)
+			else:
+				if status_value == "success":
+					content = _("Executed frontend action: {0}").format(summary)
+				elif status_value == "rejected":
+					content = _("Cancelled frontend action: {0}").format(summary)
+				else:
+					content = _("Frontend action failed: {0}").format(summary)
+					if error:
+						content += "\n\n" + _("Reason: {0}").format(error)
+				messages.append(make_message("assistant", content, mode=normalized_mode, **extra_metadata))
+				save_messages(doc, messages)
 
 		return {"conversation": conversation_payload(doc)}
 	finally:

@@ -145,7 +145,7 @@
 				conversations: [],
 				activeTab: "chat",
 				messages: [],
-				pendingOperation: null,
+				pendingOperations: [],
 				status: "",
 				mode: "Ask",
 			};
@@ -162,7 +162,7 @@
 			this.activeFrappeCharts = new Map();
 			this.statusWrapperEl = null;
 			this.statusBodyEl = null;
-			this.pendingOperationEl = null;
+			this.pendingOperationsEl = null;
 			this.suggestedPromptsEl = null;
 		}
 
@@ -462,7 +462,7 @@
 				this.statusWrapperEl.classList.add("ask_alyf-status-loading");
 			}
 			this.statusBodyEl.textContent = this.state.status;
-			this.messagesEl.insertBefore(this.statusWrapperEl, this.pendingOperationEl || null);
+			this.messagesEl.insertBefore(this.statusWrapperEl, this.pendingOperationsEl || null);
 		}
 
 		renderPendingOperation() {
@@ -470,40 +470,66 @@
 				return;
 			}
 
-			const pendingOperation = this.state.pendingOperation;
-			if (!pendingOperation || !this.operationRequiresConfirmation(pendingOperation)) {
-				if (this.pendingOperationEl) {
-					this.pendingOperationEl.remove();
-					this.pendingOperationEl = null;
+			const confirmable = (this.state.pendingOperations || []).filter((op) =>
+				this.operationRequiresConfirmation(op)
+			);
+
+			if (!confirmable.length) {
+				if (this.pendingOperationsEl) {
+					this.pendingOperationsEl.remove();
+					this.pendingOperationsEl = null;
 				}
 				return;
 			}
 
-			const proposal = document.createElement("div");
-			proposal.className = "ask_alyf-proposal";
-			proposal.innerHTML = `
-				<div class="ask_alyf-proposal-title">${__("Pending operation")}</div>
-				<div class="ask_alyf-proposal-summary">${this.getPendingOperationSummaryHtml(
-					pendingOperation
-				)}</div>
-				<div class="ask_alyf-proposal-actions">
-					<button class="ask_alyf-confirm btn btn-primary btn-sm" type="button">${__("Confirm")}</button>
-					<button class="ask_alyf-reject btn btn-secondary btn-sm" type="button">${__("Reject")}</button>
-				</div>
-			`;
-			proposal
-				.querySelector(".ask_alyf-confirm")
-				.addEventListener("click", () => this.confirmPendingOperation());
-			proposal
-				.querySelector(".ask_alyf-reject")
-				.addEventListener("click", () => this.rejectPendingOperation());
+			const container = document.createElement("div");
+			container.className = "ask_alyf-proposals";
 
-			if (this.pendingOperationEl) {
-				this.pendingOperationEl.replaceWith(proposal);
-			} else {
-				this.messagesEl.appendChild(proposal);
+			for (const operation of confirmable) {
+				const card = document.createElement("div");
+				card.className = "ask_alyf-proposal";
+				card.innerHTML = `
+					<div class="ask_alyf-proposal-summary">${this.getPendingOperationSummaryHtml(operation)}</div>
+					<div class="ask_alyf-proposal-actions">
+						<button class="ask_alyf-confirm btn btn-primary btn-sm" type="button">${__("Confirm")}</button>
+						<button class="ask_alyf-reject btn btn-secondary btn-sm" type="button">${__("Reject")}</button>
+					</div>
+				`;
+				card.querySelector(".ask_alyf-confirm").addEventListener("click", () =>
+					this.confirmPendingOperation(operation)
+				);
+				card.querySelector(".ask_alyf-reject").addEventListener("click", () =>
+					this.rejectPendingOperation(operation)
+				);
+				container.appendChild(card);
 			}
-			this.pendingOperationEl = proposal;
+
+			if (confirmable.length > 1) {
+				const bulkActions = document.createElement("div");
+				bulkActions.className = "ask_alyf-proposal-bulk-actions";
+				bulkActions.innerHTML = `
+					<button class="ask_alyf-confirm-all btn btn-primary btn-xs" type="button">${__(
+						"Confirm all"
+					)}</button>
+					<button class="ask_alyf-reject-all btn btn-secondary btn-xs" type="button">${__(
+						"Reject all"
+					)}</button>
+				`;
+				bulkActions
+					.querySelector(".ask_alyf-confirm-all")
+					.addEventListener("click", () => this.confirmAllPendingOperations());
+				bulkActions
+					.querySelector(".ask_alyf-reject-all")
+					.addEventListener("click", () => this.rejectAllPendingOperations());
+				container.appendChild(bulkActions);
+			}
+
+			if (this.pendingOperationsEl) {
+				this.pendingOperationsEl.replaceWith(container);
+			} else {
+				this.messagesEl.appendChild(container);
+			}
+			this.pendingOperationsEl = container;
 		}
 
 		init() {
@@ -710,16 +736,18 @@
 				if (message.conversation !== this.state.conversation?.name) return;
 				this.setLoading(false);
 				this.setStatus("");
-				this.state.pendingOperation = message.pending_operation || null;
+				this.state.pendingOperations = this.normalizePendingOperations(
+					message.pending_operations
+				);
 				this.pendingStreamMessageId = null;
 
-				if (this.state.pendingOperation) {
-					await this.ensureDoctypeMeta(this.state.pendingOperation);
+				for (const op of this.state.pendingOperations) {
+					await this.ensureDoctypeMeta(op);
 				}
 
 				this.renderMessages();
 				this.refreshConversationList();
-				this.maybeAutoExecuteFrontendAction();
+				this.maybeAutoExecuteFrontendActions();
 			});
 		}
 
@@ -768,10 +796,12 @@
 			this.handledFrontendCallIds = new Set();
 			this.state.conversation = conversation;
 			this.state.messages = conversation.messages || [];
-			this.state.pendingOperation = conversation.pending_operation || null;
+			this.state.pendingOperations = this.normalizePendingOperations(
+				conversation.pending_operations
+			);
 
-			if (this.state.pendingOperation) {
-				await this.ensureDoctypeMeta(this.state.pendingOperation);
+			for (const op of this.state.pendingOperations) {
+				await this.ensureDoctypeMeta(op);
 			}
 
 			this.cacheRenderedMessageKeys(this.state.messages);
@@ -783,7 +813,7 @@
 
 		isAwaitingResponse() {
 			const messages = this.state.messages;
-			if (!messages.length || this.state.pendingOperation) {
+			if (!messages.length || this.state.pendingOperations.length) {
 				return false;
 			}
 			const lastMessage = messages[messages.length - 1];
@@ -1537,7 +1567,7 @@
 				content: text,
 			};
 			this.state.messages.push(optimisticMessage);
-			this.state.pendingOperation = null;
+			this.state.pendingOperations = [];
 			this.renderMessages();
 			this.inputEl.value = "";
 			this.autoResizeInput();
@@ -1906,7 +1936,7 @@
 			});
 			if (response.message?.conversation) {
 				await this.applyConversation(response.message.conversation);
-				this.maybeAutoExecuteFrontendAction();
+				this.maybeAutoExecuteFrontendActions();
 			}
 			this.refreshConversationList();
 		}
@@ -1940,27 +1970,27 @@
 			}
 		}
 
-		async maybeAutoExecuteFrontendAction() {
-			const operation = this.state.pendingOperation;
-			if (!this.isFrontendAction(operation)) {
-				return;
+		async maybeAutoExecuteFrontendActions() {
+			for (const operation of [...this.state.pendingOperations]) {
+				if (!this.isFrontendAction(operation)) {
+					continue;
+				}
+				if (this.operationRequiresConfirmation(operation)) {
+					continue;
+				}
+				if (!operation.call_id || this.handledFrontendCallIds.has(operation.call_id)) {
+					continue;
+				}
+				await this.executeFrontendAction(operation);
 			}
-			if (this.operationRequiresConfirmation(operation)) {
-				return;
-			}
-			if (!operation.call_id || this.handledFrontendCallIds.has(operation.call_id)) {
-				return;
-			}
-			await this.executeFrontendAction(operation);
 		}
 
-		async confirmPendingOperation() {
-			const operation = this.state.pendingOperation;
+		async confirmPendingOperation(operation) {
 			if (!operation || !this.state.conversation?.name) {
 				return;
 			}
 
-			this.state.pendingOperation = null;
+			this.removePendingOperation(operation);
 			this.renderMessages();
 			this.setLoading(true);
 			this.setStatus(
@@ -1972,7 +2002,7 @@
 				if (this.isFrontendAction(operation)) {
 					const actionCompleted = await this.executeFrontendAction(operation);
 					if (!actionCompleted) {
-						this.state.pendingOperation = operation;
+						this.restorePendingOperation(operation);
 						this.renderMessages();
 					}
 					return;
@@ -1981,13 +2011,17 @@
 				const response = await frappe.call({
 					method: "ask_alyf.api.confirm_pending_operation",
 					type: "POST",
-					args: { conversation: this.state.conversation.name, mode: this.state.mode },
+					args: {
+						conversation: this.state.conversation.name,
+						call_id: operation.call_id,
+						mode: this.state.mode,
+					},
 				});
 				await this.applyConversation(response.message.conversation);
 				this.refreshConversationList();
-				this.maybeAutoExecuteFrontendAction();
+				this.maybeAutoExecuteFrontendActions();
 			} catch (error) {
-				this.state.pendingOperation = operation;
+				this.restorePendingOperation(operation);
 				this.renderMessages();
 				frappe.msgprint(error.message || __("Failed to confirm pending operation."));
 			} finally {
@@ -1996,13 +2030,12 @@
 			}
 		}
 
-		async rejectPendingOperation() {
-			const operation = this.state.pendingOperation;
+		async rejectPendingOperation(operation) {
 			if (!operation || !this.state.conversation?.name) {
 				return;
 			}
 
-			this.state.pendingOperation = null;
+			this.removePendingOperation(operation);
 			this.renderMessages();
 			try {
 				if (this.isFrontendAction(operation)) {
@@ -2016,16 +2049,54 @@
 				const response = await frappe.call({
 					method: "ask_alyf.api.reject_pending_operation",
 					type: "POST",
-					args: { conversation: this.state.conversation.name, mode: this.state.mode },
+					args: {
+						conversation: this.state.conversation.name,
+						call_id: operation.call_id,
+						mode: this.state.mode,
+					},
 				});
 				await this.applyConversation(response.message.conversation);
 				this.refreshConversationList();
-				this.maybeAutoExecuteFrontendAction();
+				this.maybeAutoExecuteFrontendActions();
 			} catch (error) {
-				this.state.pendingOperation = operation;
+				this.restorePendingOperation(operation);
 				this.renderMessages();
 				frappe.msgprint(error.message || __("Failed to reject pending operation."));
 			}
+		}
+
+		async confirmAllPendingOperations() {
+			const operations = [...(this.state.pendingOperations || [])].filter((op) =>
+				this.operationRequiresConfirmation(op)
+			);
+			for (const operation of operations) {
+				await this.confirmPendingOperation(operation);
+			}
+		}
+
+		async rejectAllPendingOperations() {
+			const operations = [...(this.state.pendingOperations || [])].filter((op) =>
+				this.operationRequiresConfirmation(op)
+			);
+			for (const operation of operations) {
+				await this.rejectPendingOperation(operation);
+			}
+		}
+
+		removePendingOperation(operation) {
+			this.state.pendingOperations = this.state.pendingOperations.filter(
+				(op) => op.call_id !== operation.call_id
+			);
+		}
+
+		restorePendingOperation(operation) {
+			if (!this.state.pendingOperations.some((op) => op.call_id === operation.call_id)) {
+				this.state.pendingOperations.push(operation);
+			}
+		}
+
+		normalizePendingOperations(value) {
+			return Array.isArray(value) ? value : [];
 		}
 
 		renderMessages() {

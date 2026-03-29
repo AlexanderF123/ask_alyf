@@ -27,7 +27,7 @@ class ask_alyfRuntime:
 	mode: str
 	request_context: dict[str, Any]
 	conversation_history: list[dict[str, Any]] = field(default_factory=list)
-	pending_operation: dict[str, Any] | None = None
+	pending_operations: list[dict[str, Any]] = field(default_factory=list)
 	document_extractions: list[dict[str, Any]] = field(default_factory=list)
 	attached_files: list[dict[str, Any]] = field(default_factory=list)
 
@@ -361,19 +361,7 @@ class ask_alyfToolset:
 		requires_confirmation: bool = True,
 		**payload: Any,
 	) -> dict[str, Any]:
-		"""Create a pending operation proposal."""
-		if self.runtime.pending_operation is not None:
-			return {
-				"success": False,
-				"requires_confirmation": False,
-				"error": (
-					"A pending operation is already active for this turn. "
-					"Only one write proposal can be created per turn. "
-					"Stop here — after the user confirms or rejects the current proposal, "
-					"you will be called again and can propose the next one."
-				),
-			}
-
+		"""Create a pending operation proposal and append it to the list."""
 		validation_error = tools.validate_pending_operation_payload(kind, tool, payload)
 		if validation_error:
 			self.runtime.emit_status(validation_error_status)
@@ -392,7 +380,7 @@ class ask_alyfToolset:
 			"payload": payload,
 			"call_id": uuid4().hex,
 		}
-		self.runtime.pending_operation = proposal
+		self.runtime.pending_operations.append(proposal)
 		self.runtime.emit_status(prepared_status)
 		return {
 			"success": True,
@@ -1658,7 +1646,7 @@ Always follow these rules:
 Mode awareness and behavior:
 - The current mode is `{self.runtime.mode}` and is authoritative for this turn.
 - `Ask` mode is strictly read-only: write tools are unavailable, so if intent is mutation (create, update, submit, cancel, amend, rename, delete, attach, or a write method), immediately recommend switching to `Agent` mode and do not claim anything was done or queued.
-- `Agent` mode supports mutation workflows with write tools while still handling read-only questions with read tools. Every write tool call creates a pending proposal that requires user confirmation before execution. Only one proposal can be active per turn — if the request needs multiple writes, propose one now and continue with the rest in follow-up turns after confirmation.
+- `Agent` mode supports mutation workflows with write tools while still handling read-only questions with read tools. Every write tool call creates a pending proposal that requires user confirmation before execution. Multiple proposals can be created in a single turn — if the request needs several writes, propose them all now. The user will confirm or reject each one individually.
 - Frontend action tools can navigate or adjust the current form in the browser, or display Frappe Charts under the assistant message via `show_chart` (pass `frappe_charts` as a list of chart option objects; validated server-side). See the `show_chart` tool docstring for the options shape.
 - Frontend actions with `requires_confirmation` must be confirmed before the browser executes them.
 - In `Agent` mode, prefer `document_planner` before non-trivial `insert`, `save`, or `set_value` operations. If it returns `ready=false`, ask the user for the missing information instead of guessing. If it returns `ready=true`, use the matching write tool with the returned payload.
@@ -1732,7 +1720,7 @@ Mode awareness and behavior:
 		trace = self.agent.run(build_prompt(message, conversation_history))
 		return {
 			"response": str(trace.final_output or "").strip(),
-			"pending_operation": self.runtime.pending_operation,
+			"pending_operations": self.runtime.pending_operations,
 			"document_extractions": self.runtime.document_extractions,
 			"attached_files": self.runtime.attached_files,
 		}

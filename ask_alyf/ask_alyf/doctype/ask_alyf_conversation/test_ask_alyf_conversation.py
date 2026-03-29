@@ -12,18 +12,20 @@ from ask_alyf.ask_alyf.utils import dumps, loads
 
 
 class UnitTestAskALYFConversation(UnitTestCase):
-	def make_conversation(self, *, messages: list[dict] | None = None, pending_operation: dict | None = None):
+	def make_conversation(
+		self, *, messages: list[dict] | None = None, pending_operations: list[dict] | None = None
+	):
 		doc = frappe.get_doc(
 			doctype="Ask ALYF Conversation",
 			title="Test Conversation",
 			status="Active",
 			messages_json=dumps(messages or []),
-			pending_operation_json=dumps(pending_operation) if pending_operation else "",
+			pending_operation_json=dumps(pending_operations) if pending_operations else "",
 		)
 		doc.insert(ignore_permissions=True)
 		return doc
 
-	def test_process_message_job_publishes_pending_operation(self):
+	def test_process_message_job_publishes_pending_operations(self):
 		user_message = api.make_message("user", "Open Sales Invoice list", mode=api.MODE_ASK)
 		conversation = self.make_conversation(messages=[user_message])
 		expected_operation = {
@@ -41,7 +43,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 
 		with patch(
 			"ask_alyf.ask_alyf.api.run_message",
-			return_value={"response": "Done", "pending_operation": expected_operation},
+			return_value={"response": "Done", "pending_operations": [expected_operation]},
 		):
 			with patch("ask_alyf.ask_alyf.api.frappe.publish_realtime", side_effect=record_realtime):
 				api.process_message_job(
@@ -58,11 +60,11 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		self.assertTrue(messages)
 		assistant = messages[-1]
 		expected_with_id = {**expected_operation, "assistant_message_id": assistant["id"]}
-		self.assertEqual(payload["pending_operation"], expected_with_id)
+		self.assertEqual(payload["pending_operations"], [expected_with_id])
 
 		complete_events = [call for call in realtime_calls if call["event"] == "ask_alyf_response_complete"]
 		self.assertEqual(len(complete_events), 1)
-		self.assertEqual(complete_events[0]["payload"]["pending_operation"], expected_with_id)
+		self.assertEqual(complete_events[0]["payload"]["pending_operations"], [expected_with_id])
 
 	def test_process_message_job_persists_document_extractions(self):
 		user_message = api.make_message("user", "What is on this invoice?", mode=api.MODE_ASK)
@@ -84,7 +86,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 			"ask_alyf.ask_alyf.api.run_message",
 			return_value={
 				"response": "I found the supplier and total.",
-				"pending_operation": None,
+				"pending_operations": [],
 				"document_extractions": document_extractions,
 			},
 		):
@@ -165,7 +167,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 			"payload": {"doctype": "ToDo", "name": "TODO-0001", "fieldname": "status", "value": "Closed"},
 			"call_id": "call-backend-1",
 		}
-		conversation = self.make_conversation(messages=[], pending_operation=pending_operation)
+		conversation = self.make_conversation(messages=[], pending_operations=[pending_operation])
 		realtime_calls = []
 
 		def record_realtime(event, payload=None, user=None, **kwargs):
@@ -180,12 +182,14 @@ class UnitTestAskALYFConversation(UnitTestCase):
 					"ask_alyf.ask_alyf.api.run_message",
 					return_value={
 						"response": "The ToDo TODO-0001 was updated successfully.",
-						"pending_operation": None,
+						"pending_operations": [],
 					},
 				) as summarize_call:
 					with patch("ask_alyf.ask_alyf.api.frappe.publish_realtime", side_effect=record_realtime):
 						response = api.confirm_pending_operation(
-							conversation=conversation.name, mode=api.MODE_ASK
+							conversation=conversation.name,
+							call_id="call-backend-1",
+							mode=api.MODE_ASK,
 						)
 
 		execute_operation.assert_called_once_with(pending_operation)
@@ -197,7 +201,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		system_message = summarize_call.call_args.kwargs["conversation_history"][-1]
 		self.assertEqual(system_message["role"], "system")
 		self.assertIn('"status": "success"', system_message["content"])
-		self.assertIsNone(response["conversation"]["pending_operation"])
+		self.assertEqual(response["conversation"]["pending_operations"], [])
 
 		conversation.reload()
 		messages = loads(conversation.messages_json, [])
@@ -213,7 +217,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 			"payload": {"route": ["List", "Sales Invoice"]},
 			"call_id": "call-frontend-1",
 		}
-		conversation = self.make_conversation(messages=[], pending_operation=pending_operation)
+		conversation = self.make_conversation(messages=[], pending_operations=[pending_operation])
 		realtime_calls = []
 
 		def record_realtime(event, payload=None, user=None, **kwargs):
@@ -224,7 +228,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 				"ask_alyf.ask_alyf.api.run_message",
 				return_value={
 					"response": "Opened the Sales Invoice list view in your browser.",
-					"pending_operation": None,
+					"pending_operations": [],
 				},
 			) as summarize_call:
 				with patch("ask_alyf.ask_alyf.api.frappe.publish_realtime", side_effect=record_realtime):
@@ -244,7 +248,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		system_message = summarize_call.call_args.kwargs["conversation_history"][-1]
 		self.assertEqual(system_message["role"], "system")
 		self.assertIn('"status": "success"', system_message["content"])
-		self.assertIsNone(response["conversation"]["pending_operation"])
+		self.assertEqual(response["conversation"]["pending_operations"], [])
 
 		conversation.reload()
 		messages = loads(conversation.messages_json, [])
@@ -293,7 +297,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 		}
 		conversation = self.make_conversation(
 			messages=[assistant_message],
-			pending_operation=pending_operation,
+			pending_operations=[pending_operation],
 		)
 
 		with patch("ask_alyf.ask_alyf.api.can_access_ask_alyf", return_value=True):
@@ -305,7 +309,7 @@ class UnitTestAskALYFConversation(UnitTestCase):
 				result={"tool": "show_chart"},
 			)
 
-		self.assertIsNone(response["conversation"]["pending_operation"])
+		self.assertEqual(response["conversation"]["pending_operations"], [])
 		conversation.reload()
 		messages = loads(conversation.messages_json, [])
 		self.assertEqual(len(messages), 1)

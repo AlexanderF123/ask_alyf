@@ -428,6 +428,18 @@
 	}
 }
 
+.ask_alyf-proposals {
+	align-self: flex-start;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	max-width: 85%;
+}
+
+.ask_alyf-proposals > .ask_alyf-proposal {
+	max-width: 100%;
+}
+
 .ask_alyf-proposal {
 	align-self: flex-start;
 	display: flex;
@@ -435,8 +447,10 @@
 	gap: 0.6rem;
 }
 
-.ask_alyf-proposal-title {
-	font-weight: 700;
+.ask_alyf-proposal-bulk-actions {
+	display: flex;
+	gap: 0.5rem;
+	align-self: flex-start;
 }
 
 .ask_alyf-proposal-summary {
