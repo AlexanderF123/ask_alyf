@@ -145,110 +145,6 @@ def build_assistant_message_metadata(
 	return metadata
 
 
-def get_batch_insert_preview_columns(records: Any) -> list[str]:
-	if not isinstance(records, list):
-		return []
-
-	columns: list[str] = []
-	seen: set[str] = set()
-	for record in records:
-		if not isinstance(record, dict):
-			continue
-		for fieldname in record:
-			if not isinstance(fieldname, str):
-				continue
-			clean_fieldname = fieldname.strip()
-			if not clean_fieldname or clean_fieldname in seen:
-				continue
-			seen.add(clean_fieldname)
-			columns.append(clean_fieldname)
-
-	return columns
-
-
-def get_localized_doctype_field_labels(
-	doctype: str,
-	fieldnames: list[str],
-	*,
-	language: str = "",
-) -> dict[str, str]:
-	clean_doctype = (doctype or "").strip()
-	if not clean_doctype or not fieldnames:
-		return {}
-
-	meta = frappe.get_meta(clean_doctype)
-	labels: dict[str, str] = {}
-	for fieldname in fieldnames:
-		clean_fieldname = (fieldname or "").strip()
-		if not clean_fieldname:
-			continue
-
-		label = str(meta.get_label(clean_fieldname) or "").strip()
-		if not label or label == "No Label":
-			continue
-
-		labels[clean_fieldname] = _(label, lang=language) if language else _(label)
-
-	return labels
-
-
-def get_operation_preview_columns(tool: str, payload: dict[str, Any]) -> list[str]:
-	if tool == "batch_insert":
-		return get_batch_insert_preview_columns(payload.get("records"))
-	if tool in {"insert", "save"}:
-		values = payload.get("values")
-		if isinstance(values, dict):
-			return [k for k in values.keys() if isinstance(k, str) and k.strip()]
-	if tool == "set_value":
-		fieldname = payload.get("fieldname")
-		if isinstance(fieldname, str) and fieldname.strip():
-			return [fieldname.strip()]
-	return []
-
-
-def enrich_pending_operation_for_ui(
-	pending_operation: dict[str, Any] | None,
-	*,
-	request_context: dict[str, Any] | None = None,
-) -> dict[str, Any] | None:
-	if not isinstance(pending_operation, dict):
-		return pending_operation
-
-	tool = (pending_operation.get("tool") or "").strip()
-	if tool not in {"batch_insert", "insert", "save", "set_value"}:
-		return pending_operation
-
-	payload = pending_operation.get("payload")
-	if not isinstance(payload, dict):
-		return pending_operation
-
-	doctype = (payload.get("doctype") or "").strip()
-	columns = get_operation_preview_columns(tool, payload)
-	if not doctype or not columns:
-		return pending_operation
-
-	language = ""
-	if isinstance(request_context, dict):
-		language = (request_context.get("lang") or request_context.get("locale") or "").strip()
-
-	try:
-		field_labels = get_localized_doctype_field_labels(doctype, columns, language=language)
-	except Exception:
-		frappe.logger("ask_alyf").error(
-			f"Failed to build preview labels for DocType {doctype}",
-			exc_info=True,
-		)
-		return pending_operation
-
-	if not field_labels:
-		return pending_operation
-
-	return {
-		**pending_operation,
-		"preview_field_labels": field_labels,
-	}
-
-
 def find_assistant_message_for_pending_operation(
 	messages: list[dict[str, Any]],
 	pending_operation: dict[str, Any],
@@ -498,10 +394,7 @@ def process_message_job(
 			conversation_history=history,
 		)
 		response = result.get("response") or ""
-		pending_operation = enrich_pending_operation_for_ui(
-			result.get("pending_operation"),
-			request_context=context_data,
-		)
+		pending_operation = result.get("pending_operation")
 		document_extractions = result.get("document_extractions")
 		attached_files = result.get("attached_files")
 		if pending_operation and not response:

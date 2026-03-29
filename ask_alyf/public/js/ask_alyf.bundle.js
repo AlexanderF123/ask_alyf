@@ -1749,14 +1749,14 @@
 		}
 
 		getBatchInsertPreviewColumnLabel(operation, column) {
-			const labels =
-				operation?.preview_field_labels &&
-				typeof operation.preview_field_labels === "object" &&
-				!Array.isArray(operation.preview_field_labels)
-					? operation.preview_field_labels
-					: null;
-			const label = labels?.[column];
-			return typeof label === "string" && label.trim() ? label : column;
+			const doctype = operation?.payload?.doctype;
+			if (doctype && column) {
+				const df = frappe.meta.get_docfield(doctype, column);
+				if (df && df.label) {
+					return __(df.label);
+				}
+			}
+			return column;
 		}
 
 		formatBatchInsertPreviewValue(value, doctype, fieldname) {
