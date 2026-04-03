@@ -27,16 +27,20 @@ class FakeSettings(SimpleNamespace):
 
 
 class UnitTestCodeTools(UnitTestCase):
-	def make_runner(self, *, allow_code_search: bool, mode: str = "Ask"):
-		runtime = SimpleNamespace(
+	def make_runtime(self, *, mode: str = "Ask"):
+		return SimpleNamespace(
 			conversation_name="TEST-CONVERSATION",
 			mode=mode,
 			request_context={},
 			conversation_history=[],
-			pending_operation=None,
+			pending_operations=[],
 			document_extractions=[],
+			attached_files=[],
 			emit_status=lambda _text: None,
 		)
+
+	def make_runner(self, *, allow_code_search: bool, mode: str = "Ask"):
+		runtime = self.make_runtime(mode=mode)
 		runner = object.__new__(ask_alyfAgentRunner)
 		runner.runtime = runtime
 		runner.settings = FakeSettings(allow_code_search=allow_code_search)
@@ -164,15 +168,7 @@ class UnitTestCodeTools(UnitTestCase):
 				tools.get_file_id(reference_doctype="Sales Invoice", reference_name="SINV-0001")
 
 	def test_attach_file_proposal_uses_linked_file_name_summary(self):
-		runtime = SimpleNamespace(
-			conversation_name="TEST-CONVERSATION",
-			mode="Agent",
-			request_context={},
-			conversation_history=[],
-			pending_operation=None,
-			document_extractions=[],
-			emit_status=lambda _text: None,
-		)
+		runtime = self.make_runtime(mode="Agent")
 		toolset = ask_alyfToolset(runtime)
 		file_doc = frappe.get_doc(
 			{
@@ -191,15 +187,7 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertIn(file_doc.file_url, result["proposal"]["summary"])
 
 	def test_batch_insert_proposal_uses_record_count_summary(self):
-		runtime = SimpleNamespace(
-			conversation_name="TEST-CONVERSATION",
-			mode="Agent",
-			request_context={},
-			conversation_history=[],
-			pending_operation=None,
-			document_extractions=[],
-			emit_status=lambda _text: None,
-		)
+		runtime = self.make_runtime(mode="Agent")
 		toolset = ask_alyfToolset(runtime)
 		records = [{"description": "Call customer"}, {"description": "Send quotation"}]
 
@@ -254,15 +242,7 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertIn("row 2: Missing description", result["message"])
 
 	def test_source_code_analyzer_tool_delegates_to_specialist(self):
-		runtime = SimpleNamespace(
-			conversation_name="TEST-CONVERSATION",
-			mode="Ask",
-			request_context={},
-			conversation_history=[],
-			pending_operation=None,
-			document_extractions=[],
-			emit_status=lambda _text: None,
-		)
+		runtime = self.make_runtime(mode="Ask")
 		toolset = ask_alyfToolset(runtime)
 		expected = {
 			"answer": "The main agent runner is in agent.py.",
@@ -288,15 +268,7 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertEqual(result, expected)
 
 	def test_source_code_analyzer_initializes_internal_agent_async(self):
-		runtime = SimpleNamespace(
-			conversation_name="TEST-CONVERSATION",
-			mode="Ask",
-			request_context={},
-			conversation_history=[],
-			pending_operation=None,
-			document_extractions=[],
-			emit_status=lambda _text: None,
-		)
+		runtime = self.make_runtime(mode="Ask")
 		toolset = ask_alyfToolset(runtime, settings=FakeSettings(allow_code_search=True))
 		fake_trace = SimpleNamespace(final_output='{"answer":"Verified","summary":"Verified"}')
 		fake_agent = SimpleNamespace(run_async=AsyncMock(return_value=fake_trace))
@@ -315,15 +287,7 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertEqual(second["summary"], "Verified")
 
 	def test_document_planner_tool_delegates_to_specialist(self):
-		runtime = SimpleNamespace(
-			conversation_name="TEST-CONVERSATION",
-			mode="Agent",
-			request_context={},
-			conversation_history=[],
-			pending_operation=None,
-			document_extractions=[],
-			emit_status=lambda _text: None,
-		)
+		runtime = self.make_runtime(mode="Agent")
 		toolset = ask_alyfToolset(runtime)
 		expected = {
 			"ready": True,
@@ -356,15 +320,7 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertEqual(result, expected)
 
 	def test_document_planner_initializes_internal_agent_async(self):
-		runtime = SimpleNamespace(
-			conversation_name="TEST-CONVERSATION",
-			mode="Agent",
-			request_context={},
-			conversation_history=[],
-			pending_operation=None,
-			document_extractions=[],
-			emit_status=lambda _text: None,
-		)
+		runtime = self.make_runtime(mode="Agent")
 		toolset = ask_alyfToolset(runtime, settings=FakeSettings(allow_code_search=False))
 		fake_trace = SimpleNamespace(
 			final_output='{"ready":true,"recommended_tool":"insert","payload":{"doctype":"ToDo","values":{}},"reason":"ok","missing_information":[],"checks":[],"warnings":[]}'
