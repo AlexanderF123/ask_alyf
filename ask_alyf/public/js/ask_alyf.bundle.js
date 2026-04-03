@@ -768,7 +768,6 @@
 			});
 			const askAlyfBoot = response.message.ask_alyf || {};
 			await this.applyConversation(response.message.conversation);
-			this.setModeToAskDefault();
 			this.syncSupportPhoneAction(askAlyfBoot);
 			this.syncFileUploadButton();
 			await this.refreshConversationList();
@@ -805,7 +804,7 @@
 			}
 
 			this.cacheRenderedMessageKeys(this.state.messages);
-			this.syncModeControl();
+			this.syncConversationMode(this.state.messages);
 			this.renderHistoryList();
 			this.renderMessages();
 			this.restoreProcessingState();
@@ -874,7 +873,7 @@
 
 			this.setActiveTab("chat");
 			if (conversationName === this.state.conversation?.name) {
-				this.setModeToAskDefault();
+				this.syncConversationMode();
 				this.inputEl?.focus();
 				return;
 			}
@@ -895,6 +894,21 @@
 
 		setModeToAskDefault() {
 			this.state.mode = "Ask";
+			this.syncModeControl();
+		}
+
+		getConversationMode(messages = []) {
+			for (let index = messages.length - 1; index >= 0; index -= 1) {
+				const storedMode = messages[index]?.metadata?.mode;
+				if (storedMode === "Ask" || storedMode === "Agent") {
+					return storedMode;
+				}
+			}
+			return "Ask";
+		}
+
+		syncConversationMode(messages = this.state.messages) {
+			this.state.mode = this.getConversationMode(messages);
 			this.syncModeControl();
 		}
 
@@ -1340,7 +1354,6 @@
 					args: { conversation: conversationName },
 				});
 				await this.applyConversation(response.message.conversation);
-				this.setModeToAskDefault();
 				if (!this.isAwaitingResponse()) {
 					this.setLoading(false);
 					this.setStatus("");
