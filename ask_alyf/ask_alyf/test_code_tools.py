@@ -6,7 +6,11 @@ import frappe
 from frappe.tests import UnitTestCase
 
 from ask_alyf.ask_alyf import tools
-from ask_alyf.ask_alyf.agent import ask_alyfAgentRunner, ask_alyfToolset
+from ask_alyf.ask_alyf.agent import (
+	_clear_messages_on_tool_error,
+	ask_alyfAgentRunner,
+	ask_alyfToolset,
+)
 
 
 class FakeSettings(SimpleNamespace):
@@ -344,3 +348,25 @@ class UnitTestCodeTools(UnitTestCase):
 		fake_agent.run_async.assert_awaited_once()
 		self.assertTrue(result["ready"])
 		self.assertEqual(result["recommended_tool"], "insert")
+
+	def test_clear_messages_wrapper_preserves_async_tools(self):
+		async def fake_tool(file_id):
+			return {"file_id": file_id}
+
+		wrapped = _clear_messages_on_tool_error(fake_tool)
+		result = asyncio.run(wrapped("FILE-0001"))
+
+		self.assertTrue(asyncio.iscoroutinefunction(wrapped))
+		self.assertEqual(result, {"file_id": "FILE-0001"})
+
+	def test_clear_messages_wrapper_clears_messages_for_async_tool_errors(self):
+		async def fake_tool():
+			raise RuntimeError("boom")
+
+		wrapped = _clear_messages_on_tool_error(fake_tool)
+
+		with patch("ask_alyf.ask_alyf.agent.frappe.clear_messages") as clear_messages:
+			with self.assertRaisesRegex(RuntimeError, "boom"):
+				asyncio.run(wrapped())
+
+		clear_messages.assert_called_once_with()

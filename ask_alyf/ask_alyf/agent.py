@@ -1,4 +1,5 @@
 import functools
+import inspect
 import json
 import re
 from collections.abc import Callable
@@ -1595,6 +1596,18 @@ def _clear_messages_on_tool_error(func):
 	"""Wrap a tool callable so that queued Frappe messages are discarded on
 	exception.  The error still propagates to the agent framework (so the LLM
 	sees it), but the user won't receive a popup."""
+
+	if inspect.iscoroutinefunction(func):
+
+		@functools.wraps(func)
+		async def async_wrapper(*args, **kwargs):
+			try:
+				return await func(*args, **kwargs)
+			except Exception:
+				frappe.clear_messages()
+				raise
+
+		return async_wrapper
 
 	@functools.wraps(func)
 	def wrapper(*args, **kwargs):
