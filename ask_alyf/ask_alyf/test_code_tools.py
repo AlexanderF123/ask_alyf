@@ -1,6 +1,6 @@
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import frappe
 from frappe.tests import UnitTestCase
@@ -74,6 +74,114 @@ class UnitTestCodeTools(UnitTestCase):
 		agent_tool_names = {tool.__name__ for tool in agent_runner._build_tools()}
 		self.assertIn("document_planner", agent_tool_names)
 		self.assertIn("batch_insert", agent_tool_names)
+
+	def test_build_tools_only_adds_write_skill_when_user_can_create_skills(self):
+		ask_runner = self.make_runner(allow_code_search=False, mode="Ask")
+		with patch.object(ask_runner, "_can_write_skill", return_value=True):
+			ask_tool_names = {tool.__name__ for tool in ask_runner._build_tools()}
+		self.assertNotIn("write_skill", ask_tool_names)
+
+		agent_runner = self.make_runner(allow_code_search=False, mode="Agent")
+		with patch.object(agent_runner, "_can_write_skill", return_value=False):
+			agent_tool_names = {tool.__name__ for tool in agent_runner._build_tools()}
+		self.assertNotIn("write_skill", agent_tool_names)
+
+		with patch.object(agent_runner, "_can_write_skill", return_value=True):
+			agent_tool_names = {tool.__name__ for tool in agent_runner._build_tools()}
+		self.assertIn("write_skill", agent_tool_names)
+
+	def test_build_instructions_lists_available_skills(self):
+		runner = self.make_runner(allow_code_search=False)
+
+		with (
+			patch("ask_alyf.ask_alyf.skill_utils.get_available_skill_summaries") as get_skills,
+			patch("ask_alyf.ask_alyf.tools.get_excluded_doctypes", return_value=set()),
+		):
+			get_skills.return_value = [{"name": "expense-guide", "title": "Expense Guide"}]
+			instructions = runner._build_instructions()
+
+		self.assertIn("Use `read_skill`", instructions)
+		self.assertIn("name: expense-guide | title: Expense Guide", instructions)
+
+	def test_read_skill_returns_accessible_skill_content(self):
+		runtime = self.make_runtime(mode="Ask")
+		toolset = ask_alyfToolset(runtime)
+		skill_doc = SimpleNamespace(
+			name="expense-guide",
+			title="Expense Guide",
+			description="Use this skill for expense questions.",
+			roles=[SimpleNamespace(role="Accounts User")],
+		)
+
+		with (
+			patch("ask_alyf.ask_alyf.skill_utils.frappe.get_doc", return_value=skill_doc),
+			patch("ask_alyf.ask_alyf.skill_utils.frappe.get_roles", return_value=["Accounts User"]),
+		):
+			result = toolset.read_skill("expense-guide")
+
+		self.assertEqual(
+			result,
+			{
+				"name": "expense-guide",
+				"title": "Expense Guide",
+				"description": "Use this skill for expense questions.",
+			},
+		)
+
+	def test_read_skill_rejects_skill_without_matching_role(self):
+		runtime = self.make_runtime(mode="Ask")
+		toolset = ask_alyfToolset(runtime)
+		skill_doc = SimpleNamespace(
+			name="expense-guide",
+			title="Expense Guide",
+			description="Use this skill for expense questions.",
+			roles=[SimpleNamespace(role="Accounts User")],
+		)
+
+		with (
+			patch("ask_alyf.ask_alyf.skill_utils.frappe.get_doc", return_value=skill_doc),
+			patch("ask_alyf.ask_alyf.skill_utils.frappe.get_roles", return_value=["Employee"]),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				toolset.read_skill("expense-guide")
+
+	def test_write_skill_proposes_ask_alyf_skill_insert(self):
+		runtime = self.make_runtime(mode="Agent")
+		toolset = ask_alyfToolset(runtime)
+
+		result = toolset.write_skill(
+			title="Expense Guide",
+			description="Use this skill for expense questions.",
+			roles=["Accounts User", "Employee"],
+			reason="Create reusable expense guidance.",
+		)
+
+		self.assertTrue(result["success"])
+		self.assertEqual(result["proposal"]["tool"], "insert")
+		self.assertEqual(result["proposal"]["payload"]["doctype"], "Ask ALYF Skill")
+		self.assertEqual(
+			result["proposal"]["payload"]["values"],
+			{
+				"title": "Expense Guide",
+				"description": "Use this skill for expense questions.",
+				"roles": [{"role": "Accounts User"}, {"role": "Employee"}],
+			},
+		)
+
+	def test_write_skill_accepts_comma_separated_roles_string(self):
+		runtime = self.make_runtime(mode="Agent")
+		toolset = ask_alyfToolset(runtime)
+
+		result = toolset.write_skill(
+			title="Expense Guide",
+			description="Use this skill for expense questions.",
+			roles="Accounts User, Employee",
+		)
+
+		self.assertEqual(
+			result["proposal"]["payload"]["values"]["roles"],
+			[{"role": "Accounts User"}, {"role": "Employee"}],
+		)
 
 	def test_code_tools_require_setting_to_be_enabled(self):
 		with patch(

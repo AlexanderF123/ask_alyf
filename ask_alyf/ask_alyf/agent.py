@@ -14,6 +14,11 @@ from any_llm import AnyLLM
 from frappe import _
 
 from ask_alyf.ask_alyf import tools
+from ask_alyf.ask_alyf.skill_utils import (
+	build_available_skills_instruction,
+	get_accessible_skill_doc,
+)
+from ask_alyf.ask_alyf.utils import parse_newline_list
 
 SPECIALIST_JSON_OUTPUT_INSTRUCTION = (
 	"Return only a valid JSON object. "
@@ -915,6 +920,73 @@ class ask_alyfToolset:
 		self.runtime.emit_status(_("Reading documentation..."))
 		return tools.read_documentation_page(app_name=app_name, relative_path=relative_path)
 
+	def read_skill(self, name: str) -> dict[str, str]:
+		"""Read the full content of an Ask ALYF skill available to the current user.
+
+		Use this when the instructions list a skill that seems relevant. Pass the
+		exact skill `name` shown in that list.
+
+		Args:
+			name: The exact Ask ALYF Skill name.
+
+		Returns:
+			A dictionary containing the skill name, title, and markdown description.
+		"""
+		self.runtime.emit_status(_("Reading skill..."))
+		skill_doc = get_accessible_skill_doc(name)
+		return {
+			"name": skill_doc.name,
+			"title": skill_doc.title,
+			"description": skill_doc.description or "",
+		}
+
+	def write_skill(
+		self,
+		title: str,
+		description: str,
+		roles: list[str],
+		reason: str = "",
+	) -> dict[str, Any]:
+		"""Propose creating a reusable Ask ALYF skill.
+
+		Use this when the user wants to save durable instructions that can later be
+		loaded with `read_skill`.
+
+		Args:
+			title: The skill title shown to users.
+			description: The markdown skill content.
+			roles: Roles that should be allowed to use the skill.
+				Accepts a list or a comma/newline-separated string.
+			reason: Optional explanation of why the skill should be created.
+
+		Returns:
+			A pending action proposal that requires confirmation.
+		"""
+		clean_title = (title or "").strip()
+		clean_description = (description or "").strip()
+		clean_roles = parse_newline_list(roles)
+
+		if not clean_title:
+			frappe.throw(_("Skill title is required."))
+		if not clean_description:
+			frappe.throw(_("Skill description is required."))
+		if not clean_roles:
+			frappe.throw(_("At least one role is required."))
+
+		return self._backend_proposal(
+			"insert",
+			_("Create skill '{0}'").format(clean_title),
+			reason,
+			validation_error_status=_("Skill proposal needs correction."),
+			prepared_status=_("Prepared skill proposal."),
+			doctype="Ask ALYF Skill",
+			values={
+				"title": clean_title,
+				"description": clean_description,
+				"roles": [{"role": role} for role in clean_roles],
+			},
+		)
+
 	async def document_planner(
 		self,
 		user_request: str,
@@ -1644,9 +1716,13 @@ class ask_alyfAgentRunner:
 	def _get_model_id(self) -> str:
 		return _get_model_id_from_settings(self.settings)
 
+	def _can_write_skill(self) -> bool:
+		return bool(frappe.has_permission("Ask ALYF Skill", ptype="create"))
+
 	def _build_instructions(self) -> str:
 		context = frappe.as_json(self.runtime.request_context, indent=2)
 		excluded_doctypes = ", ".join(sorted(tools.get_excluded_doctypes())) or "None"
+		available_skills_instruction = build_available_skills_instruction()
 		system_prompt = (self.settings.system_prompt or "").strip()
 		code_search_usage_instruction = ""
 		if self.settings.is_code_search_enabled():
@@ -1669,6 +1745,7 @@ Always follow these rules:
 - When the user asks about the contents of an attached PDF or image, prefer `extract_document_data`. Use `read_file_record` for text-like files.
 - If conversation history includes stored document extraction data, reuse it for follow-up questions instead of re-running extraction unless the user asks for a fresh read.
 - If a file tool returns a truncation warning, tell the user clearly that only part of the file was processed.
+{available_skills_instruction}
 
 - Current request context (includes `user_roles` for non-Administrator users):
 {context}
@@ -1707,6 +1784,7 @@ Mode awareness and behavior:
 			self.toolset.list_accessible_doctypes,
 			self.toolset.list_accessible_reports,
 			self.toolset.translate_ui_labels,
+			self.toolset.read_skill,
 			self.toolset.set_route,
 			self.toolset.new_doc,
 			self.toolset.scroll_to_field,
@@ -1725,6 +1803,8 @@ Mode awareness and behavior:
 			tool_defs.append(self.toolset.source_code_analyzer)
 
 		if self.runtime.mode == "Agent":
+			if self._can_write_skill():
+				tool_defs.append(self.toolset.write_skill)
 			tool_defs.extend(
 				[
 					self.toolset.document_planner,
