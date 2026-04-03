@@ -51,7 +51,6 @@ class AskALYFSettings(Document):
 	from typing import TYPE_CHECKING
 
 	if TYPE_CHECKING:
-		from frappe.core.doctype.has_role.has_role import HasRole
 		from frappe.types import DF
 
 		from ask_alyf.ask_alyf.doctype.ask_alyf_excluded_doctype.ask_alyf_excluded_doctype import (
@@ -61,7 +60,6 @@ class AskALYFSettings(Document):
 		allow_agent_mode: DF.Check
 		allow_code_search: DF.Check
 		allow_file_upload: DF.Check
-		allowed_roles: DF.Table[HasRole]
 		api_key: DF.Password | None
 		base_url: DF.Data | None
 		enabled: DF.Check

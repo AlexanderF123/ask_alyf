@@ -21,6 +21,7 @@ from ask_alyf.ask_alyf.utils import chunk_text, dumps, loads
 
 MODE_ASK = "Ask"
 MODE_AGENT = "Agent"
+ASK_ALYF_USER_ROLE = "Ask ALYF User"
 
 
 def get_support_phone_uri(phone_number: str | None) -> str:
@@ -34,10 +35,6 @@ def get_support_phone_uri(phone_number: str | None) -> str:
 
 	prefix = "+" if phone_number.startswith("+") else ""
 	return f"tel:{prefix}{digits_only}"
-
-
-def has_app_permission() -> bool:
-	return can_access_ask_alyf()
 
 
 def get_ask_alyf_boot_payload() -> dict:
@@ -77,25 +74,7 @@ def can_access_ask_alyf() -> bool:
 	if frappe.session.user == "Guest":
 		return False
 
-	try:
-		settings = get_settings()
-	except Exception:
-		return True
-
-	allowed_roles = get_allowed_roles(settings)
-	return bool(allowed_roles.intersection(set(frappe.get_roles())))
-
-
-def get_allowed_roles(settings) -> set[str]:
-	rows = settings.get("allowed_roles") or []
-
-	allowed_roles = set()
-	for row in rows:
-		role = row.get("role") if isinstance(row, dict) else getattr(row, "role", None)
-		if role and isinstance(role, str) and role.strip():
-			allowed_roles.add(role.strip())
-
-	return allowed_roles
+	return ASK_ALYF_USER_ROLE in frappe.get_roles()
 
 
 def can_use_agent_mode() -> bool:

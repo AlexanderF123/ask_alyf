@@ -27,8 +27,6 @@
   "vision_api_key",
   "vision_model",
   "access_tab",
-  "roles_html",
-  "allowed_roles",
   "section_break_kmgx",
   "excluded_doctypes"
  ],
@@ -68,13 +66,6 @@
    "label": "Chat Model"
   },
   {
-   "fieldname": "allowed_roles",
-   "fieldtype": "Table",
-   "hidden": 1,
-   "label": "Allowed Roles",
-   "options": "Has Role"
-  },
-  {
    "description": "One DocType per line. These DocTypes stay read-only in Agent mode.",
    "fieldname": "excluded_doctypes",
    "fieldtype": "Table MultiSelect",
@@ -86,11 +77,6 @@
    "fieldtype": "Code",
    "label": "System Prompt",
    "options": "Text"
-  },
-  {
-   "fieldname": "roles_html",
-   "fieldtype": "HTML",
-   "label": "Allowed Roles"
   },
   {
    "default": "0",
@@ -178,7 +164,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-25 18:53:53.697469",
+ "modified": "2026-04-03 21:28:10.202566",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",

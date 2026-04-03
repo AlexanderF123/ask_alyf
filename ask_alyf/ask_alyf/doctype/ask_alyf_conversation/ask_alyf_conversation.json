@@ -64,7 +64,7 @@
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-26 16:51:08.113511",
+ "modified": "2026-04-03 21:28:47.180869",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Conversation",
@@ -76,7 +76,7 @@
    "delete": 1,
    "if_owner": 1,
    "read": 1,
-   "role": "Desk User",
+   "role": "Ask ALYF User",
    "write": 1
   },
   {

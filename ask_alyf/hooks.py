@@ -7,15 +7,6 @@ app_license = "gpl-3.0"
 app_include_js = "ask_alyf.bundle.js"
 app_include_css = "ask_alyf.bundle.css"
 extend_bootinfo = "ask_alyf.ask_alyf.boot.boot_session"
-add_to_apps_screen = [
-	{
-		"name": "ask_alyf",
-		"logo": "/assets/frappe/images/frappe-framework-logo.svg",
-		"title": "Ask ALYF",
-		"route": "/app/ask-alyf-settings",
-		"has_permission": "ask_alyf.ask_alyf.api.has_app_permission",
-	}
-]
 
 # Apps
 # ------------------
