@@ -187,4 +187,6 @@ This app can use GitHub Actions for CI. The following workflows are configured:
 
 ### License
 
-gpl-3.0
+This project is licensed under the [GNU Affero General Public License v3.0](license.txt) (AGPL-3.0).
+
+If you want to use Ask ALYF under different terms — for example, to whitelabel or rebrand it without the AGPL's copyleft requirements — commercial licenses are available. Contact [hallo@alyf.de](mailto:hallo@alyf.de) for details.
