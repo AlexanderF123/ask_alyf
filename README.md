@@ -111,6 +111,8 @@ Everything from Ask mode, plus:
 
 ### Security
 
+Access to Ask ALYF is granted to users with the "Ask ALYF User" role.
+
 The agent has the same permissions as the current user. If you're logged in as a HR Manager, the agent can only do HR stuff. If you're logged in as Administrator, the agent can do anything. This is enforced by `frappe.client` and the framework's permission system on every tool call.
 
 SQL queries are restricted to read-only and only available to users with the Administrator or System Manager role.
@@ -133,7 +135,6 @@ Old conversations are automatically deleted after 90 days by default. The retent
 - API key
 - model name
 - enable / disable Agent mode (site-wide kill switch)
-- roles that can use the agent
 - DocTypes excluded from Agent mode
 
 ### Error Handling
