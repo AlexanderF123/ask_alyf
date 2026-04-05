@@ -1,0 +1,14 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "bench",
+      "command": "bash .cursor/start.sh && cd \"$HOME/frappe-bench\" && bench start"
+    }
+  ]
+}
