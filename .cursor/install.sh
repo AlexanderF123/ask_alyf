@@ -17,7 +17,7 @@ export PATH="$HOME/.local/bin:/usr/local/bin:${PATH}"
 
 bash "${REPO_ROOT}/.cursor/start.sh"
 
-python3 -m pip install --user --upgrade frappe-bench
+uv tool install --python "$(command -v python3)" frappe-bench
 
 sudo mariadb <<SQL
 CREATE USER IF NOT EXISTS '${DB_ADMIN_USER}'@'localhost' IDENTIFIED BY '${DB_ADMIN_PASSWORD}';

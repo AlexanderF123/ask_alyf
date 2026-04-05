@@ -3,7 +3,7 @@
 # - images/custom/Containerfile
 # https://github.com/frappe/frappe_docker
 
-FROM python:3.14.2-slim-bookworm
+FROM python:3.14.3-slim-trixie
 
 ARG NODE_VERSION=24.13.0
 
@@ -34,7 +34,7 @@ RUN apt-get update \
         libsasl2-dev \
         libsqlite3-dev \
         libssl-dev \
-        libtiff5-dev \
+        libtiff-dev \
         libwebp-dev \
         mariadb-client \
         mariadb-server \
@@ -49,6 +49,8 @@ RUN apt-get update \
         xz-utils \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL="/usr/local/bin" sh
 
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
