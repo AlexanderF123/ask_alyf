@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPO_NAME="${REPO_NAME:-$(basename "$REPO_ROOT")}"
+REPO_NAME="${REPO_NAME:-ask_alyf}"
 BENCH_APP_PATH="apps/${REPO_NAME}"
 BENCH_ROOT="${BENCH_ROOT:-$HOME/frappe-bench}"
 SITE_NAME="${SITE_NAME:-${REPO_NAME//_/-}.localhost}"
@@ -13,7 +13,37 @@ DB_ADMIN_USER="${DB_ADMIN_USER:-frappe}"
 DB_ADMIN_PASSWORD="${DB_ADMIN_PASSWORD:-frappe}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
 
-export PATH="$HOME/.local/bin:/usr/local/bin:${PATH}"
+sanitize_path() {
+	PATH="$(
+		python3 - <<'PY'
+import os
+
+preferred = ["/usr/local/bin", os.path.expanduser("~/.local/bin")]
+parts = []
+seen = set()
+
+for part in os.environ.get("PATH", "").split(":"):
+	if not part or "nvm" in part or part in preferred or part in seen:
+		continue
+	seen.add(part)
+	parts.append(part)
+
+print(":".join([*preferred, *parts]), end="")
+PY
+	)"
+	export PATH
+}
+
+sanitize_path
+
+python3 - <<'PY'
+import sys
+
+if sys.version_info < (3, 14):
+	raise SystemExit(
+		"Python 3.14+ is required. Rebuild the Cursor environment so it uses the custom Dockerfile."
+	)
+PY
 
 bash "${REPO_ROOT}/.cursor/start.sh"
 

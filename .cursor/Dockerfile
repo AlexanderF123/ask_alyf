@@ -8,7 +8,7 @@ FROM python:3.14.3-slim-trixie
 ARG NODE_VERSION=24.13.0
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/home/frappe/.local/bin:/usr/local/bin:${PATH}"
+ENV PATH="/usr/local/bin:/home/frappe/.local/bin:${PATH}"
 ENV UV_TOOL_BIN_DIR="/home/frappe/.local/bin"
 
 RUN apt-get update \

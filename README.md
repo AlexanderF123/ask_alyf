@@ -175,7 +175,7 @@ To use it:
 
 Useful variables in `.cursor/install.sh`:
 
-- `REPO_NAME` defaults to the repo directory name and is used for the bench app path and default site name.
+- `REPO_NAME` defaults to `ask_alyf` and is used for the bench app path and default site name.
 - `SITE_NAME` overrides the default site, which otherwise becomes `<repo-name>.localhost`.
 - `BENCH_ROOT` overrides the bench location.
 - `FRAPPE_BRANCH` lets you pin a different Frappe branch.

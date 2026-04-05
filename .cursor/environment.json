@@ -8,7 +8,7 @@
   "terminals": [
     {
       "name": "bench",
-      "command": "bash .cursor/start.sh && cd \"$HOME/frappe-bench\" && bench start"
+      "command": "export PATH=\"/usr/local/bin:$HOME/.local/bin:$(printf '%s' \"$PATH\" | tr ':' '\\n' | awk 'NF && $0 !~ /nvm/' | paste -sd: -)\" && bash .cursor/start.sh && cd \"$HOME/frappe-bench\" && bench start"
     }
   ]
 }
