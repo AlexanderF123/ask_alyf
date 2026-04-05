@@ -122,14 +122,14 @@ def is_path_within(base_path: Path, target_path: Path) -> bool:
 
 
 def get_apps_path() -> Path:
-	return (Path(get_bench_path()) / "apps").resolve()
+	return Path(get_bench_path()).resolve() / "apps"
 
 
 def get_installed_app_roots() -> dict[str, Path]:
 	apps_path = get_apps_path()
 	app_roots: dict[str, Path] = {}
 	for app_name in frappe.get_installed_apps():
-		app_root = (apps_path / app_name).resolve()
+		app_root = apps_path / app_name
 		if app_root.exists() and app_root.is_dir() and is_path_within(apps_path, app_root):
 			app_roots[app_name] = app_root
 	return app_roots
@@ -171,7 +171,7 @@ def resolve_installed_app_path(app_name: str, relative_path: str = "") -> tuple[
 	relative_target = normalize_app_relative_path(app_name, relative_path)
 	target = (app_root / relative_target).resolve()
 
-	if not is_path_within(app_root, target):
+	if not is_path_within(app_root.resolve(), target):
 		frappe.throw(_("Code access is restricted to installed app directories."))
 
 	return app_root, target
@@ -211,19 +211,37 @@ def resolve_bench_app_path(path: str) -> tuple[Path, Path]:
 
 
 def is_hidden_path(app_root: Path, path: Path) -> bool:
-	return any(part.startswith(".") for part in path.relative_to(app_root).parts if part not in {"", "."})
+	return any(
+		part.startswith(".")
+		for part in Path(to_app_relative_path(app_root, path)).parts
+		if part not in {"", "."}
+	)
+
+
+def to_app_relative_path(app_root: Path, path: Path) -> str:
+	return path.resolve().relative_to(app_root.resolve()).as_posix() or "."
 
 
 def to_bench_relative_path(path: Path) -> str:
 	bench_path = Path(get_bench_path()).resolve()
-	return path.relative_to(bench_path).as_posix()
+	try:
+		return path.relative_to(bench_path).as_posix()
+	except ValueError:
+		resolved_path = path.resolve()
+		for app_root in get_installed_app_roots().values():
+			real_app_root = app_root.resolve()
+			if not is_path_within(real_app_root, resolved_path):
+				continue
+			return (app_root / resolved_path.relative_to(real_app_root)).relative_to(bench_path).as_posix()
+
+		raise
 
 
 def build_code_path_entry(app_root: Path, path: Path) -> dict[str, Any]:
 	entry = {
 		"name": path.name or app_root.name,
 		"path": to_bench_relative_path(path),
-		"app_relative_path": path.relative_to(app_root).as_posix() or ".",
+		"app_relative_path": to_app_relative_path(app_root, path),
 		"type": "directory" if path.is_dir() else "file",
 	}
 	if path.is_file():
@@ -235,7 +253,7 @@ def ensure_app_target_exists(app_root: Path, target: Path):
 	if target.exists():
 		return
 
-	relative_path = target.relative_to(app_root).as_posix() or "."
+	relative_path = to_app_relative_path(app_root, target)
 	frappe.throw(_("Path '{0}' was not found in app '{1}'.").format(relative_path, app_root.name))
 
 
@@ -251,6 +269,7 @@ def iter_scoped_entries(
 		return [target]
 
 	results: list[Path] = []
+	real_app_root = app_root.resolve()
 	seen_paths = {target}
 	pending_paths = [target]
 
@@ -263,7 +282,7 @@ def iter_scoped_entries(
 
 		for child in children:
 			resolved_child = child.resolve()
-			if resolved_child in seen_paths or not is_path_within(app_root, resolved_child):
+			if resolved_child in seen_paths or not is_path_within(real_app_root, resolved_child):
 				continue
 			if not include_hidden and is_hidden_path(app_root, child):
 				continue
@@ -539,7 +558,7 @@ def ls(
 
 	return {
 		"app_name": app_name,
-		"path": target.relative_to(app_root).as_posix() or ".",
+		"path": to_app_relative_path(app_root, target),
 		"recursive": bool(recursive),
 		"entries": [build_code_path_entry(app_root, entry) for entry in entries[:limit]],
 	}
@@ -583,7 +602,7 @@ def find(
 
 	return {
 		"app_name": app_name,
-		"path": target.relative_to(app_root).as_posix() or ".",
+		"path": to_app_relative_path(app_root, target),
 		"name_pattern": name_pattern,
 		"entry_type": entry_type,
 		"matches": matches,
@@ -636,14 +655,14 @@ def grep(
 			if len(matches) >= limit:
 				return {
 					"app_name": app_name,
-					"path": target.relative_to(app_root).as_posix() or ".",
+					"path": to_app_relative_path(app_root, target),
 					"query": query,
 					"matches": matches,
 				}
 
 	return {
 		"app_name": app_name,
-		"path": target.relative_to(app_root).as_posix() or ".",
+		"path": to_app_relative_path(app_root, target),
 		"query": query,
 		"matches": matches,
 	}
