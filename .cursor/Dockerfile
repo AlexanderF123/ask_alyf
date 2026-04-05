@@ -8,13 +8,15 @@ FROM python:3.14.3-slim-trixie
 ARG NODE_VERSION=24.13.0
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/home/ubuntu/.local/bin:/usr/local/bin:${PATH}"
+ENV PATH="/home/frappe/.local/bin:/usr/local/bin:${PATH}"
+ENV UV_TOOL_BIN_DIR="/home/frappe/.local/bin"
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         bash \
         build-essential \
         ca-certificates \
+        cron \
         curl \
         file \
         git \
@@ -64,8 +66,8 @@ RUN set -eux; \
     rm -f /tmp/node.tar.xz; \
     npm install -g yarn
 
-RUN useradd -ms /bin/bash ubuntu \
-    && echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN useradd -ms /bin/bash frappe \
+    && echo "frappe ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-USER ubuntu
-WORKDIR /home/ubuntu
+USER frappe
+WORKDIR /home/frappe
