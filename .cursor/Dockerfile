@@ -18,6 +18,7 @@ RUN apt-get update \
         curl \
         file \
         git \
+        jq \
         less \
         libbz2-dev \
         libffi-dev \
@@ -42,6 +43,7 @@ RUN apt-get update \
         procps \
         redis-server \
         redis-tools \
+        ripgrep \
         sudo \
         which \
         xz-utils \
