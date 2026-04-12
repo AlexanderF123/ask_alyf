@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ask ALYF VERSION\n"
 "Report-Msgid-Bugs-To: hallo@alyf.de\n"
-"POT-Creation-Date: 2026-03-16 19:22+0053\n"
-"PO-Revision-Date: 2026-03-16 19:22+0053\n"
+"POT-Creation-Date: 2026-04-12 20:11+0053\n"
+"PO-Revision-Date: 2026-04-12 20:11+0053\n"
 "Last-Translator: hallo@alyf.de\n"
 "Language-Team: hallo@alyf.de\n"
 "MIME-Version: 1.0\n"
@@ -16,36 +16,59 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.16.0\n"
 
-#: ask_alyf/ask_alyf/tools.py:569
+#. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Settings'
+#. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Skill'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
+msgid "Access"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1118
+msgid "Accounts"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1409
 msgid "Action field 'args' must be an object."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:558
+#: ask_alyf/ask_alyf/tools.py:1375 ask_alyf/ask_alyf/tools.py:1386
 msgid "Action field 'doctype' is required."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:562
+#: ask_alyf/ask_alyf/tools.py:1404
+msgid "Action field 'file_id' is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1390
+msgid "Action field 'records' must be a non-empty list."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1394
+msgid "Action field 'records' row #{0} must be an object."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1379
 msgid "Action field 'values' must be an object."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:551
+#: ask_alyf/ask_alyf/tools.py:1319
 msgid "Action field '{0}' must be an object."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:783
+#: ask_alyf/ask_alyf/agent.py:1434
 msgid "Add a row to {0} on current form"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:785
+#: ask_alyf/ask_alyf/agent.py:1436
 msgid "Add child row action needs correction."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:104
-#: ask_alyf/public/js/ask_alyf.bundle.js:388
+#: ask_alyf/public/js/ask_alyf.bundle.js:560
+#: ask_alyf/public/js/ask_alyf.bundle.js:1030
 msgid "Agent"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:112
+#: ask_alyf/ask_alyf/api.py:95
 msgid "Agent mode is disabled or not available for your user."
 msgstr ""
 
@@ -54,20 +77,38 @@ msgstr ""
 msgid "Allow Agent Mode"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:541
+#. Label of the allow_code_search (Check) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Allow Code Search"
+msgstr ""
+
+#. Label of the allow_file_upload (Check) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Allow File Upload"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1187
 msgid "Amend proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:539
+#: ask_alyf/ask_alyf/agent.py:1185
 msgid "Amend {0} {1}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:313
+#: ask_alyf/ask_alyf/tools.py:1367
+msgid "And {0} more."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:146 ask_alyf/ask_alyf/tools.py:1043
 msgid "App '{0}' is not installed."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:310
+#: ask_alyf/ask_alyf/tools.py:142 ask_alyf/ask_alyf/tools.py:1040
 msgid "App name is required."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:2011
+msgid "Applying action..."
 msgstr ""
 
 #. Label of a Desktop Icon
@@ -98,137 +139,329 @@ msgstr ""
 msgid "Ask ALYF Settings"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:118
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
+msgid "Ask ALYF Skill"
+msgstr ""
+
+#. Name of a role
+#: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
+msgid "Ask ALYF User"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:562
 msgid "Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:248
+#: ask_alyf/public/js/ask_alyf.bundle.js:777
 msgid "Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:74
-msgid "Ask ALYF sections"
+#: ask_alyf/ask_alyf/agent.py:974
+msgid "At least one role is required."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:92
-msgid "Ask about this ERPNext instance"
-msgstr ""
-
-#: ask_alyf/ask_alyf/agent.py:622
+#: ask_alyf/ask_alyf/agent.py:1273
 msgid "Attach file proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:620
-msgid "Attach {0} to {1} {2}"
+#: ask_alyf/ask_alyf/agent.py:1267
+msgid "Attach file {0} to {1} {2}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:63
-#: ask_alyf/public/js/ask_alyf.bundle.js:65
-#: ask_alyf/public/js/ask_alyf.bundle.js:345
+#: ask_alyf/ask_alyf/agent.py:1062
+msgid "Batch create proposal needs correction."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1109
+msgid "Buying"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:987
 msgid "Call support"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:344
+#: ask_alyf/public/js/ask_alyf.bundle.js:986
 msgid "Call support: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:647
+#: ask_alyf/ask_alyf/agent.py:1298
 msgid "Call {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:520
+#: ask_alyf/ask_alyf/agent.py:1166
 msgid "Cancel proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:518
+#: ask_alyf/ask_alyf/agent.py:1164
 msgid "Cancel {0} {1}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:533
+#: ask_alyf/ask_alyf/api.py:829 ask_alyf/ask_alyf/api.py:858
 msgid "Cancelled frontend action: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:473
+#: ask_alyf/ask_alyf/api.py:743
+msgid "Cancelled showing chart: {0}."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:679 ask_alyf/ask_alyf/api.py:706
 msgid "Cancelled the pending operation: {0}."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:241
+#: ask_alyf/public/js/ask_alyf.bundle.js:1707
+msgid "Changes preview"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1472
+msgid "Chart action needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1541
+msgid "Chart data must be an object."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1467
+msgid "Chart data requires a non-empty datasets array."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1448
+msgid "Chart data requires a non-empty labels array."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1527
+msgid "Chart height is out of range."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1457
+msgid "Chart labels must be numbers or strings."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1120
+msgid "Chart monthly expenses by cost center"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1102
+msgid "Chart my monthly sales revenue for the last 6 months"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1165
+msgid "Chart open issues by priority"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1147
+msgid "Chart production output by item this week"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1111
+msgid "Chart spending by supplier for this quarter"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1138
+msgid "Chart stock value by warehouse"
+msgstr ""
+
+#. Label of the model (Autocomplete) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Chat Model"
+msgstr ""
+
+#. Label of the chat_provider_tab (Tab Break) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Chat Provider"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:566
 msgid "Checking permissions..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:271
-msgid "Code reads are restricted to the bench directory."
+#: ask_alyf/ask_alyf/tools.py:175
+msgid "Code access is restricted to installed app directories."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:235
-msgid "Code search is restricted to the apps directory."
+#: ask_alyf/ask_alyf/tools.py:117
+msgid "Code search is disabled in Ask ALYF Settings."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:818
+#: ask_alyf/ask_alyf/agent.py:70
 msgid "Configure a model in Ask ALYF Settings before sending messages."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:812
+#: ask_alyf/ask_alyf/tools.py:771
+msgid "Configure a vision model API key in Ask ALYF Settings."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:773
+msgid "Configure a vision model in Ask ALYF Settings."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:63
 msgid "Configure an API key in Ask ALYF Settings before sending messages."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:441
+#: ask_alyf/public/js/ask_alyf.bundle.js:510
+msgid "Confirm all"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:255
 msgid "Confirmed operation: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:412
+#: ask_alyf/ask_alyf/api.py:585 ask_alyf/public/js/ask_alyf.bundle.js:2012
+msgid "Confirming action..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:983
+msgid "Conversation name is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:737
+msgid "Could not attach charts to the assistant message."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:253
 msgid "Could not confirm operation: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:164
+#: ask_alyf/ask_alyf/api.py:745
+msgid "Could not display chart."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:2237
+msgid "Could not download chart."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:685
+msgid "Could not extract visual content from the file."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:2308
+msgid "Could not render chart."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:489
 msgid "Counting documents..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:416
+#: ask_alyf/ask_alyf/agent.py:1038
 msgid "Create proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:414
+#: ask_alyf/ask_alyf/agent.py:978
+msgid "Create skill '{0}'"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1036
 msgid "Create {0}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:836
+#: ask_alyf/ask_alyf/agent.py:1060
+msgid "Create {0} {1} records"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1331
+msgid "Created {0} of {1} {2} records."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1867
 msgid "Current document is {0}, expected {1}."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:826
+#: ask_alyf/public/js/ask_alyf.bundle.js:1859
 msgid "Current form is {0}, expected {1}."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:562
+#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488
+#: ask_alyf/ask_alyf/tools.py:1491
+msgid "Dataset values must be numeric."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1480
+msgid "Dataset values must match labels length."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:763
+msgid "Delegating code analysis..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1208
 msgid "Delete proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:560
+#: ask_alyf/ask_alyf/agent.py:1206
 msgid "Delete {0} {1}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:496
+#: ask_alyf/ask_alyf/tools.py:1265
 msgid "Deleted {0} {1}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:65
+#: ask_alyf/ask_alyf/tools.py:325
 msgid "DocType '{0}' is excluded from Agent mode."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:445
+#: ask_alyf/ask_alyf/tools.py:979
+msgid "DocType is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:896
+msgid "Document extraction did not return text."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:920
+msgid "Document extraction did not return valid JSON."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:900
+msgid "Document extraction returned an empty response."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:845
+msgid "Document extraction returned no choices."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:850
+msgid "Document extraction returned no content."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:981
+msgid "Document name is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:259
 msgid "Document: {0} {1}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:57
+#: ask_alyf/public/js/ask_alyf.bundle.js:2219
+msgid "Download chart as SVG"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:554
 msgid "ERPNext assistant"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:199
+#: ask_alyf/ask_alyf/tools.py:1507
+msgid "Each chart must be an object."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1475
+msgid "Each dataset must be an object."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1478
+msgid "Each dataset needs a values array."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:464
 msgid "Each label must be a string."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:254
+#: ask_alyf/ask_alyf/tools.py:580
+msgid "Entry type must be one of any, file, or directory."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:579
 msgid "Evaluating permissions..."
 msgstr ""
 
@@ -244,144 +477,205 @@ msgstr ""
 msgid "Excluded DocTypes"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:531
+#: ask_alyf/ask_alyf/api.py:827 ask_alyf/ask_alyf/api.py:856
 msgid "Executed frontend action: {0}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:992
+#: ask_alyf/ask_alyf/agent.py:828
+msgid "Extracting document data..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1364
+msgid "Failed rows: {0}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:962
+msgid "Failed to attach file to conversation."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:2039
 msgid "Failed to confirm pending operation."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:939
+#: ask_alyf/public/js/ask_alyf.bundle.js:1975
 msgid "Failed to execute frontend action."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:529
+#: ask_alyf/public/js/ask_alyf.bundle.js:1364
 msgid "Failed to open conversation."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:1023
+#: ask_alyf/public/js/ask_alyf.bundle.js:2077
 msgid "Failed to reject pending operation."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:768
+#: ask_alyf/public/js/ask_alyf.bundle.js:1610
 msgid "Failed to send message."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:183
+#: ask_alyf/ask_alyf/agent.py:508
 msgid "Fetching document..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:140
+#: ask_alyf/ask_alyf/agent.py:465
 msgid "Fetching list..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:215
+#: ask_alyf/ask_alyf/agent.py:540
 msgid "Fetching single value..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:202
+#: ask_alyf/ask_alyf/agent.py:527
 msgid "Fetching value..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:676
+#: ask_alyf/ask_alyf/tools.py:1697
 msgid "Field '{0}' in {1} is a child table ({2}) and must be a list of row objects."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:682
+#: ask_alyf/ask_alyf/tools.py:1705
 msgid "Field '{0}' row #{1} in {2} must be an object."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:870
-#: ask_alyf/public/js/ask_alyf.bundle.js:881
+#: ask_alyf/public/js/ask_alyf.bundle.js:1901
+#: ask_alyf/public/js/ask_alyf.bundle.js:1912
 msgid "Field {0} does not exist on this form."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:651
+#: ask_alyf/ask_alyf/api.py:893 ask_alyf/ask_alyf/tools.py:711
+msgid "File '{0}' was not found."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:709
+msgid "File ID is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:878
+msgid "File upload is not enabled."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:705
+msgid "Finding code paths..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1668
 msgid "Frontend action 'frm_add_child' field 'docname' must be a string."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:649
+#: ask_alyf/ask_alyf/tools.py:1666
 msgid "Frontend action 'frm_add_child' field 'doctype' must be a string."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:645
+#: ask_alyf/ask_alyf/tools.py:1662
 msgid "Frontend action 'frm_add_child' field 'values' must be an object."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:642
+#: ask_alyf/ask_alyf/tools.py:1659
 msgid "Frontend action 'frm_add_child' requires a fieldname."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:636
+#: ask_alyf/ask_alyf/tools.py:1653
 msgid "Frontend action 'frm_set_value' field 'docname' must be a string."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:634
+#: ask_alyf/ask_alyf/tools.py:1651
 msgid "Frontend action 'frm_set_value' field 'doctype' must be a string."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:630
+#: ask_alyf/ask_alyf/tools.py:1647
 msgid "Frontend action 'frm_set_value' requires a fieldname."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:618
+#: ask_alyf/ask_alyf/tools.py:1635
 msgid "Frontend action 'new_doc' field 'route_options' must be an object."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:615
+#: ask_alyf/ask_alyf/tools.py:1632
 msgid "Frontend action 'new_doc' requires a DocType."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:624
+#: ask_alyf/ask_alyf/tools.py:1641
 msgid "Frontend action 'scroll_to_field' requires a fieldname."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:606
+#: ask_alyf/ask_alyf/tools.py:1623
 msgid "Frontend action 'set_route' requires a non-empty route list."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:504
-msgid "Frontend action call ID does not match the pending operation."
-msgstr ""
-
-#: ask_alyf/ask_alyf/api.py:535
+#: ask_alyf/ask_alyf/api.py:831 ask_alyf/ask_alyf/api.py:860
 msgid "Frontend action failed: {0}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:926
+#: ask_alyf/public/js/ask_alyf.bundle.js:1962
 msgid "Frontend action is missing a call ID."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:601
+#: ask_alyf/ask_alyf/tools.py:1618
 msgid "Frontend action payload contains an unsafe key."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:598
+#: ask_alyf/ask_alyf/tools.py:1615
 msgid "Frontend action payload must be an object."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:430
+#: ask_alyf/ask_alyf/tools.py:1160
 msgid "Frontend actions must be executed in the browser."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:81
+#: ask_alyf/ask_alyf/agent.py:861
+msgid "Generating print..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:619 ask_alyf/ask_alyf/api.py:686
+#: ask_alyf/ask_alyf/api.py:801
+msgid "Generating response..."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1127
+msgid "HR"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:556
 msgid "History"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:357
+#: ask_alyf/public/js/ask_alyf.bundle.js:1149
+msgid "How many Work Orders are behind schedule?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1131
+msgid "How many leave applications are pending approval?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1113
+msgid "How many pending purchase receipts do I have?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1104
+msgid "How many quotations were sent this month?"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:505
 msgid "I hit an error while processing that request. Please try again."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:352
-msgid "I prepared the requested operation. Please review it and confirm if it looks correct."
+#: ask_alyf/ask_alyf/api.py:147 ask_alyf/ask_alyf/api.py:501
+msgid "I've prepared the operation. Please review and confirm."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:437
+#: ask_alyf/ask_alyf/tools.py:1167
 msgid "Invalid action payload."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:417
+#: ask_alyf/ask_alyf/tools.py:1545 ask_alyf/public/js/ask_alyf.bundle.js:2278
+msgid "Invalid chart data."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1603
+msgid "Invalid chart specification."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1147
 msgid "Invalid pending operation payload."
 msgstr ""
 
@@ -390,7 +684,7 @@ msgstr ""
 msgid "LLM Provider"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:194
+#: ask_alyf/ask_alyf/tools.py:459
 msgid "Labels must be provided as a list of strings."
 msgstr ""
 
@@ -406,20 +700,28 @@ msgstr ""
 msgid "Last Message At"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:266
+#: ask_alyf/ask_alyf/agent.py:591
 msgid "Listing accessible DocTypes..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:275
+#: ask_alyf/ask_alyf/agent.py:600
 msgid "Listing accessible reports..."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:517
+#: ask_alyf/ask_alyf/agent.py:674
+msgid "Listing code files..."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1349
 msgid "Loading conversation..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:227
+#: ask_alyf/ask_alyf/agent.py:552
 msgid "Loading metadata..."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1145
+msgid "Manufacturing"
 msgstr ""
 
 #. Label of the messages_json (Code) field in DocType 'Ask ALYF Conversation'
@@ -427,57 +729,76 @@ msgstr ""
 msgid "Messages JSON"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:649
+#: ask_alyf/ask_alyf/agent.py:1300
 msgid "Method call proposal needs correction."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:390
+#: ask_alyf/public/js/ask_alyf.bundle.js:1032
 msgid "Mode: {0}"
 msgstr ""
 
-#. Label of the model (Autocomplete) field in DocType 'Ask ALYF Settings'
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-msgid "Model"
+#: ask_alyf/ask_alyf/tools.py:449
+msgid "Multiple matching files were found. Provide reference_field, file_url, or file_name."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:668
+#: ask_alyf/ask_alyf/agent.py:1319
 msgid "Navigate to {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:147 ask_alyf/ask_alyf/api.py:271
-#: ask_alyf/ask_alyf/api.py:299
+#: ask_alyf/ask_alyf/api.py:229 ask_alyf/ask_alyf/api.py:418
+#: ask_alyf/ask_alyf/api.py:444
 msgid "New Conversation"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:62
+#: ask_alyf/public/js/ask_alyf.bundle.js:554
 msgid "New chat"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:695
+#: ask_alyf/ask_alyf/agent.py:1346
 msgid "New document action needs correction."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:468
+#: ask_alyf/public/js/ask_alyf.bundle.js:1300
 msgid "No conversations yet."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:369
+#: ask_alyf/ask_alyf/tools.py:1099
 msgid "No documentation URL was found for app '{0}'."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:820
+#: ask_alyf/public/js/ask_alyf.bundle.js:1851
 msgid "No form is currently open."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:386
+#: ask_alyf/ask_alyf/tools.py:184
+msgid "No installed app code roots were found."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:445
+msgid "No matching file was found."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:182
+msgid "No pending operation matches call_id '{0}'."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1116
 msgid "No pyproject.toml was found for app '{0}'."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:340
+#: ask_alyf/ask_alyf/agent.py:1542 ask_alyf/ask_alyf/agent.py:1651
+msgid "No recent conversation context."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1070
 msgid "No repository URL was found for app '{0}'."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:330
+#: ask_alyf/ask_alyf/api.py:891
+msgid "No valid file provided."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1060
 msgid "No version was found for app '{0}'."
 msgstr ""
 
@@ -487,47 +808,61 @@ msgstr ""
 msgid "One DocType per line. These DocTypes stay read-only in Agent mode."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:296
+#: ask_alyf/ask_alyf/tools.py:1026
 msgid "Only Administrator and System Manager can run SQL queries."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:345
+#: ask_alyf/ask_alyf/tools.py:1075
 msgid "Only GitHub repositories are supported for release lookup."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:299
+#: ask_alyf/ask_alyf/tools.py:1029
 msgid "Only a single read-only SQL statement is allowed."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:406
+#: ask_alyf/ask_alyf/api.py:580
 msgid "Only backend actions can be confirmed by this endpoint."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:302
+#: ask_alyf/ask_alyf/tools.py:1032
 msgid "Only read-only SQL statements are allowed."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:49
-msgid "Open Ask ALYF"
-msgstr ""
-
-#: ask_alyf/ask_alyf/agent.py:693
+#: ask_alyf/ask_alyf/agent.py:1344
 msgid "Open new {0}"
 msgstr ""
 
 #. Option for the 'LLM Provider' (Select) field in DocType 'Ask ALYF Settings'
+#. Option for the 'Vision LLM Provider' (Select) field in DocType 'Ask ALYF
+#. Settings'
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "OpenAI"
 msgstr ""
 
 #. Option for the 'LLM Provider' (Select) field in DocType 'Ask ALYF Settings'
+#. Option for the 'Vision LLM Provider' (Select) field in DocType 'Ask ALYF
+#. Settings'
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "OpenAI Compatible"
 msgstr ""
 
 #. Description of the 'Base URL' (Data) field in DocType 'Ask ALYF Settings'
+#. Description of the 'Vision Base URL' (Data) field in DocType 'Ask ALYF
+#. Settings'
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "Optional for OpenAI. Required for OpenAI-compatible providers."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:526
+msgid "Path '{0}' must point to a file inside an installed app."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:257
+msgid "Path '{0}' was not found in app '{1}'."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:206
+msgid "Path must start with an installed app name."
 msgstr ""
 
 #. Label of the pending_operation_json (Code) field in DocType 'Ask ALYF
@@ -536,191 +871,321 @@ msgstr ""
 msgid "Pending Operation JSON"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:815
-#: ask_alyf/public/js/ask_alyf.bundle.js:1072
+#: ask_alyf/public/js/ask_alyf.bundle.js:1657
 msgid "Pending operation"
 msgstr ""
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:70
+#: ask_alyf/ask_alyf/agent.py:1013
+msgid "Planning document change..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:104
 msgid "Please configure a Base URL first and save the settings, then we can fetch available models."
 msgstr ""
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:63
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:97
 msgid "Please configure an API key first and save the settings, then we can fetch available models."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:786
+#: ask_alyf/ask_alyf/agent.py:1437
 msgid "Prepared add child row action."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:542
+#: ask_alyf/ask_alyf/agent.py:1188
 msgid "Prepared amend proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:623
+#: ask_alyf/ask_alyf/agent.py:1274
 msgid "Prepared attach file proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:521
+#: ask_alyf/ask_alyf/agent.py:1063
+msgid "Prepared batch create proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1167
 msgid "Prepared cancel proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:417
+#: ask_alyf/ask_alyf/agent.py:1473
+msgid "Prepared chart display."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1039
 msgid "Prepared create proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:563
+#: ask_alyf/ask_alyf/agent.py:1209
 msgid "Prepared delete proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:650
+#: ask_alyf/ask_alyf/agent.py:1301
 msgid "Prepared method call proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:696
+#: ask_alyf/ask_alyf/agent.py:1347
 msgid "Prepared new document action."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:593
+#: ask_alyf/ask_alyf/agent.py:1239
 msgid "Prepared rename proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:671
+#: ask_alyf/ask_alyf/agent.py:1322
 msgid "Prepared route action."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:716
+#: ask_alyf/ask_alyf/agent.py:1367
 msgid "Prepared scroll action."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:751
+#: ask_alyf/ask_alyf/agent.py:1402
 msgid "Prepared set field action."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:477
+#: ask_alyf/ask_alyf/agent.py:1123
 msgid "Prepared set value proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:500
+#: ask_alyf/ask_alyf/agent.py:981
+msgid "Prepared skill proposal."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1146
 msgid "Prepared submit proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:446
+#: ask_alyf/ask_alyf/agent.py:1092
 msgid "Prepared update proposal."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:205
+#: ask_alyf/public/js/ask_alyf.bundle.js:1154
+msgid "Projects"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1594
+msgid "Provide at least one chart in frappe_charts."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:470
 msgid "Provide at least one label to translate."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:384
+#: ask_alyf/ask_alyf/tools.py:489 ask_alyf/ask_alyf/tools.py:626
+msgid "Query is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:907
 msgid "Reading GitHub releases..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:371
+#: ask_alyf/ask_alyf/agent.py:894
 msgid "Reading app version..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:334
+#: ask_alyf/ask_alyf/agent.py:651
 msgid "Reading code file..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:397
+#: ask_alyf/ask_alyf/agent.py:920
 msgid "Reading documentation..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:347
+#: ask_alyf/ask_alyf/agent.py:807
 msgid "Reading file..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:537
+#: ask_alyf/ask_alyf/agent.py:935
+msgid "Reading skill..."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:747 ask_alyf/ask_alyf/api.py:833
+#: ask_alyf/ask_alyf/api.py:862
 msgid "Reason: {0}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:1078
+#: ask_alyf/ask_alyf/agent.py:125
+msgid "Recent conversation context:"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1758
+msgid "Records to create ({0})"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:729
+msgid "Reference doctype is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:733
+msgid "Reference name is required."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:491
 msgid "Reject"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:592
+#: ask_alyf/public/js/ask_alyf.bundle.js:512
+msgid "Reject all"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1238
 msgid "Rename proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:590
+#: ask_alyf/ask_alyf/agent.py:1236
 msgid "Rename {0} {1} to {2}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:53
-msgid "Resize chat window"
+#: ask_alyf/ask_alyf/agent.py:789
+msgid "Resolving file ID..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:670
+#: ask_alyf/ask_alyf/agent.py:1321
 msgid "Route action needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:609
+#: ask_alyf/ask_alyf/tools.py:1626
 msgid "Route part #{0} must be a non-empty string."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:359
+#: ask_alyf/ask_alyf/agent.py:882
 msgid "Running SQL query..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:715
+#. Label of the vision_model_is_chat_model (Check) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Same as Chat"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1366
 msgid "Scroll action needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:713
+#: ask_alyf/ask_alyf/agent.py:1364
 msgid "Scroll to field {0}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:860
+#: ask_alyf/public/js/ask_alyf.bundle.js:1891
 msgid "Scrolling to fields is not available on this form."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:320
+#: ask_alyf/ask_alyf/agent.py:637
 msgid "Searching code..."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:733
+#: ask_alyf/ask_alyf/agent.py:739
+msgid "Searching file contents..."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1100
+msgid "Selling"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1575
 msgid "Sending..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:750
+#: ask_alyf/ask_alyf/agent.py:1401
 msgid "Set field action needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:748
+#: ask_alyf/ask_alyf/agent.py:1399
 msgid "Set field {0} on current form"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:476
+#: ask_alyf/ask_alyf/agent.py:1122
 msgid "Set value proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:474
+#: ask_alyf/ask_alyf/agent.py:1120
 msgid "Set {0} on {1} {2}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:60
-msgid "Start a new conversation"
+#: ask_alyf/ask_alyf/agent.py:1467
+msgid "Show chart"
 msgstr ""
 
-#. Description of the 'Model' (Autocomplete) field in DocType 'Ask ALYF
+#: ask_alyf/public/js/ask_alyf.bundle.js:1129
+msgid "Show employee headcount by department as a chart"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1148
+msgid "Show me open Work Orders and their status"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1174
+msgid "Show me the top 10 DocTypes by record count"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1121
+msgid "Show me unpaid Sales Invoices older than 30 days"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1166
+msgid "Show me unresolved issues from this week"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1156
+msgid "Show project progress as a chart"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1467
+msgid "Show {0} charts"
+msgstr ""
+
+#: ask_alyf/ask_alyf/skill_utils.py:43
+msgid "Skill '{0}' is not available for the current user."
+msgstr ""
+
+#: ask_alyf/ask_alyf/skill_utils.py:38
+msgid "Skill '{0}' was not found."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:972
+msgid "Skill description is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/skill_utils.py:33
+msgid "Skill name is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:980
+msgid "Skill proposal needs correction."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:970
+msgid "Skill title is required."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1362
+msgid "Some rows failed."
+msgstr ""
+
+#. Description of the 'Chat Model' (Autocomplete) field in DocType 'Ask ALYF
 #. Settings'
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "Start typing to choose a model. Available models are loaded from the configured provider."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:508
+#: ask_alyf/ask_alyf/api.py:790
 msgid "Status must be one of success, failed, or rejected."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:499
+#: ask_alyf/public/js/ask_alyf.bundle.js:1136
+msgid "Stock"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1145
 msgid "Submit proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:497
+#: ask_alyf/ask_alyf/agent.py:1143
 msgid "Submit {0} {1}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1163
+msgid "Support"
 msgstr ""
 
 #. Label of the support_phone_number (Phone) field in DocType 'Ask ALYF
@@ -734,47 +1199,75 @@ msgstr ""
 msgid "System Prompt"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:501
+#: ask_alyf/ask_alyf/api.py:784
 msgid "The pending operation is not a frontend action."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:498
+#: ask_alyf/ask_alyf/api.py:778
 msgid "There is no pending frontend action to resolve."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:401
+#: ask_alyf/ask_alyf/api.py:572
 msgid "There is no pending operation to confirm."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:205
+#: ask_alyf/public/js/ask_alyf.bundle.js:718
 msgid "Thinking..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:303
+#: ask_alyf/ask_alyf/tools.py:1470
+msgid "Too many chart datasets."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1451
+msgid "Too many chart labels."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1597
+msgid "Too many charts in one request."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:620
 msgid "Translating UI labels..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:94
+#: ask_alyf/ask_alyf/tools.py:1200
+msgid "Unknown error."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:136
 msgid "Unsupported LLM provider: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:533
+#: ask_alyf/ask_alyf/tools.py:1301
 msgid "Unsupported action '{0}'."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:595 ask_alyf/ask_alyf/tools.py:654
+#: ask_alyf/ask_alyf/tools.py:933
+msgid "Unsupported file type '{0}'. Supported types: PDF, PNG, JPG, GIF, WebP."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1612 ask_alyf/ask_alyf/tools.py:1675
 msgid "Unsupported frontend action '{0}'."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:889
+#: ask_alyf/public/js/ask_alyf.bundle.js:1924
 msgid "Unsupported frontend action: {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:412 ask_alyf/ask_alyf/tools.py:432
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:126
+msgid "Unsupported model configuration: {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1142 ask_alyf/ask_alyf/tools.py:1162
 msgid "Unsupported operation kind '{0}'."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:433
+#: ask_alyf/ask_alyf/tools.py:1511
+msgid "Unsupported or missing chart type."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1075
 msgid "Untitled conversation"
 msgstr ""
 
@@ -783,43 +1276,147 @@ msgstr ""
 msgid "Update Ask ALYF Settings"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:445
+#: ask_alyf/ask_alyf/agent.py:1091
 msgid "Update proposal needs correction."
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:443
+#: ask_alyf/ask_alyf/agent.py:1089
 msgid "Update {0} {1}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:110
-#: ask_alyf/public/js/ask_alyf.bundle.js:112
-msgid "Voice input"
+#. Label of the vision_api_key (Password) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Vision API Key"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:1183
+#. Label of the vision_base_url (Data) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Vision Base URL"
+msgstr ""
+
+#. Label of the vision_llm_provider (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Vision LLM Provider"
+msgstr ""
+
+#. Label of the vision_model (Autocomplete) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Vision Model"
+msgstr ""
+
+#. Label of the vision_provider_tab (Tab Break) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Vision Provider"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:2430
 msgid "Voice input language: {0}"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:764
+#: ask_alyf/public/js/ask_alyf.bundle.js:1606
 msgid "Waiting for response..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:237 ask_alyf/ask_alyf/api.py:249
-#: ask_alyf/ask_alyf/api.py:266 ask_alyf/ask_alyf/api.py:289
-#: ask_alyf/ask_alyf/api.py:395 ask_alyf/ask_alyf/api.py:458
-#: ask_alyf/ask_alyf/api.py:492
+#: ask_alyf/public/js/ask_alyf.bundle.js:1103
+msgid "What Sales Orders are pending delivery?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1175
+msgid "What are the recent Error Logs?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1157
+msgid "What open tasks are assigned to me?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1140
+msgid "What were the top 10 most moved items this month?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1167
+msgid "What's the average resolution time for issues?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1122
+msgid "What's the total outstanding receivables?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1112
+msgid "Which Purchase Orders are overdue?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1130
+msgid "Which employees are on leave today?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1139
+msgid "Which items are below their reorder level?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1158
+msgid "Which project tasks are overdue?"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1176
+msgid "Which users logged in today?"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:385 ask_alyf/ask_alyf/api.py:397
+#: ask_alyf/ask_alyf/api.py:414 ask_alyf/ask_alyf/api.py:434
+#: ask_alyf/ask_alyf/api.py:566 ask_alyf/ask_alyf/api.py:655
+#: ask_alyf/ask_alyf/api.py:772 ask_alyf/ask_alyf/api.py:874
 msgid "You do not have access to Ask ALYF."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:1124
+#: ask_alyf/public/js/ask_alyf.bundle.js:2371
 msgid "Your browser does not support voice input."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:519
+#: ask_alyf/ask_alyf/agent.py:1531
+msgid "all installed app code roots available to you"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:743
+msgid "chart"
+msgstr ""
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
+msgid "debug session"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:260
+msgid "doctype"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:823
 msgid "frontend action"
 msgstr ""
 
-#: ask_alyf/ask_alyf/agent.py:668
+#: ask_alyf/ask_alyf/tools.py:1357
+msgid "row {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1355
+msgid "row {0}: {1}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:1319
 msgid "target route"
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:985
+msgid "{0} '{1}' was not found."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1819
+msgid "{0} items"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1813
+msgid "{0} rows"
 msgstr ""
 
