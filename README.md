@@ -13,6 +13,12 @@ The agent supports multi-turn tool calls (chaining multiple operations in one re
 
 Input can be text or voice. Voice input is transcribed to text before being sent to the agent; the agent's response can optionally be read aloud via text-to-speech.
 
+### Field Agent
+
+In addition to the chat bubble, Ask ALYF injects a small sparkles button next to long-text fields on Desk forms (Long Text, Small Text, Text, Text Editor, HTML Editor, Code, Markdown Editor). Clicking it opens a prompt overlay where the user can describe what they want generated, and the agent fills the field in place. After insertion, an *Undo* action is offered for a few seconds.
+
+The field agent is gated by the **Ask ALYF User** role and an _Allow Field Agent_ switch in **Ask ALYF Settings**.
+
 ### Staying Close to Frappe
 
 Ask ALYF tries to stay close to the Frappe Framework instead of inventing a parallel experience. It uses a familiar UI, integrates native building blocks like **Frappe Charts** and the standard file uploader, and stays within the same role-based permission system instead of bypassing framework permissions.
