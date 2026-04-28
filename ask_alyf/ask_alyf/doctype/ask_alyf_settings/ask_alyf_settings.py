@@ -59,6 +59,7 @@ class AskALYFSettings(Document):
 
 		allow_agent_mode: DF.Check
 		allow_code_search: DF.Check
+		allow_field_agent: DF.Check
 		allow_file_upload: DF.Check
 		api_key: DF.Password | None
 		base_url: DF.Data | None

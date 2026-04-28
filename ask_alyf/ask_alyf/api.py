@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 from uuid import uuid4
 
@@ -9,6 +10,7 @@ from frappe.utils import now_datetime
 from frappe.utils.background_jobs import enqueue
 from frappe.utils.data import cint
 
+from ask_alyf.ask_alyf import field_agent
 from ask_alyf.ask_alyf.agent import run_message
 from ask_alyf.ask_alyf.tools import (
 	OPERATION_KIND_BACKEND,
@@ -22,6 +24,43 @@ from ask_alyf.ask_alyf.utils import chunk_text, dumps, loads
 MODE_ASK = "Ask"
 MODE_AGENT = "Agent"
 ASK_ALYF_USER_ROLE = "Ask ALYF User"
+
+
+def _truncate_doc_for_size(
+	doc: dict,
+	table_fieldnames: set | None = None,
+	threshold_bytes: int = 16 * 1024,
+	max_rows: int = 20,
+) -> dict:
+	"""Truncate child-table lists in *doc* when the payload exceeds *threshold_bytes*.
+
+	Args:
+		doc: The document dict to (potentially) truncate in-place.
+		table_fieldnames: Set of fieldnames whose fieldtype is "Table". When
+			``None`` or empty, any list-of-dicts value is treated as a child table.
+		threshold_bytes: Payload size limit in bytes (default 16 KB).
+		max_rows: Maximum rows to retain per child table (default 20).
+
+	Returns:
+		The same *doc* dict, mutated in-place and returned for convenience.
+	"""
+	if len(json.dumps(doc, default=str)) <= threshold_bytes:
+		return doc
+
+	known_tables: set = table_fieldnames or set()
+
+	for key, value in doc.items():
+		if not isinstance(value, list):
+			continue
+		is_child_table = key in known_tables or (value and isinstance(value[0], dict))
+		if is_child_table and len(value) > max_rows:
+			total = len(value)
+			doc[key] = [
+				*value[:max_rows],
+				{"_truncated": f"Child table truncated to first {max_rows} of {total} rows for size"},
+			]
+
+	return doc
 
 
 def get_support_phone_uri(phone_number: str | None) -> str:
@@ -41,6 +80,7 @@ def get_ask_alyf_boot_payload() -> dict:
 	settings_available = frappe.db.exists("DocType", "Ask ALYF Settings")
 	configured = False
 	agent_mode_enabled = False
+	field_agent_enabled = False
 	file_upload_enabled = False
 	support_phone_number = ""
 	support_phone_uri = ""
@@ -48,6 +88,7 @@ def get_ask_alyf_boot_payload() -> dict:
 	try:
 		settings = get_settings()
 		agent_mode_enabled = bool(settings.allow_agent_mode)
+		field_agent_enabled = bool(settings.allow_field_agent)
 		file_upload_enabled = bool(settings.allow_file_upload)
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		configured = bool(api_key and (settings.model or "").strip())
@@ -60,6 +101,7 @@ def get_ask_alyf_boot_payload() -> dict:
 		"allowed": can_access_ask_alyf(),
 		"configured": configured,
 		"agent_mode_enabled": agent_mode_enabled,
+		"field_agent_enabled": field_agent_enabled,
 		"file_upload_enabled": file_upload_enabled,
 		"support_phone_number": support_phone_number,
 		"support_phone_uri": support_phone_uri,
@@ -866,6 +908,69 @@ def frontend_action_result(
 		return {"conversation": conversation_payload(doc)}
 	finally:
 		publish_status_update(doc.name, doc.owner, "")
+
+
+@frappe.whitelist(methods=["POST"])
+def field_agent_run(
+	doctype: str,
+	fieldname: str,
+	fieldtype: str,
+	current_value: str,
+	doc: str | dict,
+	prompt: str,
+) -> dict:
+	"""Run the field agent trigger for a single field and return the generated value.
+
+	Permission checks (in order):
+	1. User must have the Ask ALYF User role.
+	2. Settings must have allow_field_agent enabled.
+	3. User must have read permission on the target DocType.
+
+	Args:
+		doctype: The DocType of the document being edited.
+		fieldname: The field name being generated.
+		fieldtype: The Frappe fieldtype string.
+		current_value: The current field value.
+		doc: The document dict (JSON string or dict) from the frontend form.
+		prompt: The user's natural-language instruction.
+
+	Returns:
+		A dict with key "response" containing the generated field value.
+	"""
+	if not can_access_ask_alyf():
+		frappe.throw(_("You do not have access to Ask ALYF."))
+
+	settings = get_settings()
+	if not settings.allow_field_agent:
+		frappe.throw(_("Field Agent is not enabled."))
+
+	if not frappe.has_permission(doctype, "read"):
+		frappe.throw(_("You do not have read permission on {0}.").format(doctype))
+
+	# Sanitize doc: parse JSON string if needed
+	if isinstance(doc, str):
+		doc_data: dict = frappe.parse_json(doc) or {}
+	else:
+		doc_data = dict(doc) if doc else {}
+
+	# Single meta lookup; fail-closed so password stripping cannot be silently skipped
+	meta = frappe.get_meta(doctype)
+	password_fieldnames = {df.fieldname for df in meta.fields if df.fieldtype == "Password"}
+	for pw_field in password_fieldnames:
+		doc_data.pop(pw_field, None)
+
+	table_fieldnames = {df.fieldname for df in meta.fields if df.fieldtype == "Table"}
+	_truncate_doc_for_size(doc_data, table_fieldnames=table_fieldnames)
+
+	result = field_agent.run_field_agent(
+		doctype=doctype,
+		fieldname=fieldname,
+		fieldtype=fieldtype,
+		current_value=current_value,
+		doc=doc_data,
+		prompt=prompt,
+	)
+	return {"response": result}
 
 
 @frappe.whitelist(methods=["POST"])

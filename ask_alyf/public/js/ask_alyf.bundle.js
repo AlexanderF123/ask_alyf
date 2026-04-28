@@ -1,3 +1,5 @@
+import "./field_agent";
+
 (function () {
 	if (window.ask_alyfWidget) {
 		return;

@@ -15,6 +15,7 @@
   "allow_agent_mode",
   "allow_code_search",
   "allow_file_upload",
+  "allow_field_agent",
   "chat_provider_tab",
   "llm_provider",
   "base_url",
@@ -116,6 +117,12 @@
    "label": "Access"
   },
   {
+   "default": "0",
+   "fieldname": "allow_field_agent",
+   "fieldtype": "Check",
+   "label": "Allow Field Agent"
+  },
+  {
    "fieldname": "section_break_kmgx",
    "fieldtype": "Section Break"
   },
@@ -164,7 +171,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-03 21:28:10.202566",
+ "modified": "2026-04-28 23:26:41.160263",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",
