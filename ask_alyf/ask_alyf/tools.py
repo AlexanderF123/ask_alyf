@@ -4,12 +4,16 @@ import base64
 import fnmatch
 import json
 import re
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+
+try:
+	import tomllib
+except ModuleNotFoundError:
+	import tomli as tomllib
 
 import frappe
 from frappe import _, client
