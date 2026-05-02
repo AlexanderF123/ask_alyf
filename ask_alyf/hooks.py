@@ -40,7 +40,7 @@ extend_bootinfo = "ask_alyf.ask_alyf.boot.boot_session"
 # Svg Icons
 # ------------------
 # include app icons in desk
-# app_include_icons = "ask_alyf/public/icons.svg"
+app_include_icons = ["ask_alyf/icons/sparkles.svg"]
 
 # Home Pages
 # ----------

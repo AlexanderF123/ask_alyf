@@ -1,3 +1,4 @@
+import "./icons";
 import "./field_agent";
 
 (function () {

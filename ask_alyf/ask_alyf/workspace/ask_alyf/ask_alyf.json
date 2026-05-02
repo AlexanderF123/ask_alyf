@@ -1,0 +1,68 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"vVj3uV0OAg\",\"type\":\"card\",\"data\":{\"card_name\":\"Ask ALYF\",\"col\":4}}]",
+ "creation": "2026-03-16 02:18:16.616588",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "sparkles",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Ask ALYF",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Ask ALYF",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Ask ALYF Settings",
+   "link_count": 0,
+   "link_to": "Ask ALYF Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Ask ALYF Conversation",
+   "link_count": 0,
+   "link_to": "Ask ALYF Conversation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Ask ALYF Skill",
+   "link_count": 0,
+   "link_to": "Ask ALYF Skill",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-05-02 20:29:36.539880",
+ "modified_by": "Administrator",
+ "module": "Ask ALYF",
+ "name": "Ask ALYF",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [],
+ "title": "Ask ALYF"
+}
