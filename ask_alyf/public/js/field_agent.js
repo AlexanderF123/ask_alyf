@@ -20,9 +20,7 @@
 	}
 
 	function prefersReducedMotion() {
-		return !!(
-			window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-		);
+		return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 	}
 
 	// ---- Value extraction -------------------------------------------------------
@@ -83,7 +81,7 @@
 		var promptArea = $(
 			'<textarea class="field-agent-overlay-textarea" rows="3" placeholder="' +
 				__("Describe what you want...") +
-				'"></textarea>'
+				'"></textarea>',
 		);
 
 		var footer = $('<div class="field-agent-overlay-footer"></div>');
@@ -93,12 +91,10 @@
 				(isMac() ? "\u2318" : "Ctrl") +
 				"</kbd>" +
 				"<kbd>\u23CE</kbd>" +
-				"</span>"
+				"</span>",
 		);
 		var submitBtn = $(
-			'<button class="btn btn-primary btn-sm field-agent-submit">' +
-				__("Generate") +
-				"</button>"
+			'<button class="btn btn-primary btn-sm field-agent-submit">' + __("Generate") + "</button>",
 		);
 		var statusText = $('<div class="field-agent-status hide"></div>');
 
@@ -228,8 +224,7 @@
 			})
 			.catch(function (err) {
 				var message =
-					(err && (err.message || err.exc_type || err.exc)) ||
-					__("Could not generate content.");
+					(err && (err.message || err.exc_type || err.exc)) || __("Could not generate content.");
 				frappe.show_alert({ message: message, indicator: "red" }, 7);
 			})
 			.finally(function () {
@@ -292,7 +287,7 @@
 		var triggerBtn = $(
 			'<button type="button" class="btn btn-xs btn-icon field-agent-trigger" title="' +
 				__("Generate with AI") +
-				'"><svg class="icon icon-sm"><use href="#icon-sparkles"></use></svg></button>'
+				'"><svg class="icon icon-sm"><use href="#icon-sparkles"></use></svg></button>',
 		);
 
 		$clearfix.append(triggerBtn);

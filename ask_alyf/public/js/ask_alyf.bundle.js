@@ -29,7 +29,7 @@ import "./field_agent";
 
 		let labels = Array.isArray(out.data.labels)
 			? out.data.labels.map((label) =>
-					label === null || label === undefined ? "" : String(label)
+					label === null || label === undefined ? "" : String(label),
 			  )
 			: [];
 		const maxLabels = 100;
@@ -63,8 +63,8 @@ import "./field_agent";
 			const perSlice = labels.map((_, index) =>
 				out.data.datasets.reduce(
 					(acc, dataset) => acc + Math.max(0, dataset.values[index] || 0),
-					0
-				)
+					0,
+				),
 			);
 			const grandTotal = perSlice.reduce((acc, value) => acc + value, 0);
 			if (grandTotal <= 0) {
@@ -351,7 +351,7 @@ import "./field_agent";
 		getResponsiveFrappeChartHeight(preferredHeight, widthPx, chartCount = 1) {
 			const minHeight = Math.max(
 				ASK_ALYF_FRAPPE_CHART_MIN_HEIGHT,
-				Number.isFinite(preferredHeight) ? preferredHeight : 0
+				Number.isFinite(preferredHeight) ? preferredHeight : 0,
 			);
 			const widthDrivenHeight = Math.round(widthPx * 0.55);
 			const panelHeight = this.panel?.clientHeight || 0;
@@ -362,8 +362,8 @@ import "./field_agent";
 					minHeight,
 					Math.min(
 						ASK_ALYF_FRAPPE_CHART_MAX_HEIGHT,
-						Math.floor((panelHeight * 0.8) / stackedDivisor)
-					)
+						Math.floor((panelHeight * 0.8) / stackedDivisor),
+					),
 				);
 			}
 			return Math.max(minHeight, Math.min(maxHeight, widthDrivenHeight));
@@ -376,10 +376,7 @@ import "./field_agent";
 
 			const nextWidth = String(widthPx);
 			const nextHeight = String(heightPx);
-			if (
-				mount.dataset.askAlyfWidth === nextWidth &&
-				mount.dataset.askAlyfHeight === nextHeight
-			) {
+			if (mount.dataset.askAlyfWidth === nextWidth && mount.dataset.askAlyfHeight === nextHeight) {
 				return;
 			}
 
@@ -473,7 +470,7 @@ import "./field_agent";
 			}
 
 			const confirmable = (this.state.pendingOperations || []).filter((op) =>
-				this.operationRequiresConfirmation(op)
+				this.operationRequiresConfirmation(op),
 			);
 
 			if (!confirmable.length) {
@@ -497,12 +494,12 @@ import "./field_agent";
 						<button class="ask_alyf-reject btn btn-secondary btn-sm" type="button">${__("Reject")}</button>
 					</div>
 				`;
-				card.querySelector(".ask_alyf-confirm").addEventListener("click", () =>
-					this.confirmPendingOperation(operation)
-				);
-				card.querySelector(".ask_alyf-reject").addEventListener("click", () =>
-					this.rejectPendingOperation(operation)
-				);
+				card
+					.querySelector(".ask_alyf-confirm")
+					.addEventListener("click", () => this.confirmPendingOperation(operation));
+				card
+					.querySelector(".ask_alyf-reject")
+					.addEventListener("click", () => this.rejectPendingOperation(operation));
 				container.appendChild(card);
 			}
 
@@ -511,10 +508,10 @@ import "./field_agent";
 				bulkActions.className = "ask_alyf-proposal-bulk-actions";
 				bulkActions.innerHTML = `
 					<button class="ask_alyf-confirm-all btn btn-primary btn-xs" type="button">${__(
-						"Confirm all"
+						"Confirm all",
 					)}</button>
 					<button class="ask_alyf-reject-all btn btn-secondary btn-xs" type="button">${__(
-						"Reject all"
+						"Reject all",
 					)}</button>
 				`;
 				bulkActions
@@ -555,8 +552,8 @@ import "./field_agent";
 			root.className = "ask_alyf-root";
 			root.innerHTML = `
 				<button class="ask_alyf-bubble" type="button" title="${__("Open Ask ALYF")}" aria-label="${__(
-				"Open Ask ALYF"
-			)}"><img class="ask_alyf-bubble-logo" src="/assets/ask_alyf/img/logo.png" alt="" aria-hidden="true"></button>
+					"Open Ask ALYF",
+				)}"><img class="ask_alyf-bubble-logo" src="/assets/ask_alyf/img/logo.png" alt="" aria-hidden="true"></button>
 				<div class="ask_alyf-panel ask_alyf-hidden">
 					<div class="ask_alyf-resize-handle" title="${__("Resize chat window")}"></div>
 					<div class="ask_alyf-header">
@@ -566,15 +563,15 @@ import "./field_agent";
 						</div>
 						<div class="ask_alyf-actions">
 							<button class="ask_alyf-header-button ask_alyf-new-chat btn btn-secondary btn-sm" type="button" title="${__(
-								"Start a new conversation"
+								"Start a new conversation",
 							)}" aria-label="${__("New chat")}">${__("New chat")}</button>
 							<a class="ask_alyf-header-button ask_alyf-support-phone btn btn-secondary btn-sm ask_alyf-hidden" href="#" role="button" title="${__(
-								"Call support"
+								"Call support",
 							)}" aria-label="${__(
-				"Call support"
-			)}"><i class="fa fa-phone" aria-hidden="true"></i></a>
+								"Call support",
+							)}"><i class="fa fa-phone" aria-hidden="true"></i></a>
 							<button class="ask_alyf-header-button ask_alyf-close btn btn-secondary btn-sm" type="button" title="${__(
-								"Close"
+								"Close",
 							)}" aria-label="${__("Close")}">&times;</button>
 						</div>
 					</div>
@@ -582,12 +579,12 @@ import "./field_agent";
 						<ul class="nav form-tabs ask_alyf-tabs" role="tablist" aria-label="${__("Ask ALYF sections")}">
 							<li class="nav-item">
 								<button class="nav-link ask_alyf-tab active" type="button" role="tab" data-tab="chat" aria-selected="true">${__(
-									"Chat"
+									"Chat",
 								)}</button>
 							</li>
 							<li class="nav-item">
 								<button class="nav-link ask_alyf-tab" type="button" role="tab" data-tab="history" aria-selected="false">${__(
-									"History"
+									"History",
 								)}</button>
 							</li>
 						</ul>
@@ -598,7 +595,7 @@ import "./field_agent";
 						<div class="ask_alyf-composer">
 							<div class="ask_alyf-input-shell">
 								<textarea class="ask_alyf-input" rows="3" placeholder="${__(
-									"Ask about this ERPNext instance"
+									"Ask about this ERPNext instance",
 								)}"></textarea>
 								<div class="ask_alyf-mode-dropdown">
 									<button class="ask_alyf-mode-trigger btn btn-secondary btn-sm" type="button" aria-haspopup="menu" aria-expanded="false">
@@ -607,29 +604,25 @@ import "./field_agent";
 									</button>
 									<div class="ask_alyf-mode-menu ask_alyf-hidden" role="menu">
 										<button class="ask_alyf-mode-option btn btn-secondary btn-sm" type="button" role="menuitemradio" data-mode="Ask">${__(
-											"Ask"
+											"Ask",
 										)}</button>
 										<button class="ask_alyf-mode-option btn btn-secondary btn-sm" type="button" role="menuitemradio" data-mode="Agent">${__(
-											"Agent"
+											"Agent",
 										)}</button>
 									</div>
 								</div>
 								<div class="ask_alyf-composer-actions">
 									<button class="ask_alyf-icon-button ask_alyf-attach btn btn-secondary btn-sm ask_alyf-hidden" type="button" title="${__(
-										"Attach file"
-									)}" aria-label="${__(
-				"Attach file"
-			)}"><i class="fa fa-paperclip"></i></button>
+										"Attach file",
+									)}" aria-label="${__("Attach file")}"><i class="fa fa-paperclip"></i></button>
 									<button class="ask_alyf-icon-button ask_alyf-mic btn btn-secondary btn-sm" type="button" title="${__(
-										"Voice input"
-									)}" aria-label="${__(
-				"Voice input"
-			)}"><i class="fa fa-microphone"></i></button>
+										"Voice input",
+									)}" aria-label="${__("Voice input")}"><i class="fa fa-microphone"></i></button>
 									<button class="ask_alyf-send btn btn-primary btn-sm" type="button">${__("Send")}</button>
 								</div>
 							</div>
 							<div class="ask_alyf-disclaimer">${__(
-								"Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
+								"Ask ALYF is an AI and can make mistakes, including with numbers and information about people.",
 							)}</div>
 						</div>
 					</div>
@@ -665,9 +658,7 @@ import "./field_agent";
 			this.tabEls.forEach((tabEl) => {
 				tabEl.addEventListener("click", (event) => this.onTabClick(event));
 			});
-			this.modeTriggerEl.addEventListener("click", (event) =>
-				this.onModeTriggerClick(event)
-			);
+			this.modeTriggerEl.addEventListener("click", (event) => this.onModeTriggerClick(event));
 			this.modeOptionEls.forEach((optionEl) => {
 				optionEl.addEventListener("click", (event) => this.onModeOptionClick(event));
 			});
@@ -675,23 +666,15 @@ import "./field_agent";
 			this.syncModeControl();
 			this.syncSupportPhoneAction(frappe?.boot?.ask_alyf || {});
 
-			root.querySelector(".ask_alyf-bubble").addEventListener("click", () =>
-				this.toggle(true)
-			);
-			root.querySelector(".ask_alyf-close").addEventListener("click", () =>
-				this.toggle(false)
-			);
-			root.querySelector(".ask_alyf-send").addEventListener("click", () =>
-				this.sendMessage()
-			);
-			root.querySelector(".ask_alyf-new-chat").addEventListener("click", () =>
-				this.startNewConversation()
-			);
+			root.querySelector(".ask_alyf-bubble").addEventListener("click", () => this.toggle(true));
+			root.querySelector(".ask_alyf-close").addEventListener("click", () => this.toggle(false));
+			root.querySelector(".ask_alyf-send").addEventListener("click", () => this.sendMessage());
+			root
+				.querySelector(".ask_alyf-new-chat")
+				.addEventListener("click", () => this.startNewConversation());
 			this.attachEl.addEventListener("click", () => this.openFileUploader());
 			this.micEl.addEventListener("click", () => this.startVoiceInput());
-			this.resizeHandleEl.addEventListener("pointerdown", (event) =>
-				this.startPanelResize(event)
-			);
+			this.resizeHandleEl.addEventListener("pointerdown", (event) => this.startPanelResize(event));
 			this.inputEl.addEventListener("keydown", (event) => {
 				if (event.key === "Enter" && !event.shiftKey) {
 					event.preventDefault();
@@ -738,9 +721,7 @@ import "./field_agent";
 				if (message.conversation !== this.state.conversation?.name) return;
 				this.setLoading(false);
 				this.setStatus("");
-				this.state.pendingOperations = this.normalizePendingOperations(
-					message.pending_operations
-				);
+				this.state.pendingOperations = this.normalizePendingOperations(message.pending_operations);
 				this.pendingStreamMessageId = null;
 
 				for (const op of this.state.pendingOperations) {
@@ -777,7 +758,7 @@ import "./field_agent";
 			if (!askAlyfBoot.configured) {
 				this.warningEl.classList.remove("ask_alyf-hidden");
 				this.warningEl.textContent = __(
-					"Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
+					"Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings.",
 				);
 			}
 		}
@@ -798,7 +779,7 @@ import "./field_agent";
 			this.state.conversation = conversation;
 			this.state.messages = conversation.messages || [];
 			this.state.pendingOperations = this.normalizePendingOperations(
-				conversation.pending_operations
+				conversation.pending_operations,
 			);
 
 			for (const op of this.state.pendingOperations) {
@@ -971,9 +952,7 @@ import "./field_agent";
 			}
 
 			const supportPhoneNumber = (askAlyfBoot.support_phone_number || "").toString().trim();
-			const supportPhoneUriFromBoot = (askAlyfBoot.support_phone_uri || "")
-				.toString()
-				.trim();
+			const supportPhoneUriFromBoot = (askAlyfBoot.support_phone_uri || "").toString().trim();
 			const supportPhoneUri = supportPhoneUriFromBoot.startsWith("tel:")
 				? supportPhoneUriFromBoot
 				: this.getSupportPhoneUri(supportPhoneNumber);
@@ -1188,7 +1167,7 @@ import "./field_agent";
 			}
 
 			const matchingGroups = this.getRolePrompts().filter((group) =>
-				group.roles.some((role) => userRoles.has(role))
+				group.roles.some((role) => userRoles.has(role)),
 			);
 			if (!matchingGroups.length) {
 				return [];
@@ -1198,7 +1177,7 @@ import "./field_agent";
 				matchingGroups.map((group) => ({
 					label: group.label,
 					prompts: this.shuffleArray([...group.prompts]),
-				}))
+				})),
 			);
 
 			const prompts = [];
@@ -1326,9 +1305,7 @@ import "./field_agent";
 
 				itemEl.appendChild(titleEl);
 				itemEl.appendChild(metaEl);
-				itemEl.addEventListener("click", (event) =>
-					this.onHistoryConversationClick(event)
-				);
+				itemEl.addEventListener("click", (event) => this.onHistoryConversationClick(event));
 				this.historyListEl.appendChild(itemEl);
 			});
 		}
@@ -1425,9 +1402,7 @@ import "./field_agent";
 			}
 
 			if (route[0] === "List" && window.cur_list?.filter_area) {
-				context.list_filters = cur_list.filter_area
-					.get()
-					.map((filter) => filter.slice(0, 4));
+				context.list_filters = cur_list.filter_area.get().map((filter) => filter.slice(0, 4));
 				context.list_doctype = cur_list.doctype;
 			}
 
@@ -1450,8 +1425,7 @@ import "./field_agent";
 			const nextHeight = Math.max(minHeight, Math.min(contentHeight, maxHeight));
 
 			this.inputEl.style.height = `${nextHeight}px`;
-			this.inputEl.style.overflowY =
-				this.inputEl.scrollHeight > nextHeight ? "auto" : "hidden";
+			this.inputEl.style.overflowY = this.inputEl.scrollHeight > nextHeight ? "auto" : "hidden";
 		}
 
 		startPanelResize(event) {
@@ -1500,12 +1474,12 @@ import "./field_agent";
 			const nextWidth = this.clamp(
 				this.resizeState.startWidth + deltaX,
 				this.resizeState.minWidth,
-				this.resizeState.maxWidth
+				this.resizeState.maxWidth,
 			);
 			const nextHeight = this.clamp(
 				this.resizeState.startHeight + deltaY,
 				this.resizeState.minHeight,
-				this.resizeState.maxHeight
+				this.resizeState.maxHeight,
 			);
 
 			this.panel.style.width = `${nextWidth}px`;
@@ -1660,9 +1634,7 @@ import "./field_agent";
 		}
 
 		getPendingOperationSummaryHtml(operation) {
-			const summaryHtml = this.renderInlineMarkdown(
-				this.getPendingOperationSummary(operation)
-			);
+			const summaryHtml = this.renderInlineMarkdown(this.getPendingOperationSummary(operation));
 			const previewHtml = this.getPendingOperationPreviewHtml(operation);
 			return previewHtml ? `${summaryHtml}${previewHtml}` : summaryHtml;
 		}
@@ -1697,11 +1669,7 @@ import "./field_agent";
 			const listHtml = keys
 				.map((key) => {
 					const label = this.getBatchInsertPreviewColumnLabel(operation, key);
-					const value = this.formatBatchInsertPreviewValue(
-						fields[key],
-						payload.doctype,
-						key
-					);
+					const value = this.formatBatchInsertPreviewValue(fields[key], payload.doctype, key);
 					return `<li><em>${this.escapeHtml(label)}</em>: ${value}</li>`;
 				})
 				.join("");
@@ -1717,9 +1685,7 @@ import "./field_agent";
 		}
 
 		getBatchInsertPreviewHtml(operation) {
-			const records = Array.isArray(operation?.payload?.records)
-				? operation.payload.records
-				: [];
+			const records = Array.isArray(operation?.payload?.records) ? operation.payload.records : [];
 			if (!records.length) {
 				return "";
 			}
@@ -1738,15 +1704,13 @@ import "./field_agent";
 			const bodyHtml = records
 				.map((record, index) => {
 					const safeRecord =
-						record && typeof record === "object" && !Array.isArray(record)
-							? record
-							: {};
+						record && typeof record === "object" && !Array.isArray(record) ? record : {};
 					const cells = columns
 						.map((column) => {
 							const value = this.formatBatchInsertPreviewValue(
 								safeRecord[column],
 								operation?.payload?.doctype,
-								column
+								column,
 							);
 							return `<td>${value}</td>`;
 						})
@@ -1839,10 +1803,7 @@ import "./field_agent";
 		renderInlineMarkdown(value) {
 			const container = document.createElement("div");
 			container.innerHTML = frappe.markdown((value || "").toString());
-			if (
-				container.childElementCount === 1 &&
-				container.firstElementChild?.tagName === "P"
-			) {
+			if (container.childElementCount === 1 && container.firstElementChild?.tagName === "P") {
 				return container.firstElementChild.innerHTML;
 			}
 			return container.innerHTML;
@@ -1856,20 +1817,14 @@ import "./field_agent";
 			const expectedDoctype = payload.doctype;
 			if (expectedDoctype && expectedDoctype !== cur_frm.doc.doctype) {
 				throw new Error(
-					__("Current form is {0}, expected {1}.", [
-						__(cur_frm.doc.doctype),
-						__(expectedDoctype),
-					])
+					__("Current form is {0}, expected {1}.", [__(cur_frm.doc.doctype), __(expectedDoctype)]),
 				);
 			}
 
 			const expectedDocname = payload.docname;
 			if (expectedDocname && expectedDocname !== cur_frm.doc.name) {
 				throw new Error(
-					__("Current document is {0}, expected {1}.", [
-						cur_frm.doc.name,
-						expectedDocname,
-					])
+					__("Current document is {0}, expected {1}.", [cur_frm.doc.name, expectedDocname]),
 				);
 			}
 
@@ -1899,9 +1854,7 @@ import "./field_agent";
 			if (tool === "frm_set_value") {
 				const frm = this.getMatchingForm(payload);
 				if (!frm.fields_dict?.[payload.fieldname]) {
-					throw new Error(
-						__("Field {0} does not exist on this form.", [payload.fieldname])
-					);
+					throw new Error(__("Field {0} does not exist on this form.", [payload.fieldname]));
 				}
 				await frm.set_value(payload.fieldname, payload.value);
 				return { fieldname: payload.fieldname };
@@ -1910,9 +1863,7 @@ import "./field_agent";
 			if (tool === "frm_add_child") {
 				const frm = this.getMatchingForm(payload);
 				if (!frm.fields_dict?.[payload.fieldname]) {
-					throw new Error(
-						__("Field {0} does not exist on this form.", [payload.fieldname])
-					);
+					throw new Error(__("Field {0} does not exist on this form.", [payload.fieldname]));
 				}
 				const row = frm.add_child(payload.fieldname, payload.values || {});
 				frm.refresh_field(payload.fieldname);
@@ -1969,7 +1920,7 @@ import "./field_agent";
 			try {
 				const actionResult = await this.dispatchFrontendAction(
 					operation.tool,
-					operation.payload || {}
+					operation.payload || {},
 				);
 				await this.reportFrontendActionResult(operation, "success", actionResult);
 				return true;
@@ -2009,9 +1960,7 @@ import "./field_agent";
 			this.renderMessages();
 			this.setLoading(true);
 			this.setStatus(
-				this.isFrontendAction(operation)
-					? __("Applying action...")
-					: __("Confirming action...")
+				this.isFrontendAction(operation) ? __("Applying action...") : __("Confirming action..."),
 			);
 			try {
 				if (this.isFrontendAction(operation)) {
@@ -2082,7 +2031,7 @@ import "./field_agent";
 
 		async confirmAllPendingOperations() {
 			const operations = [...(this.state.pendingOperations || [])].filter((op) =>
-				this.operationRequiresConfirmation(op)
+				this.operationRequiresConfirmation(op),
 			);
 			for (const operation of operations) {
 				await this.confirmPendingOperation(operation);
@@ -2091,7 +2040,7 @@ import "./field_agent";
 
 		async rejectAllPendingOperations() {
 			const operations = [...(this.state.pendingOperations || [])].filter((op) =>
-				this.operationRequiresConfirmation(op)
+				this.operationRequiresConfirmation(op),
 			);
 			for (const operation of operations) {
 				await this.rejectPendingOperation(operation);
@@ -2100,7 +2049,7 @@ import "./field_agent";
 
 		removePendingOperation(operation) {
 			this.state.pendingOperations = this.state.pendingOperations.filter(
-				(op) => op.call_id !== operation.call_id
+				(op) => op.call_id !== operation.call_id,
 			);
 		}
 
@@ -2120,11 +2069,7 @@ import "./field_agent";
 			let anchor = this.messagesEl.firstChild;
 
 			this.state.messages.forEach((message, index) => {
-				const { entry, messageKey } = this.syncMessageElement(
-					message,
-					index,
-					previousMessageKeys
-				);
+				const { entry, messageKey } = this.syncMessageElement(message, index, previousMessageKeys);
 				nextMessageKeys.add(messageKey);
 				if (entry.wrapper === anchor) {
 					anchor = anchor.nextSibling;
@@ -2172,7 +2117,7 @@ import "./field_agent";
 
 		cacheRenderedMessageKeys(messages = []) {
 			this.renderedMessageKeys = new Set(
-				messages.map((message, index) => this.getMessageRenderKey(message, index))
+				messages.map((message, index) => this.getMessageRenderKey(message, index)),
 			);
 		}
 
@@ -2225,9 +2170,7 @@ import "./field_agent";
 				downloadButton.setAttribute("aria-label", downloadLabel);
 				downloadButton.disabled = true;
 				downloadButton.innerHTML =
-					typeof frappe.utils?.icon === "function"
-						? frappe.utils.icon("download", "xs")
-						: "SVG";
+					typeof frappe.utils?.icon === "function" ? frappe.utils.icon("download", "xs") : "SVG";
 				downloadButton.addEventListener("click", () => {
 					const chart = this.getTrackedFrappeChart(messageKey, index);
 					if (!chart || typeof chart.export !== "function") {
@@ -2284,7 +2227,7 @@ import "./field_agent";
 					const heightPx = this.getResponsiveFrappeChartHeight(
 						preferredHeight,
 						widthPx,
-						jobs.length
+						jobs.length,
 					);
 					if (create) {
 						mount.style.width = `${widthPx}px`;
@@ -2315,7 +2258,7 @@ import "./field_agent";
 						this.getTrackedFrappeChart(messageKey, index),
 						mount,
 						widthPx,
-						heightPx
+						heightPx,
 					);
 				});
 				return true;
@@ -2436,10 +2379,7 @@ import "./field_agent";
 
 		getPreferredSpeechLanguage() {
 			const langCandidate =
-				frappe?.boot?.lang ||
-				document.documentElement.lang ||
-				navigator.language ||
-				"en-US";
+				frappe?.boot?.lang || document.documentElement.lang || navigator.language || "en-US";
 			return this.normalizeSpeechLanguage(langCandidate);
 		}
 
