@@ -5,11 +5,11 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import IntegrationTestCase, UnitTestCase
+from frappe.tests.utils import FrappeTestCase
 
 from ask_alyf.ask_alyf.doctype.ask_alyf_settings import ask_alyf_settings
 
-# On IntegrationTestCase, the doctype test records and all
+# On FrappeTestCase, the doctype test records and all
 # link-field test record dependencies are recursively loaded
 # Use these module variables to add/remove to/from that list
 EXTRA_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
@@ -29,7 +29,7 @@ class FakeSettings(SimpleNamespace):
 		return self.passwords.get(fieldname)
 
 
-class UnitTestAskALYFSettings(UnitTestCase):
+class UnitTestAskALYFSettings(FrappeTestCase):
 	def test_get_available_models_uses_chat_configuration_by_default(self):
 		settings = FakeSettings(
 			llm_provider="OpenAI",
@@ -103,7 +103,7 @@ class UnitTestAskALYFSettings(UnitTestCase):
 			ask_alyf_settings.get_model_config_fields("audio")
 
 
-class IntegrationTestAskALYFSettings(IntegrationTestCase):
+class IntegrationTestAskALYFSettings(FrappeTestCase):
 	"""
 	Integration tests for AskALYFSettings.
 	Use this class for testing interactions between multiple components.

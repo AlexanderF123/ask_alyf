@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
-from frappe.tests import UnitTestCase
+from frappe.tests.utils import FrappeTestCase
 
 from ask_alyf.ask_alyf import api
 
 
-class UnitTestAskALYFApi(UnitTestCase):
+class UnitTestAskALYFApi(FrappeTestCase):
 	def test_can_access_ask_alyf_allows_user_with_role(self):
 		with patch.object(api.frappe, "get_roles", return_value=["Desk User", api.ASK_ALYF_USER_ROLE]):
 			self.assertTrue(api.can_access_ask_alyf())

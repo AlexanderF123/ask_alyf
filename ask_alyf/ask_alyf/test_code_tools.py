@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import frappe
-from frappe.tests import UnitTestCase
+from frappe.tests.utils import FrappeTestCase
 
 from ask_alyf.ask_alyf import tools
 from ask_alyf.ask_alyf.agent import (
@@ -30,7 +30,7 @@ class FakeSettings(SimpleNamespace):
 		return "test-key"
 
 
-class UnitTestCodeTools(UnitTestCase):
+class UnitTestCodeTools(FrappeTestCase):
 	def make_runtime(self, *, mode: str = "Ask"):
 		return SimpleNamespace(
 			conversation_name="TEST-CONVERSATION",

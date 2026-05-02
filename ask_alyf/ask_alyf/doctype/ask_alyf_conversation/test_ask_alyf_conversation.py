@@ -5,13 +5,13 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import UnitTestCase
+from frappe.tests.utils import FrappeTestCase
 
 from ask_alyf.ask_alyf import agent, api, tools
 from ask_alyf.ask_alyf.utils import dumps, loads
 
 
-class UnitTestAskALYFConversation(UnitTestCase):
+class UnitTestAskALYFConversation(FrappeTestCase):
 	def make_conversation(
 		self, *, messages: list[dict] | None = None, pending_operations: list[dict] | None = None
 	):

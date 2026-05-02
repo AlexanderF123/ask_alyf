@@ -4,13 +4,13 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import frappe
-from frappe.tests import UnitTestCase
+from frappe.tests.utils import FrappeTestCase
 
 from ask_alyf.ask_alyf import api, field_contexts
 from ask_alyf.ask_alyf.api import _truncate_doc_for_size
 
 
-class UnitTestFieldContexts(UnitTestCase):
+class UnitTestFieldContexts(FrappeTestCase):
 	def test_get_field_context_mapped_returns_specific_entry(self):
 		"""Print Format entry has correct system_prompt, jinja_globals, jinja_filters, render_context_vars."""
 		result = field_contexts.get_field_context("Print Format", "html", "Code")
@@ -63,7 +63,7 @@ class UnitTestFieldContexts(UnitTestCase):
 		self.assertIn("Small Text", result["system_prompt"])
 
 
-class UnitTestFieldAgent(UnitTestCase):
+class UnitTestFieldAgent(FrappeTestCase):
 	def _make_fake_trace(self, output: str = "OK"):
 		return SimpleNamespace(final_output=output)
 
@@ -135,7 +135,7 @@ class UnitTestFieldAgent(UnitTestCase):
 		mock_realtime.assert_not_called()
 
 
-class UnitTestFieldAgentEndpoint(UnitTestCase):
+class UnitTestFieldAgentEndpoint(FrappeTestCase):
 	def test_field_agent_run_endpoint_perm_gate_role(self):
 		"""field_agent_run raises when user lacks Ask ALYF User role."""
 		with (
@@ -153,7 +153,7 @@ class UnitTestFieldAgentEndpoint(UnitTestCase):
 				)
 
 
-class UnitTestFieldContextsAccuracy(UnitTestCase):
+class UnitTestFieldContextsAccuracy(FrappeTestCase):
 	def test_field_contexts_accuracy(self):
 		"""Every jinja_global must exist in get_jenv().globals; every jinja_filter in get_jenv().filters;
 		every safe_exec_env name as a top-level key in get_safe_globals()."""
@@ -213,7 +213,7 @@ class UnitTestFieldContextsAccuracy(UnitTestCase):
 				_check_entry(variant, f"({doctype!r}, {fieldname!r}, variant={variant_name!r})")
 
 
-class UnitTestFieldContextVariants(UnitTestCase):
+class UnitTestFieldContextVariants(FrappeTestCase):
 	def test_print_format_html_jinja_doctype_variant(self):
 		"""Jinja + DocType resolves to the doc/letter_head Jinja prompt."""
 		ctx = field_contexts.get_field_context(
@@ -289,7 +289,7 @@ class UnitTestFieldContextVariants(UnitTestCase):
 		self.assertIn("safe_exec", ctx["system_prompt"])  # Python default
 
 
-class UnitTestDocPayloadTruncation(UnitTestCase):
+class UnitTestDocPayloadTruncation(FrappeTestCase):
 	def _make_large_doc(self, n_rows: int = 50) -> dict:
 		"""Build a doc dict whose 'items' child table has n_rows rows, each ~500 bytes."""
 		row_template = {
