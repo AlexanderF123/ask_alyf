@@ -1,167 +1,162 @@
-### Ask ALYF
+# Ask ALYF
 
-Helps you understand ERPNext
+Ask ALYF adds an assistant to ERPNext so users can ask questions, find information, and get help working with documents without leaving the Desk.
 
-### Features
+It is built for teams that already use ERPNext and want a practical assistant inside their existing system, not a separate chat product with a separate permission model.
 
-This app adds a chat bubble to the ERPNext interface where you can talk to an agent that knows everything about your ERPNext instance. It has two modes: Ask and Agent.
+## What You Can Do
 
-- Ask mode: Ask questions about your ERPNext instance — data, configuration, code, docs — and the agent answers.
-- Agent mode: Ask the agent to create, update, submit, cancel, or delete documents for you. Every mutation requires explicit user confirmation before execution.
+Use Ask ALYF to:
 
-The agent supports multi-turn tool calls (chaining multiple operations in one response) and renders responses as Markdown (tables, code blocks, bold, etc.). Responses are streamed to the chat bubble via socket.io.
+- ask questions about records, reports, configuration, and installed apps
+- summarize documents and data that the current user is allowed to see
+- create charts from ERPNext data
+- generate PDFs from existing documents
+- upload files and extract information from PDFs or images, when file upload is enabled
+- navigate around Desk, open new forms, and jump to relevant fields
+- create or update ERPNext documents in Agent mode, after explicit confirmation
 
-Input can be text or voice. Voice input is transcribed to text before being sent to the agent; the agent's response can optionally be read aloud via text-to-speech.
+Answers are shown in the chat bubble and can include formatted text, tables, code blocks, file links, and charts.
 
-### Field Agent
+## Two Modes
 
-In addition to the chat bubble, Ask ALYF injects a small sparkles button next to long-text fields on Desk forms (Long Text, Small Text, Text, Text Editor, HTML Editor, Code, Markdown Editor). Clicking it opens a prompt overlay where the user can describe what they want generated, and the agent fills the field in place. After insertion, an *Undo* action is offered for a few seconds.
+Ask mode is for questions and research. The assistant can read permitted data, explain records, look up configuration, search documentation, and help users understand what is already in the system.
 
-The field agent is gated by the **Ask ALYF User** role and an _Allow Field Agent_ switch in **Ask ALYF Settings**.
+Agent mode is for taking action. The assistant can prepare changes such as creating, updating, submitting, cancelling, amending, renaming, or deleting documents. Before anything is changed, the user sees a proposal and must approve it.
 
-### Staying Close to Frappe
+## Field Writing Help
 
-Ask ALYF tries to stay close to the Frappe Framework instead of inventing a parallel experience. It uses a familiar UI, integrates native building blocks like **Frappe Charts** and the standard file uploader, and stays within the same role-based permission system instead of bypassing framework permissions.
+Ask ALYF can also add a small sparkles button next to long text fields on Desk forms. Users can describe what they want written, and the assistant fills the field in place.
 
-### Tools
+This is useful for descriptions, emails, internal notes, terms, and other longer text fields. After text is inserted, an *Undo* action is available for a few seconds.
 
-All data-access tools wrap `frappe.client` functions, which enforce the same permission checks as the REST API. The agent can only do what the logged-in user can already do via the API.
+The field assistant is available only to users with the **Ask ALYF User** role and when _Allow Field Agent_ is enabled in **Ask ALYF Settings**.
 
-#### Ask mode
+## Built For Frappe
 
-Data retrieval (from `frappe.client`):
+Ask ALYF stays close to the Frappe Framework. It uses the existing Desk, the standard file uploader, **Frappe Charts**, and the same role-based permissions users already have in ERPNext.
 
-- `get_list` — list records with filters, fields, ordering, pagination, and `group_by` for aggregation
-- `get_count` — count records matching filters
-- `get` — get a single document (perm-checked, field-level read permissions applied)
-- `get_value` — get specific field value(s) from a document
-- `get_single_value` — get a field value from a Single DocType
+The assistant does not become an all-powerful back door. If a user cannot read or change something through Frappe permissions, Ask ALYF should not be able to do it for them either.
 
-Schema and permissions:
+## Voice Input
 
-- `get_meta` — get DocType metadata (fields, types, options, permissions)
-- `has_permission` — check if current user has a specific permission on a document
-- `get_doc_permissions` — get the full evaluated permission dict for a document
-- `list_accessible_doctypes` — get list of DocTypes the current user can read or write
-- `list_accessible_reports` — get list of reports the current user can access
-- `translate_ui_labels` — translate UI labels/terms so responses use the same wording the user sees in their language
+Users can type messages. In browsers that support the Web Speech API, the chat bubble also offers microphone input that turns speech into text.
 
-Code search (when enabled):
+## Access And Safety
 
-- `source_code_analyzer` — delegate code questions to a restricted specialist that can search, list, and read installed app files, then return a grounded summary with evidence
+Access is granted through the **Ask ALYF User** role.
 
-App metadata and documentation:
+The assistant works with the permissions of the logged-in user. A user with limited access only gets limited answers and limited actions; an Administrator can do more because the Administrator can already do more in ERPNext.
 
-- `get_app_version` — useful for comparing your current version with available releases
-- `read_github_releases` — uses the Repository URL from `pyproject.toml` `[project.urls]`
-- `read_documentation_page` — read official docs using the Documentation URL from `pyproject.toml` `[project.urls]`
+Agent mode has additional guardrails:
 
-Printing:
+- Every write operation requires explicit user confirmation before execution.
+- Bulk writes are intentionally limited. `batch_insert` can create multiple records of the same DocType, but each row still goes through framework validation.
+- Framework rules are respected. For example, submitted documents must be cancelled before they can be deleted.
+- Administrators can exclude selected DocTypes from Agent mode in **Ask ALYF Settings**.
 
-- `get_print` — generate a PDF print of a document using the default (or specified) print format and letter head; respects `print` permission and the document's `language` field; the PDF is attached to the conversation and shown as a clickable file
+Read-only SQL is available only to Administrator and System Manager users.
 
-Files:
+## Configuration
 
-- `get_file_id` — resolve a **File** ID from attachment references
-- `read_file_record` — read file content from **File** records by File ID
-- `extract_document_data` — extract structured data from PDF or image **File** records
+Configure Ask ALYF in **Ask ALYF Settings**.
 
-SQL (Administrator and System Manager only):
+Common settings include:
 
-- `run_read_only_sql` — run read-only SQL queries, similar to the existing **System Console**
+- _Enabled_
+- _LLM Provider_
+- _Base URL_ for OpenAI-compatible providers
+- _API Key_
+- _Chat Model_
+- _Allow Agent Mode_
+- _Allow Code Search_
+- _Allow File Upload_
+- _Allow Field Agent_
+- _Excluded DocTypes_
+- separate vision model settings, if document and image extraction should use a different model
 
-Frontend actions:
+## Conversation History
 
-- `set_route` — navigate to a Desk route
-- `new_doc` — open a new document form, optionally with prefilled route options
-- `scroll_to_field` — scroll to a field on the active form
+Conversations are stored in the **Ask ALYF Conversation** DocType. This keeps conversations available across page reloads and provides an audit trail for Agent mode proposals and actions.
 
-#### Agent mode
+Old conversations are deleted after 90 days by default. The retention period can be configured per site through **Log Settings**.
 
-Everything from Ask mode, plus:
+## Technical Reference
 
-- `document_planner` — prepare `insert`, `save`, or `set_value` payloads using read-only metadata and record lookups before the main agent creates a pending proposal
-- `insert` — create a new document
-- `batch_insert` — create multiple documents of the same DocType from a list of record payloads; each row is still inserted through the framework and any per-row failures are reported back
-- `save` — update an existing document
-- `set_value` — set specific field(s) on a document
-- `submit` — submit a submittable document
-- `cancel` — cancel a submitted document
-- `amend` — amend a cancelled document (cancel + create amended copy)
-- `delete` — delete a document (framework requires cancel before delete for submitted docs; some documents cannot be deleted due to links, e.g. cancelled invoices linked to submitted payment ledger entries)
-- `rename_doc` — rename a document
-- `attach_file` — attach a file to a document by File ID
-- `run_whitelisted_method` — call any `@frappe.whitelist()` method the current user has access to (e.g. `erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice`)
-- `frm_set_value` — set a field on the active form in the browser
-- `frm_add_child` — add a child table row on the active form in the browser
+Ask ALYF uses tool calls to read data, inspect metadata, navigate the Desk, render charts, and prepare document changes. Data-access tools wrap Frappe APIs such as `frappe.client`, so normal framework permissions and validations continue to apply.
 
-#### Charts
+### Ask Mode Tools
 
-- `show_chart` — display one or more **Frappe Charts** under the assistant message (validated on the server, stored on message metadata, rendered below the reply; auto-run in the browser like other safe frontend actions)
+Data retrieval:
 
-#### Context on every request
+- `get_list` lists records with filters, fields, ordering, pagination, and `group_by` aggregation
+- `get_count` counts matching records
+- `get` reads one permitted document
+- `get_value` reads selected field values
+- `get_single_value` reads a field from a Single DocType
 
-- current user's route
-- current document `doctype` and `name` (if on a form view)
-- current list view filters (if on a list view)
-- user's Frappe language (`frappe.boot.lang`)
-- `frappe.boot.user.defaults`
-- user's roles (omitted for Administrator)
+Schema, permissions, and UI:
 
-### Guardrails
+- `get_meta` reads DocType metadata
+- `has_permission` checks whether the current user has a permission on a document
+- `get_doc_permissions` returns the evaluated permissions for a document
+- `list_accessible_doctypes` lists DocTypes the current user can read or write
+- `list_accessible_reports` lists reports the current user can access
+- `translate_ui_labels` translates UI labels so answers match the user's language
 
-- **Confirmation before mutations**: Every write operation (create, update, delete, submit, cancel, amend, rename) requires explicit user confirmation before execution. The agent proposes the action, the user approves or rejects.
-- **No unsafe bulk operations**: The agent cannot use `insert_many`, `bulk_update`, or batch deletes. It may use `batch_insert` for multiple records of the same DocType, but that still runs as one confirmed proposal with each row inserted individually through the framework.
-- **Framework constraints respected**: The agent does not bypass framework validation. For example, it cannot delete a submitted document without cancelling it first, and it cannot delete cancelled documents that have linked submitted entries.
-- **Configurable DocType exclusions**: Admins can exclude specific DocTypes from Agent mode via **Ask ALYF Settings**.
+Files, printing, charts, and navigation:
 
-### Security
+- `get_print` generates a PDF print for a permitted document
+- `get_file_id` resolves a **File** ID from an attachment reference
+- `read_file_record` reads content from **File** records
+- `extract_document_data` extracts structured data from PDF or image **File** records
+- `show_chart` renders one or more **Frappe Charts** below an assistant message
+- `set_route` navigates to a Desk route
+- `new_doc` opens a new document form with optional defaults
+- `scroll_to_field` scrolls to a field on the active form
 
-Access to Ask ALYF is granted to users with the "Ask ALYF User" role.
+Optional tools:
 
-The agent has the same permissions as the current user. If you're logged in as a HR Manager, the agent can only do HR stuff. If you're logged in as Administrator, the agent can do anything. This is enforced by `frappe.client` and the framework's permission system on every tool call.
+- `source_code_analyzer` searches installed app files when _Allow Code Search_ is enabled
+- `run_read_only_sql` runs read-only SQL for Administrator and System Manager users
+- `get_app_version`, `read_github_releases`, and `read_documentation_page` help answer app and documentation questions
 
-SQL queries are restricted to read-only and only available to users with the Administrator or System Manager role.
+### Agent Mode Tools
 
-### Conversation History
+Agent mode includes the Ask mode tools plus tools that prepare confirmed actions:
 
-Conversations are persisted in an **Ask ALYF Conversation** DocType. This provides:
+- `document_planner` prepares safe `insert`, `save`, or `set_value` payloads before a proposal is shown
+- `insert` creates a document
+- `batch_insert` creates multiple documents of the same DocType
+- `save` updates a document
+- `set_value` updates selected fields
+- `submit` submits a submittable document
+- `cancel` cancels a submitted document
+- `amend` creates an amended copy of a cancelled document
+- `delete` deletes a document when framework rules allow it
+- `rename_doc` renames a document
+- `attach_file` attaches a **File** to a document
+- `run_whitelisted_method` calls an accessible `@frappe.whitelist()` method
+- `frm_set_value` sets a field on the active form in the browser
+- `frm_add_child` adds a child table row on the active form in the browser
 
-- conversation continuity across page reloads
-- an audit trail of what the agent did, especially for Agent mode actions
-- data for usage analytics and debugging
+### Request Context
 
-Old conversations are automatically deleted after 90 days by default. The retention period is configurable per site via **Log Settings**.
-
-### Configuration
-
-**Ask ALYF Settings** (Single DocType):
-
-- LLM provider
-- API key
-- model name
-- enable / disable Agent mode (site-wide kill switch)
-- DocTypes excluded from Agent mode
+Each request can include the current Desk route, active document `doctype` and `name`, list view filters, user language, user defaults, and user roles.
 
 ### Error Handling
 
-- Tool failures (permission denied, validation errors, missing records) are surfaced as clear messages to the user, not raw tracebacks.
-- LLM API errors (unreachable, rate-limited) show a retry prompt.
-- If the agent references a DocType or field that doesn't exist, it re-checks via `get_meta` before retrying.
+Permission errors, validation errors, missing records, and LLM provider failures are shown as user-facing messages instead of raw tracebacks. If the assistant refers to a missing DocType or field, it can re-check metadata before retrying.
 
-### Voice
+## Dependencies
 
-- **Voice input**: A microphone button in the chat bubble records audio and transcribes it to text using the browser's [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) (SpeechRecognition). Falls back to server-side transcription (e.g. OpenAI Whisper) if the browser doesn't support it.
-- **Voice output**: The agent's response can be read aloud using the browser's [SpeechSynthesis API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis). This is opt-in via a speaker button on each message or a toggle in the chat header.
+- [any-agent](https://mozilla-ai.github.io/any-agent/) for agent orchestration
+- [any-llm-sdk](https://github.com/mozilla-ai/any-llm) for LLM provider access
+- [PyMuPDF](https://pymupdf.readthedocs.io/) for PDF handling
 
-### Dependencies
+## Installation
 
-- [any-agent](https://mozilla-ai.github.io/any-agent/) for the agent framework (limited to openai-agents for now)
-- [deep-chat](https://deepchat.dev/) for the chat bubble UI — a framework-agnostic web component with built-in Markdown rendering, streaming support via handler API (wired to socket.io), and microphone input.
-
-### Installation
-
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+Install this app with the [bench](https://github.com/frappe/bench) CLI:
 
 ```bash
 cd $PATH_TO_YOUR_BENCH
@@ -169,9 +164,9 @@ bench get-app $URL_OF_THIS_REPO --branch develop
 bench install-app ask_alyf
 ```
 
-### Cursor Cloud Agents
+## Cursor Cloud Agents
 
-This repo includes a Cursor cloud-agent setup in `.cursor/` for bootstrapping a self-contained Frappe bench on the remote machine.
+This repository includes a Cursor cloud-agent setup in `.cursor/` for bootstrapping a self-contained Frappe bench on the remote machine.
 
 To use it:
 
@@ -192,7 +187,7 @@ Troubleshooting:
 - If the standalone `start` hook is skipped by Cursor, the `bench` terminal still runs `.cursor/start.sh` before `bench start`.
 - If setup fails during `bench init` or `bench build`, check the environment build logs first, then the `bench` terminal output.
 
-### Contributing
+## Contributing
 
 This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
 
@@ -201,22 +196,28 @@ cd apps/ask_alyf
 pre-commit install
 ```
 
-Pre-commit is configured to use the following tools for checking and formatting your code:
+Pre-commit is configured to use:
 
 - ruff
 - eslint
 - prettier
 - pyupgrade
-### CI
 
-This app can use GitHub Actions for CI. The following workflows are configured:
+## CI
 
-- CI: Installs this app and runs unit tests on every push to `develop` branch.
-- Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
+This app can use GitHub Actions for CI. The configured workflows are:
 
+- CI installs this app and runs unit tests on every push to the `develop` branch.
+- Linters run [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
 
-### License
+## Privacy
+
+Ask ALYF is self-hosted. The published source code does not send usage data, analytics, or chat contents to the maintainers of this project.
+
+The app calls the LLM and related providers you configure. Text, context, and uploaded documents may be processed by those providers under their privacy policies and terms. See [PRIVACY.md](PRIVACY.md).
+
+## License
 
 This project is licensed under the [GNU Affero General Public License v3.0](license.txt) (AGPL-3.0).
 
-If you want to use Ask ALYF under different terms — for example, to whitelabel or rebrand it without the AGPL's copyleft requirements — commercial licenses are available. Contact [hallo@alyf.de](mailto:hallo@alyf.de) for details.
+If you want to use Ask ALYF under different terms, for example to whitelabel or rebrand it without the AGPL's copyleft requirements, commercial licenses are available. Contact [hallo@alyf.de](mailto:hallo@alyf.de) for details.
