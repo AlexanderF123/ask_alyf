@@ -6,7 +6,7 @@ REPO_NAME="${REPO_NAME:-ask_alyf}"
 BENCH_APP_PATH="apps/${REPO_NAME}"
 BENCH_ROOT="${BENCH_ROOT:-$HOME/frappe-bench}"
 SITE_NAME="${SITE_NAME:-${REPO_NAME//_/-}.localhost}"
-FRAPPE_BRANCH="${FRAPPE_BRANCH:-version-16}"
+FRAPPE_BRANCH="${FRAPPE_BRANCH:-version-15}"
 DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_PORT="${DB_PORT:-3306}"
 DB_ADMIN_USER="${DB_ADMIN_USER:-frappe}"
@@ -39,9 +39,9 @@ sanitize_path
 python3 - <<'PY'
 import sys
 
-if sys.version_info < (3, 14):
+if sys.version_info < (3, 11) or sys.version_info >= (3, 12):
 	raise SystemExit(
-		"Python 3.14+ is required. Rebuild the Cursor environment so it uses the custom Dockerfile."
+		"Python 3.11 is required for this Frappe v15 environment. Rebuild the Cursor environment so it uses the custom Dockerfile."
 	)
 PY
 

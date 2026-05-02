@@ -5,11 +5,11 @@ authors = [
 ]
 description = "Helps you understand ERPNext"
 license = "AGPL-3.0-only"
-requires-python = ">=3.14"
+requires-python = ">=3.11,<3.12"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
-    # "frappe~=16.0.0" # Installed and managed by bench.
+    # "frappe~=15.0.0" # Installed and managed by bench.
     "any-agent",
     "any-llm-sdk",
     "pymupdf",
@@ -25,7 +25,7 @@ build-backend = "flit_core.buildapi"
 
 [tool.ruff]
 line-length = 110
-target-version = "py314"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
