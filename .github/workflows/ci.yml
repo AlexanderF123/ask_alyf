@@ -3,11 +3,11 @@ name: CI
 on:
   push:
     branches:
-      - develop
+      - version-16
   pull_request:
 
 concurrency:
-  group: develop-ask_alyf-${{ github.event.number }}
+  group: version-16-ask_alyf-${{ github.event.number }}
   cancel-in-progress: true
 
 jobs:
