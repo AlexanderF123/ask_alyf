@@ -17,9 +17,7 @@ function render_skill_roles_editor(frm) {
 	}
 
 	if (!frm.roles_editor) {
-		const role_area = $('<div class="role-editor">').appendTo(
-			frm.fields_dict.roles_html.wrapper
-		);
+		const role_area = $('<div class="role-editor">').appendTo(frm.fields_dict.roles_html.wrapper);
 		frm.roles_editor = new frappe.RoleEditor(role_area, frm);
 	}
 

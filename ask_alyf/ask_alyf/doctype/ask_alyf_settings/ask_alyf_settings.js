@@ -3,12 +3,7 @@
 
 const CHAT_MODEL_CONFIGURATION = "chat";
 const VISION_MODEL_CONFIGURATION = "vision";
-const VISION_PROVIDER_FIELDS = [
-	"vision_llm_provider",
-	"vision_base_url",
-	"vision_api_key",
-	"vision_model",
-];
+const VISION_PROVIDER_FIELDS = ["vision_llm_provider", "vision_base_url", "vision_api_key", "vision_model"];
 
 frappe.ui.form.on("Ask ALYF Settings", {
 	async refresh(frm) {

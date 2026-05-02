@@ -20,9 +20,7 @@
 	}
 
 	function prefersReducedMotion() {
-		return !!(
-			window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-		);
+		return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 	}
 
 	// ---- Value extraction -------------------------------------------------------
@@ -96,9 +94,7 @@
 				"</span>"
 		);
 		var submitBtn = $(
-			'<button class="btn btn-primary btn-sm field-agent-submit">' +
-				__("Generate") +
-				"</button>"
+			'<button class="btn btn-primary btn-sm field-agent-submit">' + __("Generate") + "</button>"
 		);
 		var statusText = $('<div class="field-agent-status hide"></div>');
 
@@ -228,8 +224,7 @@
 			})
 			.catch(function (err) {
 				var message =
-					(err && (err.message || err.exc_type || err.exc)) ||
-					__("Could not generate content.");
+					(err && (err.message || err.exc_type || err.exc)) || __("Could not generate content.");
 				frappe.show_alert({ message: message, indicator: "red" }, 7);
 			})
 			.finally(function () {
