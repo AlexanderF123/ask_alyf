@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ask ALYF VERSION\n"
 "Report-Msgid-Bugs-To: hallo@alyf.de\n"
-"POT-Creation-Date: 2026-04-29 01:16+0053\n"
+"POT-Creation-Date: 2026-05-02 19:04+0053\n"
 "PO-Revision-Date: 2026-03-16 01:45+0053\n"
 "Last-Translator: hallo@alyf.de\n"
 "Language: de\n"
@@ -358,7 +358,7 @@ msgstr "Diagramm konnte nicht heruntergeladen werden."
 msgid "Could not extract visual content from the file."
 msgstr "Visueller Inhalt konnte nicht aus der Datei extrahiert werden."
 
-#: ask_alyf/public/js/field_agent.js:215
+#: ask_alyf/public/js/field_agent.js:232
 msgid "Could not generate content."
 msgstr "Inhalt konnte nicht generiert werden."
 
@@ -423,7 +423,7 @@ msgstr "{0} {1} löschen"
 msgid "Deleted {0} {1}"
 msgstr "{0} {1} wurde gelöscht "
 
-#: ask_alyf/public/js/field_agent.js:81
+#: ask_alyf/public/js/field_agent.js:85
 msgid "Describe what you want..."
 msgstr "Beschreiben Sie, was Sie möchten..."
 
@@ -467,7 +467,7 @@ msgstr "Dokument: {0} {1}"
 msgid "Download chart as SVG"
 msgstr "Diagramm als SVG herunterladen"
 
-#: ask_alyf/public/js/field_agent.js:190
+#: ask_alyf/public/js/field_agent.js:202
 msgid "Drafting..."
 msgstr "Erstelle Entwurf..."
 
@@ -575,7 +575,7 @@ msgstr "Feld '{0}' Zeile #{1} in {2} muss ein Objekt sein."
 msgid "Field Agent is not enabled."
 msgstr "Feldagent ist nicht aktiviert."
 
-#: ask_alyf/public/js/field_agent.js:249
+#: ask_alyf/public/js/field_agent.js:267
 msgid "Field updated."
 msgstr "Feld aktualisiert."
 
@@ -664,11 +664,11 @@ msgstr "Die Nutzlast der Frontend-Aktion muss ein Objekt sein."
 msgid "Frontend actions must be executed in the browser."
 msgstr "Frontend-Aktionen müssen im Browser ausgeführt werden."
 
-#: ask_alyf/public/js/field_agent.js:90
+#: ask_alyf/public/js/field_agent.js:100
 msgid "Generate"
 msgstr "Generieren"
 
-#: ask_alyf/public/js/field_agent.js:278
+#: ask_alyf/public/js/field_agent.js:294
 msgid "Generate with AI"
 msgstr "Mit KI generieren"
 
@@ -681,7 +681,7 @@ msgstr "Generiere Druckausgabe..."
 msgid "Generating response..."
 msgstr "Generiere Antwort..."
 
-#: ask_alyf/public/js/field_agent.js:178
+#: ask_alyf/public/js/field_agent.js:190
 msgid "Generating..."
 msgstr "Generiere..."
 
@@ -812,7 +812,7 @@ msgstr "Neuer Chat"
 msgid "New document action needs correction."
 msgstr "Aktion zum Öffnen eines neuen Dokuments benötigt Korrektur."
 
-#: ask_alyf/public/js/field_agent.js:162
+#: ask_alyf/public/js/field_agent.js:174
 msgid "No active form found."
 msgstr "Kein aktives Formular gefunden."
 
@@ -941,11 +941,11 @@ msgstr "Ausstehende Operation"
 msgid "Planning document change..."
 msgstr "Plane Dokumentenänderung..."
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:102
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:105
 msgid "Please configure a Base URL first and save the settings, then we can fetch available models."
 msgstr "Bitte konfigurieren Sie zuerst eine Basis-URL und speichern Sie die Einstellungen, dann können wir verfügbare Modelle abrufen."
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:95
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:98
 msgid "Please configure an API key first and save the settings, then we can fetch available models."
 msgstr "Bitte konfigurieren Sie zuerst einen API-Schlüssel und speichern Sie die Einstellungen, dann können wir verfügbare Modelle abrufen."
 
@@ -1106,7 +1106,7 @@ msgstr "Chat-Fenster vergrößern"
 msgid "Resolving file ID..."
 msgstr "Löse Datei-ID auf..."
 
-#: ask_alyf/public/js/field_agent.js:263
+#: ask_alyf/public/js/field_agent.js:278
 msgid "Reverted."
 msgstr "Rückgängig gemacht."
 
@@ -1246,7 +1246,7 @@ msgstr "Tippen Sie, um ein Modell auszuwählen. Verfügbare Modelle werden aus d
 msgid "Status must be one of success, failed, or rejected."
 msgstr "Status muss einer von 'success', 'failed' oder 'rejected' sein."
 
-#: ask_alyf/public/js/field_agent.js:193
+#: ask_alyf/public/js/field_agent.js:205
 msgid "Still generating..."
 msgstr "Generiere immer noch..."
 
@@ -1293,7 +1293,7 @@ msgstr "Es gibt keine ausstehende Operation zur Bestätigung."
 msgid "Thinking..."
 msgstr "Denke..."
 
-#: ask_alyf/public/js/field_agent.js:196
+#: ask_alyf/public/js/field_agent.js:208
 msgid "This is taking a moment..."
 msgstr "Das dauert noch etwas..."
 
@@ -1317,7 +1317,7 @@ msgstr "Übersetze Bezeichnungen..."
 msgid "Unknown error."
 msgstr "Unbekannter Fehler."
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:134
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:137
 msgid "Unsupported LLM provider: {0}"
 msgstr "Nicht unterstützter LLM-Anbieter: {0}"
 
@@ -1337,7 +1337,7 @@ msgstr "Nicht unterstützte Frontend-Aktion '{0}'."
 msgid "Unsupported frontend action: {0}"
 msgstr "Nicht unterstützte Frontend-Aktion: {0}"
 
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:124
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:127
 msgid "Unsupported model configuration: {0}"
 msgstr "Nicht unterstützte Modellkonfiguration: {0}"
 
