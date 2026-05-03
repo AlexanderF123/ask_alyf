@@ -26,6 +26,8 @@ Agent mode is for taking action. The assistant can prepare changes such as creat
 
 ## Field Writing Help
 
+![Field Writing Help](./assets/ask_alyf_field_agent.gif)
+
 Ask ALYF can also add a small sparkles button next to long text fields on Desk forms. Users can describe what they want written, and the assistant fills the field in place.
 
 This is useful for descriptions, emails, internal notes, terms, and other longer text fields. After text is inserted, an *Undo* action is available for a few seconds.
