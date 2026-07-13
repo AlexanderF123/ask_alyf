@@ -1,3 +1,4 @@
+import threading
 from collections.abc import Callable
 from typing import Any
 
@@ -39,19 +40,23 @@ from ask_alyf.ask_alyf.toolset import (
 # and operate on the restricted composite VFS (workspace, source, attachments).
 ASK_ALYF_EXCLUDED_TOOLS = frozenset({"write_file", "edit_file", "execute"})
 _ASK_ALYF_PROFILE_REGISTERED = False
+_ASK_ALYF_PROFILE_LOCK = threading.Lock()
 
 
 def _ensure_ask_alyf_harness_profile() -> None:
 	"""Register the Ask ALYF harness profile once per process.
 
-	Registration is additive and idempotent, so concurrent calls are safe.
+	Registration is additive and idempotent, but the check-then-set is guarded
+	by a lock so concurrent ``ask_alyfAgentRunner`` constructions (e.g. two
+	gunicorn threads or RQ jobs in one process) cannot both register.
 	"""
 	global _ASK_ALYF_PROFILE_REGISTERED
-	if _ASK_ALYF_PROFILE_REGISTERED:
-		return
-	profile = HarnessProfile(excluded_tools=ASK_ALYF_EXCLUDED_TOOLS)
-	register_harness_profile("openai", profile)
-	_ASK_ALYF_PROFILE_REGISTERED = True
+	with _ASK_ALYF_PROFILE_LOCK:
+		if _ASK_ALYF_PROFILE_REGISTERED:
+			return
+		profile = HarnessProfile(excluded_tools=ASK_ALYF_EXCLUDED_TOOLS)
+		register_harness_profile("openai", profile)
+		_ASK_ALYF_PROFILE_REGISTERED = True
 
 
 def _get_api_key_from_settings(settings) -> str:
@@ -220,6 +225,16 @@ Mode awareness and behavior:
 		# ``general-purpose`` is auto-added by Deep Agents; we only declare the
 		# two restricted specialists here. Each supplies an explicit minimal
 		# tool list so the parent's proposal/mutation tools are never inherited.
+		#
+		# Note on ``tools: []`` for source-code-analyzer: Deep Agents always
+		# injects ``FilesystemMiddleware`` (and thus the read-only VFS tools
+		# ``ls``, ``read_file``, ``glob``, ``grep``) into every subagent stack
+		# regardless of the ``tools`` field — the ``tools`` list only controls
+		# *extra* tools inherited from the parent. An empty list therefore means
+		# "no parent tools", not "no tools at all"; the analyzer still gets the
+		# ``/source/``-scoped read tools it needs while staying free of mutation
+		# tools. Write tools are stripped by the harness profile + deny
+		# permission, so the VFS remains strictly read-only here.
 		subagents: list[SubAgent] = []
 
 		if self.settings.is_code_search_enabled():
