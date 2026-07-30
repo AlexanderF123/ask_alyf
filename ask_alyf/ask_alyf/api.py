@@ -608,10 +608,16 @@ def process_message_job(
 		attached_files = result.get("attached_files")
 		if pending_operations and not response:
 			response = _("I've prepared the operation. Please review and confirm.")
-	except Exception as error:
+	except frappe.ValidationError as exc:
+		frappe.clear_messages()
+		response = str(exc)
+		pending_operations = []
+		document_extractions = None
+		attached_files = None
+	except Exception:
 		frappe.log_error("Ask ALYF Agent Error")
 		frappe.clear_messages()
-		response = str(error).strip() or _("I hit an error while processing that request. Please try again.")
+		response = _("I hit an error while processing that request. Please try again.")
 		pending_operations = []
 		document_extractions = None
 		attached_files = None
