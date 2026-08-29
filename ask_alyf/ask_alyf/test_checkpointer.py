@@ -34,6 +34,7 @@ from ask_alyf.ask_alyf.toolset import (
 	ask_alyfToolset,
 	clear_messages_on_tool_error,
 	clear_stop_request,
+	is_stop_requested,
 	request_stop,
 )
 
@@ -408,6 +409,22 @@ class IntegrationTestFrappeCheckpointSaver(IntegrationTestCase):
 		resumed = agent.invoke({"messages": [HumanMessage("go on")]}, config)
 		self.saver.flush()
 		self.assertEqual(resumed["messages"][-1].content, "the answer")
+
+	def test_a_stop_pressed_mid_run_is_seen_by_the_next_check(self):
+		# `request_stop` runs in the web request, `is_stop_requested` in the
+		# worker. The two share redis but never `frappe.local.cache`, so the
+		# worker keeps whatever its own first read put there. Restoring that
+		# cache around the stop is what makes this the two processes it really
+		# is: without it the write would tidy up after itself in-process and
+		# the check below would pass even unfixed.
+		self.addCleanup(clear_stop_request, RUN)
+
+		self.assertFalse(is_stop_requested(RUN))
+		worker_cache = dict(frappe.local.cache)
+		request_stop(RUN)
+		frappe.local.cache = worker_cache
+
+		self.assertTrue(is_stop_requested(RUN))
 
 	def test_a_serializer_clone_writes_into_the_same_buffer(self):
 		# LangGraph may swap the saver for a `with_allowlist` clone. Only the
