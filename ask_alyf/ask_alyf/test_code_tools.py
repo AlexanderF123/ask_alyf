@@ -62,12 +62,16 @@ class FakeCheckpointer:
 	def __init__(self, *, stored_state: bool = False):
 		self.stored_state = stored_state
 		self.flush_count = 0
+		self.deleted_threads = []
 
 	def get_tuple(self, _config):
 		return object() if self.stored_state else None
 
 	def flush(self):
 		self.flush_count += 1
+
+	def delete_thread(self, thread_id):
+		self.deleted_threads.append(thread_id)
 
 
 @contextlib.contextmanager
@@ -124,6 +128,7 @@ class UnitTestCodeTools(UnitTestCase):
 			document_extractions=[],
 			attached_files=[],
 			tool_calls=[],
+			backend_operation_committed=False,
 			emit_status=lambda _text: None,
 		)
 
@@ -662,6 +667,55 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertEqual(seen["config"]["configurable"]["thread_id"], "TEST-CONVERSATION")
 		self.assertEqual(runner.checkpointer.flush_count, 1)
 
+	def test_resume_reports_a_committed_operation_when_follow_up_fails(self):
+		runner = self.make_runner(allow_code_search=False, mode="Agent")
+		runner.runtime.backend_operation_committed = True
+		runner.runtime.document_extractions = [{"supplier": "Example"}]
+		runner.runtime.attached_files = [{"name": "FILE-0001"}]
+		runner.runtime.tool_calls = [{"name": "set_value", "status": "success"}]
+
+		def fail_after_commit(_input, config=None):
+			raise RuntimeError("boom")
+
+		runner.agent = self.make_agent(fail_after_commit)
+
+		with (
+			patch("ask_alyf.ask_alyf.agent.frappe.db.savepoint") as savepoint,
+			patch("ask_alyf.ask_alyf.agent.frappe.db.rollback") as rollback,
+			patch("ask_alyf.ask_alyf.agent.frappe.log_error") as log_error,
+			patch("ask_alyf.ask_alyf.agent.frappe.clear_messages") as clear_messages,
+		):
+			result = runner.resume("operation-1", "approved")
+
+		self.assertIn("operation was completed", result["response"])
+		self.assertEqual(result["pending_operations"], [])
+		self.assertEqual(result["document_extractions"], runner.runtime.document_extractions)
+		self.assertEqual(result["attached_files"], runner.runtime.attached_files)
+		self.assertEqual(result["tool_calls"], runner.runtime.tool_calls)
+		self.assertEqual(runner.checkpointer.deleted_threads, ["TEST-CONVERSATION"])
+		savepoint.assert_called_once_with("ask_alyf_operation_resume")
+		rollback.assert_called_once_with(save_point="ask_alyf_operation_resume")
+		log_error.assert_called_once_with("Ask ALYF Action Follow-Up Error")
+		clear_messages.assert_called_once_with()
+
+	def test_resume_still_raises_when_the_operation_did_not_commit(self):
+		runner = self.make_runner(allow_code_search=False, mode="Agent")
+
+		def fail_before_commit(_input, config=None):
+			raise RuntimeError("boom")
+
+		runner.agent = self.make_agent(fail_before_commit)
+		with (
+			patch("ask_alyf.ask_alyf.agent.frappe.db.savepoint"),
+			patch("ask_alyf.ask_alyf.agent.frappe.db.rollback") as rollback,
+			self.assertRaisesRegex(RuntimeError, "boom"),
+		):
+			runner.resume("operation-1", "approved")
+
+		rollback.assert_called_once_with(save_point="ask_alyf_operation_resume")
+		# The proposal is still pending in the thread, so it can be confirmed again.
+		self.assertEqual(runner.checkpointer.deleted_threads, [])
+
 	def test_run_preserves_result_envelope_and_proposal_shapes(self):
 		runner = self.make_runner(allow_code_search=False, mode="Agent")
 		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
@@ -923,20 +977,21 @@ class UnitTestCodeTools(UnitTestCase):
 	def test_a_confirmed_proposal_executes_and_returns_its_result(self):
 		runtime = self.make_runtime(mode="Agent")
 		toolset = ask_alyfToolset(runtime)
-		call_id = proposed_operation(lambda: toolset.set_value("ToDo", "TODO-0001", "status", "Closed"))[
-			"call_id"
-		]
+		wrapped = clear_messages_on_tool_error(toolset.set_value)
+		call_id = proposed_operation(lambda: wrapped("ToDo", "TODO-0001", "status", "Closed"))["call_id"]
+		self.assertFalse(getattr(runtime, "backend_operation_committed", False))
 
 		with patch(
 			"ask_alyf.ask_alyf.tools.execute_pending_operation",
 			return_value={"name": "TODO-0001"},
 		) as execute_operation:
 			with graph_context(resume={"call_id": call_id, "status": "approved"}):
-				result = toolset.set_value("ToDo", "TODO-0001", "status", "Closed")
+				result = wrapped("ToDo", "TODO-0001", "status", "Closed")
 
 		execute_operation.assert_called_once()
 		self.assertTrue(result["success"])
 		self.assertEqual(result["result"], {"name": "TODO-0001"})
+		self.assertTrue(runtime.backend_operation_committed)
 
 	def test_a_rejected_proposal_is_reported_without_executing(self):
 		runtime = self.make_runtime(mode="Agent")
