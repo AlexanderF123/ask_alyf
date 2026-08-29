@@ -33,9 +33,13 @@ from ask_alyf.ask_alyf.toolset import (
 	ask_alyfRuntime,
 	ask_alyfToolset,
 	clear_messages_on_tool_error,
+	clear_stop_request,
+	is_stop_requested,
+	request_stop,
 )
 
 THREAD = "test-checkpointer-thread"
+RUN = "test-checkpointer-run"
 
 
 class _ScriptedModel(FakeMessagesListChatModel):
@@ -377,6 +381,50 @@ class IntegrationTestFrappeCheckpointSaver(IntegrationTestCase):
 		# A fresh saver proves the flush reached the database, not just memory.
 		stored = FrappeCheckpointSaver().get_tuple(_config())
 		self.assertEqual(stored.checkpoint["channel_values"]["steps"], ["step-1"])
+
+	def test_pressing_stop_ends_the_run_before_the_next_model_call(self):
+		runtime = ask_alyfRuntime(conversation_name=THREAD, mode="Ask", request_context={}, run_id=RUN)
+		agent = create_agent(
+			model=_ScriptedModel(responses=[AIMessage(content="the answer")]),
+			tools=[],
+			middleware=[ToolCallLogMiddleware(runtime)],
+			checkpointer=self.saver,
+		)
+		config = {"configurable": {"thread_id": THREAD}}
+		self.addCleanup(clear_stop_request, RUN)
+
+		request_stop(RUN)
+		stopped = agent.invoke({"messages": [HumanMessage("something slow")]}, config)
+		self.saver.flush()
+
+		# The model was never reached, and the turn is stored, so the next
+		# message continues from here instead of starting over.
+		self.assertTrue(runtime.stop_requested)
+		self.assertEqual([m.content for m in stopped["messages"]], ["something slow"])
+		self.assertIsNotNone(FrappeCheckpointSaver().get_tuple(_config()))
+
+		# Once the flag is gone the same agent runs normally again.
+		clear_stop_request(RUN)
+		runtime.stop_requested = False
+		resumed = agent.invoke({"messages": [HumanMessage("go on")]}, config)
+		self.saver.flush()
+		self.assertEqual(resumed["messages"][-1].content, "the answer")
+
+	def test_a_stop_pressed_mid_run_is_seen_by_the_next_check(self):
+		# `request_stop` runs in the web request, `is_stop_requested` in the
+		# worker. The two share redis but never `frappe.local.cache`, so the
+		# worker keeps whatever its own first read put there. Restoring that
+		# cache around the stop is what makes this the two processes it really
+		# is: without it the write would tidy up after itself in-process and
+		# the check below would pass even unfixed.
+		self.addCleanup(clear_stop_request, RUN)
+
+		self.assertFalse(is_stop_requested(RUN))
+		worker_cache = dict(frappe.local.cache)
+		request_stop(RUN)
+		frappe.local.cache = worker_cache
+
+		self.assertTrue(is_stop_requested(RUN))
 
 	def test_a_serializer_clone_writes_into_the_same_buffer(self):
 		# LangGraph may swap the saver for a `with_allowlist` clone. Only the
