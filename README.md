@@ -42,6 +42,46 @@ The assistant does not become an all-powerful back door. If a user cannot read o
 
 Users can type messages. In browsers that support the Web Speech API, the chat bubble also offers microphone input that turns speech into text.
 
+## Skills
+
+Skills are reusable instructions stored in the **Ask ALYF Skill** DocType. Use them to teach the assistant a procedure that your team repeats, such as how a document must be created in your company.
+
+A skill has three parts:
+
+- _Title_: a short name, for example `How to create an Expense Claim`. The assistant sees it when it decides which skill is relevant.
+- _Description_: the instructions in Markdown. This is the actual skill content.
+- _Allowed Roles_: the roles that may use the skill. A skill without roles is not available to anyone.
+
+Every request lists the titles of the skills available to the current user's roles. When a title looks relevant, the assistant calls `read_skill` to load the full description and then follows it. Role access is checked again on read, so a user never receives a skill that is not assigned to one of their roles.
+
+Skills are created and edited by users with the **System Manager** role. In Agent mode, users who may create an **Ask ALYF Skill** can also ask the assistant to write one for them with `write_skill`, which prepares a proposal that must be confirmed like any other write.
+
+### Example Skill
+
+Title:
+
+```
+How to create an Expense Claim
+```
+
+Description:
+
+```markdown
+- Find the Employee belonging to the current User (`Employee.user_id`)
+- Fetch `Employee.company` and `Employee.expense_approver`
+- Fetch `Company.default_payable_account`
+- Fetch Expense Claim Type list
+- Fetch Expense Claim meta data to know what fields are available
+- Read attached docs, if any
+- Create a new expense claim with one expense row per doc (`expense_date`, `expense_type`, `description`, and `amount`). Ignore taxes and advances.
+- If things are missing (accounts, exchange rates, etc), guide the user on what needs to be configured or ask how to proceed
+- After expense claim was created successfully, attach the provided receipts to the final doc
+```
+
+Allowed Roles: `Employee`, `Expense Approver`, `Accounts User`, and any other role that should be able to file expense claims.
+
+Note how the description names DocTypes and fields directly. The assistant can look up metadata itself, but naming the fields removes guesswork and keeps the result predictable.
+
 ## Access And Safety
 
 Access is granted through the **Ask ALYF User** role.
@@ -64,6 +104,7 @@ Configure Ask ALYF in **Ask ALYF Settings**.
 Common settings include:
 
 - _Enabled_
+- _System Prompt_
 - _LLM Provider_
 - _Base URL_ for OpenAI-compatible providers
 - _API Key_
@@ -74,6 +115,8 @@ Common settings include:
 - _Allow Field Agent_
 - _Excluded DocTypes_
 - separate vision model settings, if document and image extraction should use a different model
+
+_System Prompt_ is added on top of the built-in instructions, not instead of them. Ask ALYF already tells the assistant how to behave, which tools to use, and how to respect permissions. Put only company-specific context here, such as your company name, the language to answer in, or conventions the assistant cannot read from the data. For step-by-step procedures, write a skill instead of adding it to the system prompt, so the instructions load only when they are relevant and only for the roles that need them.
 
 Ask ALYF chat requires the [OpenAI Responses API](https://developers.openai.com/api/reference/resources/responses). OpenAI-compatible _Base URLs_ must implement `POST /v1/responses`. Providers that support only Chat Completions are not supported for chat.
 
@@ -107,6 +150,7 @@ Schema, permissions, and UI:
 - `list_accessible_doctypes` lists DocTypes the current user can read or write
 - `list_accessible_reports` lists reports the current user can access
 - `translate_ui_labels` translates UI labels so answers match the user's language
+- `read_skill` reads a stored **Ask ALYF Skill** the current user's roles allow
 
 Files, printing, charts, and navigation:
 
@@ -159,6 +203,7 @@ Agent mode includes the Ask mode tools plus tools that prepare confirmed actions
 - `rename_doc` renames a document
 - `attach_file` attaches a **File** to a document
 - `run_whitelisted_method` calls an accessible `@frappe.whitelist()` method
+- `write_skill` proposes a new **Ask ALYF Skill**, for users who may create one
 - `frm_set_value` sets a field on the active form in the browser
 - `frm_add_child` adds a child table row on the active form in the browser
 
