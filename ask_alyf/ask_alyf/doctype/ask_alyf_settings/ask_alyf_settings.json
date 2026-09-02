@@ -8,6 +8,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "assistant_name",
   "system_prompt",
   "support_phone_number",
   "column_break_idxf",
@@ -16,6 +17,8 @@
   "allow_code_search",
   "allow_file_upload",
   "allow_field_agent",
+  "awesomebar_section",
+  "awesomebar_chat",
   "chat_provider_tab",
   "llm_provider",
   "base_url",
@@ -75,6 +78,13 @@
    "options": "Ask ALYF Excluded DocType"
   },
   {
+   "default": "Frage mich",
+   "description": "Display name of the assistant in the desk (chat window, search bar, messages). Technical names such as DocTypes and roles stay unchanged.",
+   "fieldname": "assistant_name",
+   "fieldtype": "Data",
+   "label": "Assistant Name"
+  },
+  {
    "fieldname": "system_prompt",
    "fieldtype": "Code",
    "label": "System Prompt",
@@ -122,6 +132,19 @@
    "fieldname": "allow_field_agent",
    "fieldtype": "Check",
    "label": "Allow Field Agent"
+  },
+  {
+   "fieldname": "awesomebar_section",
+   "fieldtype": "Section Break",
+   "label": "Search Bar"
+  },
+  {
+   "default": "Disabled",
+   "description": "Send chat messages from the desk search bar (Awesomebar). 'Offer in Results' adds a chat entry to the search results. 'Default Action' puts it first, so Enter sends the text to the assistant. A leading ? always sends to the assistant.",
+   "fieldname": "awesomebar_chat",
+   "fieldtype": "Select",
+   "label": "Chat via Search Bar",
+   "options": "Disabled\nOffer in Results\nDefault Action"
   },
   {
    "fieldname": "section_break_kmgx",

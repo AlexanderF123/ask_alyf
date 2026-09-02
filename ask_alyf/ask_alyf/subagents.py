@@ -29,7 +29,7 @@ class DocumentPlannerResult(BaseModel):
 
 
 SOURCE_CODE_ANALYZER_INSTRUCTIONS = """
-You are SourceCodeAnalyzer, an internal Ask ALYF specialist for installed app code.
+You are SourceCodeAnalyzer, an internal specialist of the assistant for installed app code.
 
 You can only use the provided source-code tools (ls, read_file, glob, grep) against the `/source/` virtual mount.
 
@@ -52,7 +52,7 @@ Do not add explanatory prose before or after the JSON.
 """.strip()
 
 DOCUMENT_PLANNER_INSTRUCTIONS = """
-You are DocumentPlanner, an internal Ask ALYF specialist for planning Frappe document changes.
+You are DocumentPlanner, an internal specialist of the assistant for planning Frappe document changes.
 
 You only have read-only access to metadata and documents. You never execute writes.
 

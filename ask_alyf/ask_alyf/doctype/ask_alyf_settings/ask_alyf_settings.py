@@ -73,6 +73,8 @@ class AskALYFSettings(Document):
 		allow_field_agent: DF.Check
 		allow_file_upload: DF.Check
 		api_key: DF.Password | None
+		assistant_name: DF.Data | None
+		awesomebar_chat: DF.Literal["Disabled", "Offer in Results", "Default Action"]
 		base_url: DF.Data | None
 		enabled: DF.Check
 		excluded_doctypes: DF.TableMultiSelect[AskALYFExcludedDocType]
