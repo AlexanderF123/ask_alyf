@@ -839,7 +839,8 @@ import "./field_agent";
 			const button = document.createElement("button");
 			button.type = "button";
 			button.className = "ask_alyf-navbar-mic";
-			button.innerHTML = getIcon("mic", "sm", "", true);
+			button.innerHTML =
+				typeof frappe.utils?.icon === "function" ? frappe.utils.icon("mic", "sm", "", "", "") : "";
 			const tooltip = __("Voice input for {0}", [getAssistantName()]);
 			button.title = tooltip;
 			button.setAttribute("aria-label", tooltip);
