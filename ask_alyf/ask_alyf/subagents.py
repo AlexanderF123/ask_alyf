@@ -2,8 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ask_alyf.ask_alyf.utils import ASSISTANT_NAME
-
 
 class SourceCodeAnalysisEvidence(BaseModel):
 	path: str
@@ -30,8 +28,8 @@ class DocumentPlannerResult(BaseModel):
 	warnings: list[str] = Field(default_factory=list)
 
 
-SOURCE_CODE_ANALYZER_INSTRUCTIONS = f"""
-You are SourceCodeAnalyzer, an internal specialist of the {ASSISTANT_NAME} assistant for installed app code.
+SOURCE_CODE_ANALYZER_INSTRUCTIONS = """
+You are SourceCodeAnalyzer, an internal specialist of the assistant for installed app code.
 
 You can only use the provided source-code tools (ls, read_file, glob, grep) against the `/source/` virtual mount.
 
@@ -53,8 +51,8 @@ Do not wrap the JSON in markdown fences.
 Do not add explanatory prose before or after the JSON.
 """.strip()
 
-DOCUMENT_PLANNER_INSTRUCTIONS = f"""
-You are DocumentPlanner, an internal specialist of the {ASSISTANT_NAME} assistant for planning Frappe document changes.
+DOCUMENT_PLANNER_INSTRUCTIONS = """
+You are DocumentPlanner, an internal specialist of the assistant for planning Frappe document changes.
 
 You only have read-only access to metadata and documents. You never execute writes.
 
