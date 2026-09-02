@@ -133,46 +133,46 @@ msgstr "Perguntar ao ALYF"
 #. Name of a DocType
 #: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
 msgid "Ask ALYF Conversation"
-msgstr "Conversa do Ask ALYF"
+msgstr "Conversa do Frage mich"
 
 #. Name of a DocType
 #: ask_alyf/ask_alyf/doctype/ask_alyf_excluded_doctype/ask_alyf_excluded_doctype.json
 msgid "Ask ALYF Excluded DocType"
-msgstr "DocType Excluído do Ask ALYF"
+msgstr "DocType Excluído do Frage mich"
 
 #. Title of the Module Onboarding 'Ask ALYF Onboarding'
 #: ask_alyf/ask_alyf/module_onboarding/ask_alyf_onboarding/ask_alyf_onboarding.json
-msgid "Ask ALYF Onboarding"
-msgstr "Introdução ao Ask ALYF"
+msgid "Frage mich Onboarding"
+msgstr "Introdução ao Frage mich"
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 #: ask_alyf/workspace_sidebar/ask_alyf.json
 msgid "Ask ALYF Settings"
-msgstr "Definições do Ask ALYF"
+msgstr "Definições do Frage mich"
 
 #. Name of a DocType
 #: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
 msgid "Ask ALYF Skill"
-msgstr "Competência do Ask ALYF"
+msgstr "Competência do Frage mich"
 
 #. Name of a role
 #: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
 msgid "Ask ALYF User"
-msgstr "Utilizador do Ask ALYF"
+msgstr "Utilizador do Frage mich"
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:631
-msgid "Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
-msgstr "O Ask ALYF é uma IA e pode cometer erros, incluindo com números e informações sobre pessoas."
+msgid "{0} is an AI and can make mistakes, including with numbers and information about people."
+msgstr "O {0} é uma IA e pode cometer erros, incluindo com números e informações sobre pessoas."
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:779
-msgid "Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
-msgstr "O Ask ALYF está visível, mas ainda não há nenhuma chave de API/modelo configurado nas Definições do Ask ALYF."
+msgid "{0} is visible, but no API key/model is configured yet in Ask ALYF Settings."
+msgstr "O {0} está visível, mas ainda não há nenhuma chave de API/modelo configurado nas Definições do Ask ALYF."
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:582
-msgid "Ask ALYF sections"
-msgstr "Secções do Ask ALYF"
+msgid "{0} sections"
+msgstr "Secções do {0}"
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:600
 msgid "Ask about this ERPNext instance"
@@ -926,8 +926,8 @@ msgid "Only read-only SQL statements are allowed."
 msgstr "Apenas instruções SQL somente leitura são permitidas."
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:557
-msgid "Open Ask ALYF"
-msgstr "Abrir Ask ALYF"
+msgid "Open {0}"
+msgstr "Abrir {0}"
 
 #: ask_alyf/ask_alyf/agent.py:1344
 #, python-brace-format
@@ -1415,8 +1415,8 @@ msgstr "Conversa sem título"
 
 #. Title of an Onboarding Step
 #: ask_alyf/ask_alyf/onboarding_step/update_ask_alyf_settings/update_ask_alyf_settings.json
-msgid "Update Ask ALYF Settings"
-msgstr "Atualizar configurações do Ask ALYF"
+msgid "Update Frage mich Settings"
+msgstr "Atualizar configurações do Frage mich"
 
 #: ask_alyf/ask_alyf/agent.py:1091
 msgid "Update proposal needs correction."
@@ -1518,8 +1518,8 @@ msgstr "Que utilizadores iniciaram sessão hoje?"
 #: ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697
 #: ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941
 #: ask_alyf/ask_alyf/api.py:979
-msgid "You do not have access to Ask ALYF."
-msgstr "Você não tem acesso ao Ask ALYF."
+msgid "You do not have access to {0}."
+msgstr "Você não tem acesso ao {0}."
 
 #: ask_alyf/ask_alyf/api.py:948
 #, python-brace-format
@@ -1580,3 +1580,36 @@ msgstr "{0} itens"
 msgid "{0} rows"
 msgstr "{0} linhas"
 
+
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Send to {0}: {1}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "{0} is still working on the previous message. Your text was kept in the chat input."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Search Bar"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Chat via Search Bar"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Send chat messages from the desk search bar (Awesomebar). 'Offer in Results' adds a chat entry to the search results. 'Default Action' puts it first, so Enter sends the text to the assistant. A leading ? always sends to the assistant."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Disabled"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Offer in Results"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Default Action"
+msgstr ""

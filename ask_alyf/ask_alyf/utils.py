@@ -4,6 +4,21 @@ from typing import Any
 
 import frappe
 
+# Display name of the assistant in user-facing texts. Technical identifiers
+# (DocType names, roles, module, API paths) keep the "Ask ALYF" name.
+ASSISTANT_NAME = "Frage mich"
+
+AWESOMEBAR_CHAT_DISABLED = "Disabled"
+AWESOMEBAR_CHAT_OFFER = "Offer in Results"
+AWESOMEBAR_CHAT_DEFAULT = "Default Action"
+AWESOMEBAR_CHAT_MODES = (AWESOMEBAR_CHAT_DISABLED, AWESOMEBAR_CHAT_OFFER, AWESOMEBAR_CHAT_DEFAULT)
+
+
+def normalize_awesomebar_chat_mode(value: str | None) -> str:
+	"""Return a valid `awesomebar_chat` mode, falling back to Disabled."""
+	value = (value or "").strip()
+	return value if value in AWESOMEBAR_CHAT_MODES else AWESOMEBAR_CHAT_DISABLED
+
 
 def parse_newline_list(value: str | Iterable[str] | None) -> list[str]:
 	if not value:
