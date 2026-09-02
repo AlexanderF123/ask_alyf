@@ -828,7 +828,7 @@ import "./field_agent";
 				if (attempt < ASK_ALYF_NAVBAR_MIC_RETRIES) {
 					setTimeout(
 						() => this.mountAwesomebarVoiceButton(attempt + 1),
-						ASK_ALYF_NAVBAR_MIC_RETRY_MS,
+						ASK_ALYF_NAVBAR_MIC_RETRY_MS
 					);
 				}
 				return;
@@ -942,7 +942,7 @@ import "./field_agent";
 				frappe.show_alert({
 					message: __(
 						"{0} is still working on the previous message. Your text was kept in the chat input.",
-						[getAssistantName()],
+						[getAssistantName()]
 					),
 					indicator: "orange",
 				});
@@ -958,8 +958,8 @@ import "./field_agent";
 				<button class="ask_alyf-bubble" type="button" title="${__("Open {0}", [
 					getAssistantName(),
 				])}" aria-label="${__("Open {0}", [
-					getAssistantName(),
-				])}"><img class="ask_alyf-bubble-logo" src="/assets/ask_alyf/img/logo.png" alt="" aria-hidden="true"></button>
+				getAssistantName(),
+			])}"><img class="ask_alyf-bubble-logo" src="/assets/ask_alyf/img/logo.png" alt="" aria-hidden="true"></button>
 				<div class="ask_alyf-panel ask_alyf-hidden">
 					<div class="ask_alyf-resize-handle" title="${__("Resize chat window")}"></div>
 					<div class="ask_alyf-header">
@@ -1033,7 +1033,7 @@ import "./field_agent";
 							</div>
 							<div class="ask_alyf-disclaimer">${__(
 								"{0} is an AI and can make mistakes, including with numbers and information about people.",
-								[getAssistantName()],
+								[getAssistantName()]
 							)}</div>
 						</div>
 					</div>
@@ -1179,7 +1179,7 @@ import "./field_agent";
 				this.warningEl.classList.remove("ask_alyf-hidden");
 				this.warningEl.textContent = __(
 					"{0} is visible, but no API key/model is configured yet in Ask ALYF Settings.",
-					[getAssistantName()],
+					[getAssistantName()]
 				);
 			}
 		}
@@ -1366,7 +1366,7 @@ import "./field_agent";
 					? __("{0} could not finish processing this message. Please try again.", [
 							getAssistantName(),
 					  ])
-					: __("{0} stopped processing this message. Please try again.", [getAssistantName()]),
+					: __("{0} stopped processing this message. Please try again.", [getAssistantName()])
 			);
 		}
 
