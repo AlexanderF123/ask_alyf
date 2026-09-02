@@ -1545,3 +1545,19 @@ msgstr "In Treffern anbieten"
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "Default Action"
 msgstr "Standardaktion"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Assistant Name"
+msgstr "Name des Assistenten"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Display name of the assistant in the desk (chat window, search bar, messages). Technical names such as DocTypes and roles stay unchanged."
+msgstr "Anzeigename des Assistenten im Desk (Chat-Fenster, Suchleiste, Meldungen). Technische Namen wie DocTypes und Rollen bleiben unverändert."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Voice input for {0}"
+msgstr "Spracheingabe für {0}"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Attach a document for {0}"
+msgstr "Dokument für {0} anhängen"

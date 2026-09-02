@@ -37,7 +37,7 @@ from ask_alyf.ask_alyf.toolset import (
 	in_private_frappe_context,
 	is_stop_requested,
 )
-from ask_alyf.ask_alyf.utils import ASSISTANT_NAME
+from ask_alyf.ask_alyf.utils import get_assistant_name
 
 OPERATION_RESUME_SAVEPOINT = "ask_alyf_operation_resume"
 
@@ -343,7 +343,7 @@ class ask_alyfAgentRunner:
 			)
 
 		base_instructions = f"""
-You are {ASSISTANT_NAME}, an ERPNext and Frappe assistant embedded inside the user's desk.
+You are {get_assistant_name()}, an ERPNext and Frappe assistant embedded inside the user's desk.
 
 Always follow these rules:
 - Adapt your language to the user. Prefer short, direct answers for everyday operational questions. Offer more detail only when the question calls for it or the user asks. Avoid ERP jargon and internal field names in your prose — use the labels the user sees on screen. If the user writes informally, respond in kind.

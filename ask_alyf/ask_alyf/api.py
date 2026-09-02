@@ -30,6 +30,7 @@ from ask_alyf.ask_alyf.utils import (
 	AWESOMEBAR_CHAT_DISABLED,
 	chunk_text,
 	dumps,
+	get_assistant_name,
 	loads,
 	normalize_awesomebar_chat_mode,
 )
@@ -107,6 +108,7 @@ def get_ask_alyf_boot_payload() -> dict:
 	field_agent_enabled = False
 	file_upload_enabled = False
 	awesomebar_chat = AWESOMEBAR_CHAT_DISABLED
+	assistant_name = ASSISTANT_NAME
 	support_phone_number = ""
 	support_phone_uri = ""
 
@@ -116,6 +118,7 @@ def get_ask_alyf_boot_payload() -> dict:
 		field_agent_enabled = bool(settings.allow_field_agent)
 		file_upload_enabled = bool(settings.allow_file_upload)
 		awesomebar_chat = normalize_awesomebar_chat_mode(settings.get("awesomebar_chat"))
+		assistant_name = (settings.get("assistant_name") or "").strip() or ASSISTANT_NAME
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		configured = bool(api_key and (settings.model or "").strip())
 		support_phone_number = (settings.support_phone_number or "").strip()
@@ -130,7 +133,7 @@ def get_ask_alyf_boot_payload() -> dict:
 		"field_agent_enabled": field_agent_enabled,
 		"file_upload_enabled": file_upload_enabled,
 		"awesomebar_chat": awesomebar_chat,
-		"assistant_name": ASSISTANT_NAME,
+		"assistant_name": assistant_name,
 		"support_phone_number": support_phone_number,
 		"support_phone_uri": support_phone_uri,
 		"default_mode": MODE_ASK,
@@ -369,7 +372,7 @@ def publish_status_update(conversation_name: str, user: str, text: str):
 @frappe.whitelist()
 def bootstrap(conversation: str | None = None) -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	doc = get_or_create_conversation(conversation_name=conversation)
 	return {
@@ -381,7 +384,7 @@ def bootstrap(conversation: str | None = None) -> dict:
 @frappe.whitelist()
 def list_conversations(limit: int = 20) -> list[dict]:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	limit = max(1, cint(limit))
 	conversations = frappe.get_list(
@@ -398,7 +401,7 @@ def list_conversations(limit: int = 20) -> list[dict]:
 @frappe.whitelist(methods=["POST"])
 def start_new_conversation() -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	doc = frappe.get_doc(
 		doctype="Ask ALYF Conversation",
@@ -433,7 +436,7 @@ def send_message(
 	context: str | dict | None = None,
 ) -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	normalized_mode = normalize_mode(mode)
 	context_data = frappe.parse_json(context) if isinstance(context, str) else (context or {})
@@ -448,7 +451,9 @@ def send_message(
 	messages = get_messages(doc)
 	if _has_running_job(messages):
 		frappe.throw(
-			_("{0} is still working on the previous message in this conversation.").format(ASSISTANT_NAME)
+			_("{0} is still working on the previous message in this conversation.").format(
+				get_assistant_name()
+			)
 		)
 
 	job_id = uuid4().hex
@@ -503,7 +508,7 @@ def stop_message(conversation: str, user_message_id: str, job_id: str) -> dict:
 	carry different messages and different jobs, so neither can stop the other.
 	"""
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	doc.check_permission("read")
@@ -527,7 +532,7 @@ def stop_message(conversation: str, user_message_id: str, job_id: str) -> dict:
 @frappe.whitelist()
 def get_message_job_status(conversation: str, user_message_id: str, job_id: str) -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	doc.check_permission("read")
@@ -696,7 +701,7 @@ def process_message_job(
 @frappe.whitelist(methods=["POST"])
 def confirm_pending_operation(conversation: str, call_id: str = "", mode: str = MODE_ASK) -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	# Locked: the removal below is only persisted once the resumed run returns,
 	# so two overlapping requests would both see the operation as pending and
@@ -764,7 +769,7 @@ def confirm_pending_operation(conversation: str, call_id: str = "", mode: str = 
 @frappe.whitelist(methods=["POST"])
 def reject_pending_operation(conversation: str, call_id: str = "", mode: str = MODE_ASK) -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation, for_update=True)
 	doc.check_permission("write")
@@ -869,7 +874,7 @@ def frontend_action_result(
 	error: str | None = None,
 ) -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation, for_update=True)
 	doc.check_permission("write")
@@ -988,7 +993,7 @@ def field_agent_run(
 		A dict with key "response" containing the generated field value.
 	"""
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	settings = get_settings()
 	if not settings.allow_field_agent:
@@ -1026,7 +1031,7 @@ def field_agent_run(
 @frappe.whitelist(methods=["POST"])
 def attach_file(conversation: str, file: str | dict) -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to {0}.").format(ASSISTANT_NAME))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	settings = get_settings()
 	if not settings.allow_file_upload:

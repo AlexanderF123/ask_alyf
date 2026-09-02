@@ -8,6 +8,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "assistant_name",
   "system_prompt",
   "support_phone_number",
   "column_break_idxf",
@@ -75,6 +76,13 @@
    "fieldtype": "Table MultiSelect",
    "label": "Excluded DocTypes",
    "options": "Ask ALYF Excluded DocType"
+  },
+  {
+   "default": "Frage mich",
+   "description": "Display name of the assistant in the desk (chat window, search bar, messages). Technical names such as DocTypes and roles stay unchanged.",
+   "fieldname": "assistant_name",
+   "fieldtype": "Data",
+   "label": "Assistant Name"
   },
   {
    "fieldname": "system_prompt",

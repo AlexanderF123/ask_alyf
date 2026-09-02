@@ -1127,3 +1127,50 @@
 		animation: none;
 	}
 }
+
+/* ---- Microphone next to the desk search bar ------------------------------- */
+
+.ask_alyf-has-navbar-mic {
+	position: relative;
+}
+
+.ask_alyf-has-navbar-mic #navbar-search {
+	padding-right: 2.1rem;
+}
+
+.ask_alyf-navbar-mic {
+	position: absolute;
+	right: 0.35rem;
+	top: 50%;
+	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	z-index: 2;
+}
+
+.ask_alyf-navbar-mic:hover,
+.ask_alyf-navbar-mic:focus-visible {
+	color: var(--text-color);
+	background: var(--control-bg);
+	outline: none;
+}
+
+.ask_alyf-navbar-mic .icon {
+	width: 0.95rem;
+	height: 0.95rem;
+	stroke: currentColor;
+}
+
+.ask_alyf-navbar-mic.is-listening {
+	color: var(--red-500, #e03131);
+	animation: ask_alyf-mic-pulse 1.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
