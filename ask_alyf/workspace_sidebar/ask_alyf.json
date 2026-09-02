@@ -11,7 +11,7 @@
    "icon": "settings",
    "indent": 0,
    "keep_closed": 0,
-   "label": "Ask ALYF Settings",
+   "label": "Settings",
    "link_to": "Ask ALYF Settings",
    "link_type": "DocType",
    "show_arrow": 0,
@@ -24,5 +24,5 @@
  "name": "Ask ALYF",
  "owner": "Administrator",
  "standard": 1,
- "title": "Ask ALYF"
+ "title": "Frage mich"
 }
