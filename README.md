@@ -2,6 +2,8 @@
 
 Ask ALYF adds an assistant to ERPNext so users can ask questions, find information, and get help working with documents without leaving the Desk.
 
+> **Branding in this fork:** the assistant is shown to users as **"Frage mich"** with the axessio logo. Technical identifiers such as the module, DocType names (`Ask ALYF Settings`, `Ask ALYF Skill`, ...), the `Ask ALYF User` role, and API paths keep their original names. The display name is the field _Assistant Name_ in **Ask ALYF Settings** (default `Frage mich`, fallback in `ask_alyf/ask_alyf/utils.py`) and reaches the browser through the boot payload.
+
 It is built for teams that already use ERPNext and want a practical assistant inside their existing system, not a separate chat product with a separate permission model.
 
 ## What You Can Do
@@ -37,6 +39,25 @@ The field assistant is available only to users with the **Ask ALYF User** role a
 Ask ALYF stays close to the Frappe Framework. It uses the existing Desk, the standard file uploader, **Frappe Charts**, and the same role-based permissions users already have in ERPNext.
 
 The assistant does not become an all-powerful back door. If a user cannot read or change something through Frappe permissions, Ask ALYF should not be able to do it for them either.
+
+## Chat via Search Bar
+
+Ask ALYF can also take messages from the desk search bar (Awesomebar). The behaviour is chosen in **Ask ALYF Settings**, field _Chat via Search Bar_:
+
+- _Disabled_: the search bar behaves as usual.
+- _Offer in Results_: while typing, the search results include an entry "Send to Frage mich: ...". Selecting it sends the text to the assistant.
+- _Default Action_: that entry is listed first, so pressing Enter sends the typed text to the assistant. The regular "Search for ..." entry stays reachable with the arrow keys.
+
+In both enabled modes, a leading `?` always sends the text to the assistant (for example `? which leases end this month`).
+
+The answer is shown in the chat window, which opens automatically. Further messages typed into the search bar continue the same conversation, so the search bar can be used to conduct a whole chat while the window only displays it.
+
+When a mode is enabled, the search bar also gets:
+
+- a **microphone button** (browsers with the Web Speech API): the spoken text lands in the search bar and opens the results, so Enter sends it. In _Offer in Results_ mode the transcript is prefixed with `?` so that Enter still reaches the assistant.
+- an entry **"Attach a document for ..."** whenever the typed text mentions a file, document, upload, or attachment (German or English), if _Allow File Upload_ is enabled. It opens the file uploader of the current conversation.
+
+The goal of this fork is to make the assistant the main interface for staff: they talk to the system, hand it documents, and the system carries out the tasks (Agent mode with confirmation, Skills for recurring procedures).
 
 ## Voice Input
 

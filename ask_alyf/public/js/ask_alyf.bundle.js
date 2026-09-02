@@ -12,6 +12,29 @@ import "./field_agent";
 	const ASK_ALYF_FRAPPE_CHART_MAX_HEIGHT = 720;
 	const ASK_ALYF_JOB_POLL_INTERVAL_MS = 2000;
 	const ASK_ALYF_MISSING_JOB_CHECKS = 3;
+	const ASK_ALYF_DEFAULT_ASSISTANT_NAME = "Frage mich";
+	const ASK_ALYF_AWESOMEBAR_DISABLED = "Disabled";
+	const ASK_ALYF_AWESOMEBAR_OFFER = "Offer in Results";
+	const ASK_ALYF_AWESOMEBAR_DEFAULT = "Default Action";
+	const ASK_ALYF_AWESOMEBAR_MODES = new Set([
+		ASK_ALYF_AWESOMEBAR_DISABLED,
+		ASK_ALYF_AWESOMEBAR_OFFER,
+		ASK_ALYF_AWESOMEBAR_DEFAULT,
+	]);
+	// Built-in "Search for ..." has index 100; the default action must rank above it.
+	const ASK_ALYF_AWESOMEBAR_DEFAULT_INDEX = 110;
+	const ASK_ALYF_AWESOMEBAR_OFFER_INDEX = 95;
+	const ASK_ALYF_AWESOMEBAR_PREFIX = "?";
+	const ASK_ALYF_AWESOMEBAR_UPLOAD_INDEX = 96;
+	// Words that suggest the user wants to hand over a document (German and English).
+	const ASK_ALYF_AWESOMEBAR_UPLOAD_PATTERN =
+		/(upload|hochlad|datei|dokument|anhang|anh[äa]ng|beleg|scan|attach|file\b|document)/i;
+	const ASK_ALYF_NAVBAR_MIC_RETRIES = 10;
+	const ASK_ALYF_NAVBAR_MIC_RETRY_MS = 500;
+
+	function getAssistantName() {
+		return frappe?.boot?.ask_alyf?.assistant_name || ASK_ALYF_DEFAULT_ASSISTANT_NAME;
+	}
 
 	/**
 	 * Frappe Charts divides by labels.length and (for pie) grand total;
@@ -147,6 +170,7 @@ import "./field_agent";
 			this.handledFrontendCallIds = new Set();
 			this.resizeState = null;
 			this.voiceRecognition = null;
+			this.navbarMicEl = null;
 			this.boundResizeMove = (event) => this.resizePanel(event);
 			this.boundResizeEnd = (event) => this.stopPanelResize(event);
 			this.boundDocumentClick = (event) => this.onDocumentClick(event);
@@ -749,21 +773,199 @@ import "./field_agent";
 			this.make();
 			this.bindRealtime();
 			this.bindRouteChange();
+			this.setupAwesomebarChat();
 			this.loadBootstrap();
+		}
+
+		getAwesomebarChatMode() {
+			const boot = frappe?.boot?.ask_alyf || {};
+			if (!boot.allowed) {
+				return ASK_ALYF_AWESOMEBAR_DISABLED;
+			}
+			const mode = String(boot.awesomebar_chat || "");
+			return ASK_ALYF_AWESOMEBAR_MODES.has(mode) ? mode : ASK_ALYF_AWESOMEBAR_DISABLED;
+		}
+
+		/**
+		 * Let the desk search bar (Awesomebar) send messages to the assistant.
+		 *
+		 * Frappe builds the dropdown in AwesomeBar.add_defaults on every keystroke,
+		 * so wrapping that method is enough to add our own entry. The entry's
+		 * onclick receives `match`, which is the typed text.
+		 */
+		setupAwesomebarChat() {
+			if (this.getAwesomebarChatMode() === ASK_ALYF_AWESOMEBAR_DISABLED) {
+				return;
+			}
+			const AwesomeBar = frappe.search?.AwesomeBar;
+			if (!AwesomeBar?.prototype || AwesomeBar.prototype._askAlyfChatPatched) {
+				return;
+			}
+			const originalAddDefaults = AwesomeBar.prototype.add_defaults;
+			if (typeof originalAddDefaults !== "function") {
+				return;
+			}
+			const widget = this;
+			AwesomeBar.prototype.add_defaults = function (txt) {
+				originalAddDefaults.call(this, txt);
+				widget.addAwesomebarChatOption(this, txt);
+			};
+			AwesomeBar.prototype._askAlyfChatPatched = true;
+			this.mountAwesomebarVoiceButton();
+		}
+
+		/**
+		 * Add a microphone next to the desk search input so a question can be
+		 * spoken instead of typed. The transcript lands in the search input and
+		 * opens the dropdown, so Enter sends it like a typed question.
+		 */
+		mountAwesomebarVoiceButton(attempt = 0) {
+			if (!this.isSpeechRecognitionAvailable()) {
+				return;
+			}
+			const input = document.getElementById("navbar-search");
+			if (!input || !input.parentElement) {
+				if (attempt < ASK_ALYF_NAVBAR_MIC_RETRIES) {
+					setTimeout(
+						() => this.mountAwesomebarVoiceButton(attempt + 1),
+						ASK_ALYF_NAVBAR_MIC_RETRY_MS
+					);
+				}
+				return;
+			}
+			if (input.parentElement.querySelector(".ask_alyf-navbar-mic")) {
+				return;
+			}
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "ask_alyf-navbar-mic";
+			button.innerHTML =
+				typeof frappe.utils?.icon === "function" ? frappe.utils.icon("mic", "sm", "", "", "") : "";
+			const tooltip = __("Voice input for {0}", [getAssistantName()]);
+			button.title = tooltip;
+			button.setAttribute("aria-label", tooltip);
+			button.setAttribute("aria-pressed", "false");
+			button.addEventListener("click", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				this.startAwesomebarVoiceInput(input, button);
+			});
+			input.parentElement.classList.add("ask_alyf-has-navbar-mic");
+			input.insertAdjacentElement("afterend", button);
+			this.navbarMicEl = button;
+		}
+
+		startAwesomebarVoiceInput(input, button) {
+			this.startVoiceRecognition({
+				onListening: (isListening) => {
+					button.classList.toggle("is-listening", isListening);
+					button.setAttribute("aria-pressed", isListening ? "true" : "false");
+				},
+				onResult: (transcript) => {
+					const mode = this.getAwesomebarChatMode();
+					const text =
+						mode === ASK_ALYF_AWESOMEBAR_DEFAULT
+							? transcript
+							: `${ASK_ALYF_AWESOMEBAR_PREFIX} ${transcript}`;
+					input.value = text;
+					input.focus();
+					input.dispatchEvent(new Event("input", { bubbles: true }));
+				},
+			});
+		}
+
+		async openFileUploaderFromAwesomebar() {
+			this.setActiveTab("chat");
+			this.toggle(true);
+			if (!this.state.conversation?.name) {
+				await this.loadBootstrap();
+			}
+			this.openFileUploader();
+		}
+
+		addAwesomebarChatOption(awesomeBar, txt) {
+			const mode = this.getAwesomebarChatMode();
+			if (mode === ASK_ALYF_AWESOMEBAR_DISABLED || !Array.isArray(awesomeBar?.options)) {
+				return;
+			}
+			let text = (txt || "").trim();
+			let forced = false;
+			if (text.startsWith(ASK_ALYF_AWESOMEBAR_PREFIX)) {
+				forced = true;
+				text = text.slice(ASK_ALYF_AWESOMEBAR_PREFIX.length).trim();
+			}
+			if (!text) {
+				return;
+			}
+			const isDefault = forced || mode === ASK_ALYF_AWESOMEBAR_DEFAULT;
+			const safeText = frappe.utils.xss_sanitise(text);
+			const name = getAssistantName();
+			awesomeBar.options.push({
+				label: `
+					<span class="flex justify-between text-medium">
+						<span class="ellipsis">${__("Send to {0}: {1}", [name, safeText.bold()])}</span>
+						${isDefault ? "<kbd>↵</kbd>" : ""}
+					</span>
+				`,
+				value: __("Send to {0}: {1}", [name, safeText]),
+				match: text,
+				index: isDefault ? ASK_ALYF_AWESOMEBAR_DEFAULT_INDEX : ASK_ALYF_AWESOMEBAR_OFFER_INDEX,
+				default: "AskAlyfChat",
+				onclick: (message) => this.sendMessageFromText(message),
+			});
+
+			if (this.isFileUploadEnabled() && ASK_ALYF_AWESOMEBAR_UPLOAD_PATTERN.test(text)) {
+				awesomeBar.options.push({
+					label: `
+						<span class="flex justify-between text-medium">
+							<span class="ellipsis">${__("Attach a document for {0}", [name])}</span>
+						</span>
+					`,
+					value: __("Attach a document for {0}", [name]),
+					match: text,
+					index: ASK_ALYF_AWESOMEBAR_UPLOAD_INDEX,
+					default: "AskAlyfUpload",
+					onclick: () => this.openFileUploaderFromAwesomebar(),
+				});
+			}
+		}
+
+		async sendMessageFromText(text) {
+			const message = (text || "").trim();
+			if (!message) {
+				return;
+			}
+			this.setActiveTab("chat");
+			this.toggle(true);
+			this.inputEl.value = message;
+			this.autoResizeInput();
+			if (this.state.loading) {
+				frappe.show_alert({
+					message: __(
+						"{0} is still working on the previous message. Your text was kept in the chat input.",
+						[getAssistantName()]
+					),
+					indicator: "orange",
+				});
+				return;
+			}
+			await this.sendMessage();
 		}
 
 		make() {
 			const root = document.createElement("div");
 			root.className = "ask_alyf-root";
 			root.innerHTML = `
-				<button class="ask_alyf-bubble" type="button" title="${__("Open Ask ALYF")}" aria-label="${__(
-				"Open Ask ALYF"
-			)}"><img class="ask_alyf-bubble-logo" src="/assets/ask_alyf/img/logo.png" alt="" aria-hidden="true"></button>
+				<button class="ask_alyf-bubble" type="button" title="${__("Open {0}", [
+					getAssistantName(),
+				])}" aria-label="${__("Open {0}", [
+				getAssistantName(),
+			])}"><img class="ask_alyf-bubble-logo" src="/assets/ask_alyf/img/logo.png" alt="" aria-hidden="true"></button>
 				<div class="ask_alyf-panel ask_alyf-hidden">
 					<div class="ask_alyf-resize-handle" title="${__("Resize chat window")}"></div>
 					<div class="ask_alyf-header">
 						<div>
-							<div class="ask_alyf-title">Ask ALYF</div>
+							<div class="ask_alyf-title">${frappe.utils.escape_html(getAssistantName())}</div>
 							<div class="ask_alyf-subtitle">${__("ERPNext assistant")}</div>
 						</div>
 						<div class="ask_alyf-actions">
@@ -781,7 +983,9 @@ import "./field_agent";
 						</div>
 					</div>
 					<div class="form-tabs-list ask_alyf-tabs-list">
-						<ul class="nav form-tabs ask_alyf-tabs" role="tablist" aria-label="${__("Ask ALYF sections")}">
+						<ul class="nav form-tabs ask_alyf-tabs" role="tablist" aria-label="${__("{0} sections", [
+							getAssistantName(),
+						])}">
 							<li class="nav-item">
 								<button class="nav-link ask_alyf-tab active" type="button" role="tab" data-tab="chat" aria-selected="true">${__(
 									"Chat"
@@ -829,7 +1033,8 @@ import "./field_agent";
 								</div>
 							</div>
 							<div class="ask_alyf-disclaimer">${__(
-								"Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
+								"{0} is an AI and can make mistakes, including with numbers and information about people.",
+								[getAssistantName()]
 							)}</div>
 						</div>
 					</div>
@@ -974,7 +1179,8 @@ import "./field_agent";
 			if (!askAlyfBoot.configured) {
 				this.warningEl.classList.remove("ask_alyf-hidden");
 				this.warningEl.textContent = __(
-					"Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
+					"{0} is visible, but no API key/model is configured yet in Ask ALYF Settings.",
+					[getAssistantName()]
 				);
 			}
 		}
@@ -1158,8 +1364,10 @@ import "./field_agent";
 			this.setLoading(false);
 			this.setStatus(
 				result.status === "failed"
-					? __("Ask ALYF could not finish processing this message. Please try again.")
-					: __("Ask ALYF stopped processing this message. Please try again.")
+					? __("{0} could not finish processing this message. Please try again.", [
+							getAssistantName(),
+					  ])
+					: __("{0} stopped processing this message. Please try again.", [getAssistantName()])
 			);
 		}
 
@@ -2766,7 +2974,26 @@ import "./field_agent";
 			scheduleInitialPaint();
 		}
 
+		isSpeechRecognitionAvailable() {
+			return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+		}
+
 		startVoiceInput() {
+			this.updateVoiceInputHint();
+			this.startVoiceRecognition({
+				onListening: (isListening) => this.setVoiceInputListening(isListening),
+				onResult: (transcript) => {
+					this.inputEl.value = transcript;
+					this.autoResizeInput();
+				},
+			});
+		}
+
+		/**
+		 * Run one speech recognition and hand the transcript to `onResult`.
+		 * A second call while listening stops the running recognition.
+		 */
+		startVoiceRecognition({ onListening, onResult }) {
 			const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 			if (!Recognition) {
 				frappe.msgprint(__("Your browser does not support voice input."));
@@ -2778,43 +3005,35 @@ import "./field_agent";
 				return;
 			}
 
-			const speechLanguage = this.getPreferredSpeechLanguage();
-			this.updateVoiceInputHint(speechLanguage);
-
 			const recognition = new Recognition();
 			this.voiceRecognition = recognition;
-			recognition.lang = speechLanguage;
+			recognition.lang = this.getPreferredSpeechLanguage();
 			recognition.interimResults = false;
 			recognition.maxAlternatives = 1;
-			recognition.onstart = () => {
-				this.setVoiceInputListening(true);
+			const setListening = (isListening) => {
+				if (!isListening) {
+					this.voiceRecognition = null;
+				}
+				onListening?.(isListening);
 			};
+			recognition.onstart = () => setListening(true);
 			recognition.onresult = (event) => {
-				const transcript = event.results?.[0]?.[0]?.transcript;
+				const transcript = (event.results?.[0]?.[0]?.transcript || "").trim();
 				if (transcript) {
-					this.inputEl.value = transcript;
-					this.autoResizeInput();
+					onResult?.(transcript);
 				}
 			};
-			recognition.onerror = () => {
-				this.setVoiceInputListening(false);
-			};
-			recognition.onend = () => {
-				this.setVoiceInputListening(false);
-			};
+			recognition.onerror = () => setListening(false);
+			recognition.onend = () => setListening(false);
 
 			try {
 				recognition.start();
 			} catch (error) {
-				this.setVoiceInputListening(false);
+				setListening(false);
 			}
 		}
 
 		setVoiceInputListening(isListening) {
-			if (!isListening) {
-				this.voiceRecognition = null;
-			}
-
 			if (!this.micEl) {
 				return;
 			}

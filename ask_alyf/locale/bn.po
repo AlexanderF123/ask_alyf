@@ -128,51 +128,51 @@ msgstr "অ্যাকশন প্রয়োগ করা হচ্ছে...
 #. Title of a Workspace Sidebar
 #: ask_alyf/desktop_icon/ask_alyf.json ask_alyf/workspace_sidebar/ask_alyf.json
 msgid "Ask ALYF"
-msgstr "Ask ALYF"
+msgstr "Frage mich"
 
 #. Name of a DocType
 #: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
 msgid "Ask ALYF Conversation"
-msgstr "Ask ALYF কথোপকথন"
+msgstr "Frage mich কথোপকথন"
 
 #. Name of a DocType
 #: ask_alyf/ask_alyf/doctype/ask_alyf_excluded_doctype/ask_alyf_excluded_doctype.json
 msgid "Ask ALYF Excluded DocType"
-msgstr "Ask ALYF বাদ দেওয়া DocType"
+msgstr "Frage mich বাদ দেওয়া DocType"
 
 #. Title of the Module Onboarding 'Ask ALYF Onboarding'
 #: ask_alyf/ask_alyf/module_onboarding/ask_alyf_onboarding/ask_alyf_onboarding.json
-msgid "Ask ALYF Onboarding"
-msgstr "Ask ALYF অনবোর্ডিং"
+msgid "Frage mich Onboarding"
+msgstr "Frage mich অনবোর্ডিং"
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 #: ask_alyf/workspace_sidebar/ask_alyf.json
 msgid "Ask ALYF Settings"
-msgstr "Ask ALYF সেটিংস"
+msgstr "Frage mich সেটিংস"
 
 #. Name of a DocType
 #: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
 msgid "Ask ALYF Skill"
-msgstr "Ask ALYF দক্ষতা"
+msgstr "Frage mich দক্ষতা"
 
 #. Name of a role
 #: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
 msgid "Ask ALYF User"
-msgstr "Ask ALYF ব্যবহারকারী"
+msgstr "Frage mich ব্যবহারকারী"
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:631
-msgid "Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
-msgstr "Ask ALYF একটি AI এবং সংখ্যা এবং ব্যক্তিদের সম্পর্কে তথ্য সহ ভুল করতে পারে।"
+msgid "{0} is an AI and can make mistakes, including with numbers and information about people."
+msgstr "{0} একটি AI এবং সংখ্যা এবং ব্যক্তিদের সম্পর্কে তথ্য সহ ভুল করতে পারে।"
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:779
-msgid "Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
-msgstr "Ask ALYF দৃশ্যমান, কিন্তু Ask ALYF সেটিংসে এখনও কোনো API কী/মডেল কনফিগার করা হয়নি।"
+msgid "{0} is visible, but no API key/model is configured yet in Ask ALYF Settings."
+msgstr "{0} দৃশ্যমান, কিন্তু Ask ALYF সেটিংসে এখনও কোনো API কী/মডেল কনফিগার করা হয়নি।"
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:582
-msgid "Ask ALYF sections"
-msgstr "Ask ALYF বিভাগ"
+msgid "{0} sections"
+msgstr "{0} বিভাগ"
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:600
 msgid "Ask about this ERPNext instance"
@@ -926,8 +926,8 @@ msgid "Only read-only SQL statements are allowed."
 msgstr "শুধুমাত্র read-only SQL statements অনুমোদিত।"
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:557
-msgid "Open Ask ALYF"
-msgstr "Ask ALYF খুলুন"
+msgid "Open {0}"
+msgstr "{0} খুলুন"
 
 #: ask_alyf/ask_alyf/agent.py:1344
 #, python-brace-format
@@ -1415,8 +1415,8 @@ msgstr "শিরোনামহীন কথোপকথন"
 
 #. Title of an Onboarding Step
 #: ask_alyf/ask_alyf/onboarding_step/update_ask_alyf_settings/update_ask_alyf_settings.json
-msgid "Update Ask ALYF Settings"
-msgstr "Ask ALYF সেটিংস আপডেট করুন"
+msgid "Update Frage mich Settings"
+msgstr "Frage mich সেটিংস আপডেট করুন"
 
 #: ask_alyf/ask_alyf/agent.py:1091
 msgid "Update proposal needs correction."
@@ -1518,8 +1518,8 @@ msgstr "আজ কোন ব্যবহারকারীরা লগ ইন �
 #: ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697
 #: ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941
 #: ask_alyf/ask_alyf/api.py:979
-msgid "You do not have access to Ask ALYF."
-msgstr "Ask ALYF-এ আপনার অ্যাক্সেস নেই।"
+msgid "You do not have access to {0}."
+msgstr "{0}-এ আপনার অ্যাক্সেস নেই।"
 
 #: ask_alyf/ask_alyf/api.py:948
 #, python-brace-format
@@ -1580,3 +1580,52 @@ msgstr "{0} আইটেম"
 msgid "{0} rows"
 msgstr "{0} সারি"
 
+
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Send to {0}: {1}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "{0} is still working on the previous message. Your text was kept in the chat input."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Search Bar"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Chat via Search Bar"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Send chat messages from the desk search bar (Awesomebar). 'Offer in Results' adds a chat entry to the search results. 'Default Action' puts it first, so Enter sends the text to the assistant. A leading ? always sends to the assistant."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Disabled"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Offer in Results"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Default Action"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Assistant Name"
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Display name of the assistant in the desk (chat window, search bar, messages). Technical names such as DocTypes and roles stay unchanged."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Voice input for {0}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Attach a document for {0}"
+msgstr ""
