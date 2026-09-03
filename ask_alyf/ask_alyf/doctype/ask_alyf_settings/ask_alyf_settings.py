@@ -93,6 +93,9 @@ class AskALYFSettings(Document):
 	def is_code_search_enabled(self) -> bool:
 		return bool(self.allow_code_search)
 
+	def on_update(self):
+		clear_boot_cache()
+
 	def validate(self):
 		validate_model_selection(
 			self.model,
@@ -116,6 +119,16 @@ class AskALYFSettings(Document):
 			ModelConfiguration.VISION,
 			unsupported_message=_("The selected Vision Model ({0}) does not support vision."),
 		)
+
+
+def clear_boot_cache() -> None:
+	"""Drop the cached desk boot data of every user.
+
+	Frappe caches the boot payload per user (`bootinfo` hash), so a changed
+	setting such as the assistant name or the search bar mode would otherwise
+	only reach the browser after a manual cache clear.
+	"""
+	frappe.cache.delete_key("bootinfo")
 
 
 @frappe.whitelist()
