@@ -30,6 +30,7 @@ import "./field_agent";
 		/(upload|hochlad|datei|dokument|anhang|anh[äa]ng|beleg|scan|attach|file\b|document)/i;
 	const ASK_ALYF_NAVBAR_MIC_RETRIES = 10;
 	const ASK_ALYF_NAVBAR_MIC_RETRY_MS = 500;
+	const ASK_ALYF_AWESOMEBAR_COMPOSER_MAX_HEIGHT = 320;
 
 	function getAssistantName() {
 		return frappe?.boot?.ask_alyf?.assistant_name || ASK_ALYF_DEFAULT_ASSISTANT_NAME;
@@ -824,7 +825,219 @@ import "./field_agent";
 				widget.addAwesomebarChatOption(this, txt);
 			};
 			AwesomeBar.prototype._askAlyfChatPatched = true;
+			this.setupAwesomebarComposer();
 			this.mountAwesomebarVoiceButton();
+		}
+
+		/**
+		 * Name the assistant in the search bar placeholder and add a composer
+		 * that folds out below the search bar for longer texts.
+		 *
+		 * The composer opens when the typed text no longer fits into the input,
+		 * on Shift+Enter, or when multi-line text is pasted. Enter sends the
+		 * text to the assistant, Shift+Enter adds a line, Escape folds it back.
+		 */
+		setupAwesomebarComposer(attempt = 0) {
+			const input = document.getElementById("navbar-search");
+			if (!input || !input.parentElement) {
+				if (attempt < ASK_ALYF_NAVBAR_MIC_RETRIES) {
+					setTimeout(
+						() => this.setupAwesomebarComposer(attempt + 1),
+						ASK_ALYF_NAVBAR_MIC_RETRY_MS,
+					);
+				}
+				return;
+			}
+			if (input.parentElement.querySelector(".ask_alyf-awesomebar-composer")) {
+				return;
+			}
+			const name = getAssistantName();
+			const shortcut = frappe.utils.is_mac?.() ? "⌘ + G" : "Ctrl + G";
+			input.placeholder = __("{0}, search or type a command ({1})", [name, shortcut]);
+
+			const composer = document.createElement("div");
+			composer.className = "ask_alyf-awesomebar-composer";
+			composer.hidden = true;
+			const textareaLabel = frappe.utils.escape_html(__("Your question or task for {0}", [name]));
+			composer.innerHTML = `
+				<textarea
+					class="ask_alyf-awesomebar-textarea"
+					rows="2"
+					placeholder="${textareaLabel}"
+					aria-label="${textareaLabel}"
+				></textarea>
+				<div class="ask_alyf-awesomebar-composer-footer">
+					<span class="ask_alyf-awesomebar-composer-hint">${__(
+						"Enter sends to {0}, Shift + Enter adds a line, Esc closes",
+						[name],
+					)}</span>
+					<button type="button" class="btn btn-primary btn-xs ask_alyf-awesomebar-send">${__(
+						"Send",
+					)}</button>
+				</div>
+			`;
+			input.parentElement.classList.add("ask_alyf-has-awesomebar-composer");
+			input.parentElement.appendChild(composer);
+			this.awesomebarInputEl = input;
+			this.awesomebarComposerEl = composer;
+			this.awesomebarTextareaEl = composer.querySelector("textarea");
+			this.awesomebarDraft = "";
+			this.awesomebarComposerDismissed = false;
+
+			// Capture phase on the parent runs before Awesomplete's own Enter
+			// handler on the input, so Shift+Enter never selects a result.
+			input.parentElement.addEventListener(
+				"keydown",
+				(event) => {
+					if (event.target !== input || event.key !== "Enter" || !event.shiftKey) {
+						return;
+					}
+					event.preventDefault();
+					event.stopPropagation();
+					this.awesomebarComposerDismissed = false;
+					this.openAwesomebarComposer(`${this.getAwesomebarDraft()}\n`);
+				},
+				true,
+			);
+			input.addEventListener("input", () => {
+				if (!input.value.trim()) {
+					this.awesomebarDraft = "";
+					this.awesomebarComposerDismissed = false;
+					return;
+				}
+				if (this.awesomebarComposerDismissed || !this.shouldOpenAwesomebarComposer(input)) {
+					return;
+				}
+				this.openAwesomebarComposer(this.getAwesomebarDraft());
+			});
+			input.addEventListener("blur", () => {
+				this.awesomebarComposerDismissed = false;
+			});
+
+			const textarea = this.awesomebarTextareaEl;
+			textarea.addEventListener("input", () => this.autoResizeAwesomebarComposer());
+			textarea.addEventListener("keydown", (event) => {
+				if (event.key === "Enter" && !event.shiftKey) {
+					event.preventDefault();
+					event.stopPropagation();
+					this.submitAwesomebarComposer();
+				} else if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					this.awesomebarComposerDismissed = true;
+					this.closeAwesomebarComposer({ focusInput: true });
+				}
+			});
+			composer.querySelector(".ask_alyf-awesomebar-send").addEventListener("click", (event) => {
+				event.preventDefault();
+				this.submitAwesomebarComposer();
+			});
+			composer.addEventListener("focusout", (event) => {
+				const next = event.relatedTarget;
+				if (next && (composer.contains(next) || next.classList?.contains("ask_alyf-navbar-mic"))) {
+					return;
+				}
+				this.closeAwesomebarComposer();
+			});
+		}
+
+		isAwesomebarComposerOpen() {
+			return Boolean(this.awesomebarComposerEl && !this.awesomebarComposerEl.hidden);
+		}
+
+		/** Full text behind the single-line search input, including line breaks. */
+		getAwesomebarDraft() {
+			const value = this.awesomebarInputEl?.value || "";
+			if (
+				this.awesomebarDraft &&
+				this.flattenAwesomebarText(this.awesomebarDraft) === value.trim()
+			) {
+				return this.awesomebarDraft;
+			}
+			return value;
+		}
+
+		flattenAwesomebarText(text) {
+			return (text || "").replace(/\s*\n\s*/g, " ").trim();
+		}
+
+		shouldOpenAwesomebarComposer(input) {
+			const value = input.value || "";
+			const mode = this.getAwesomebarChatMode();
+			const forced = value.trimStart().startsWith(ASK_ALYF_AWESOMEBAR_PREFIX);
+			if (mode !== ASK_ALYF_AWESOMEBAR_DEFAULT && !forced) {
+				return false;
+			}
+			if (value.includes("\n")) {
+				return true;
+			}
+			return input.scrollWidth > input.clientWidth + 1;
+		}
+
+		openAwesomebarComposer(text) {
+			const composer = this.awesomebarComposerEl;
+			const textarea = this.awesomebarTextareaEl;
+			const input = this.awesomebarInputEl;
+			if (!composer || !textarea || !input) {
+				return;
+			}
+			input.awesomplete?.close?.();
+			textarea.value = text || "";
+			composer.hidden = false;
+			input.parentElement.classList.add("is-composing");
+			this.autoResizeAwesomebarComposer();
+			textarea.focus();
+			const end = textarea.value.length;
+			textarea.setSelectionRange(end, end);
+		}
+
+		/**
+		 * Fold the composer back. The text is kept: the search input shows it
+		 * on one line and the full draft (with line breaks) is restored when
+		 * the composer opens again.
+		 */
+		closeAwesomebarComposer({ clear = false, focusInput = false } = {}) {
+			const composer = this.awesomebarComposerEl;
+			const textarea = this.awesomebarTextareaEl;
+			const input = this.awesomebarInputEl;
+			if (!composer || composer.hidden) {
+				return;
+			}
+			const text = clear ? "" : textarea.value;
+			this.awesomebarDraft = text;
+			input.value = this.flattenAwesomebarText(text);
+			textarea.value = "";
+			composer.hidden = true;
+			input.parentElement.classList.remove("is-composing");
+			if (focusInput) {
+				input.focus();
+			}
+		}
+
+		autoResizeAwesomebarComposer() {
+			const textarea = this.awesomebarTextareaEl;
+			if (!textarea) {
+				return;
+			}
+			textarea.style.height = "auto";
+			const height = Math.min(textarea.scrollHeight, ASK_ALYF_AWESOMEBAR_COMPOSER_MAX_HEIGHT);
+			textarea.style.height = `${height}px`;
+			textarea.style.overflowY =
+				textarea.scrollHeight > ASK_ALYF_AWESOMEBAR_COMPOSER_MAX_HEIGHT ? "auto" : "hidden";
+		}
+
+		async submitAwesomebarComposer() {
+			const textarea = this.awesomebarTextareaEl;
+			let text = (textarea?.value || "").trim();
+			if (text.startsWith(ASK_ALYF_AWESOMEBAR_PREFIX)) {
+				text = text.slice(ASK_ALYF_AWESOMEBAR_PREFIX.length).trim();
+			}
+			if (!text) {
+				return;
+			}
+			this.closeAwesomebarComposer({ clear: true });
+			this.awesomebarInputEl?.blur();
+			await this.sendMessageFromText(text);
 		}
 
 		/**
@@ -874,6 +1087,14 @@ import "./field_agent";
 					button.setAttribute("aria-pressed", isListening ? "true" : "false");
 				},
 				onResult: (transcript) => {
+					if (this.isAwesomebarComposerOpen()) {
+						const textarea = this.awesomebarTextareaEl;
+						const current = textarea.value.trimEnd();
+						textarea.value = current ? `${current} ${transcript}` : transcript;
+						this.autoResizeAwesomebarComposer();
+						textarea.focus();
+						return;
+					}
 					const mode = this.getAwesomebarChatMode();
 					const text =
 						mode === ASK_ALYF_AWESOMEBAR_DEFAULT
