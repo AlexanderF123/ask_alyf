@@ -270,6 +270,20 @@ def _get_model_name_from_settings(settings) -> str:
 	return model_name
 
 
+def should_use_responses_api(settings) -> bool:
+	"""Decide whether the chat model talks to the OpenAI Responses API.
+
+	OpenAI itself serves `/v1/responses`. Many OpenAI-compatible providers
+	(for example Anthropic's OpenAI-compatible endpoint) only serve
+	`/v1/chat/completions` and answer 404 otherwise, so compatible
+	providers opt in through the settings.
+	"""
+	provider = (getattr(settings, "llm_provider", "") or "").strip()
+	if provider == "OpenAI Compatible":
+		return bool(getattr(settings, "use_responses_api", 0))
+	return True
+
+
 def build_chat_model(settings, *, temperature: float = 0.2) -> ChatOpenAI:
 	"""Build a LangChain `ChatOpenAI` from Ask ALYF Settings values.
 
@@ -281,7 +295,7 @@ def build_chat_model(settings, *, temperature: float = 0.2) -> ChatOpenAI:
 		api_key=_get_api_key_from_settings(settings),
 		base_url=(settings.base_url or "").strip() or None,
 		temperature=temperature,
-		use_responses_api=True,
+		use_responses_api=should_use_responses_api(settings),
 		reasoning_effort=(settings.reasoning_effort or "").strip() or None,
 	)
 
