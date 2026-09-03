@@ -6,6 +6,10 @@ app_email = "hallo@alyf.de"
 app_license = "gpl-3.0"
 app_include_js = "ask_alyf.bundle.js"
 app_include_css = "ask_alyf.bundle.css"
+# Frappe 15 runs the `boot_session` hook; `extend_bootinfo` is the name from
+# Frappe 16 onwards. Register both so the boot payload reaches the desk on
+# either version.
+boot_session = "ask_alyf.ask_alyf.boot.boot_session"
 extend_bootinfo = "ask_alyf.ask_alyf.boot.boot_session"
 
 # Apps
