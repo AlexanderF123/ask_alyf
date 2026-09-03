@@ -39,14 +39,22 @@ from ask_alyf.ask_alyf.toolset import (
 
 
 class FakeSettings(SimpleNamespace):
-	def __init__(self, *, allow_code_search: bool, reasoning_effort: str = ""):
+	def __init__(
+		self,
+		*,
+		allow_code_search: bool,
+		reasoning_effort: str = "",
+		llm_provider: str = "OpenAI",
+		use_responses_api: int = 0,
+	):
 		super().__init__(
 			allow_code_search=allow_code_search,
 			system_prompt="",
 			model="gpt-test",
-			llm_provider="OpenAI",
+			llm_provider=llm_provider,
 			base_url="",
 			reasoning_effort=reasoning_effort,
+			use_responses_api=use_responses_api,
 		)
 
 	def is_code_search_enabled(self) -> bool:
@@ -142,11 +150,23 @@ class UnitTestCodeTools(UnitTestCase):
 		runner.checkpointer = FakeCheckpointer(stored_state=stored_state)
 		return runner
 
-	def test_build_chat_model_uses_responses_api_for_any_model(self):
+	def test_build_chat_model_uses_responses_api_for_openai(self):
 		model = build_chat_model(FakeSettings(allow_code_search=False))
 
 		self.assertTrue(model.use_responses_api)
 		self.assertIsNone(model.reasoning_effort)
+
+	def test_build_chat_model_uses_chat_completions_for_compatible_providers_by_default(self):
+		model = build_chat_model(FakeSettings(allow_code_search=False, llm_provider="OpenAI Compatible"))
+
+		self.assertFalse(model.use_responses_api)
+
+	def test_build_chat_model_lets_compatible_providers_opt_into_responses_api(self):
+		model = build_chat_model(
+			FakeSettings(allow_code_search=False, llm_provider="OpenAI Compatible", use_responses_api=1)
+		)
+
+		self.assertTrue(model.use_responses_api)
 
 	def test_build_chat_model_passes_reasoning_effort_when_set(self):
 		model = build_chat_model(FakeSettings(allow_code_search=False, reasoning_effort="high"))
