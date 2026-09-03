@@ -310,3 +310,18 @@ class IntegrationTestAskALYFSettings(FrappeTestCase):
 	"""
 
 	pass
+
+
+class TestClearBootCache(FrappeTestCase):
+	def test_clear_boot_cache_drops_the_cached_boot_data_of_every_user(self):
+		with patch.object(ask_alyf_settings.frappe.cache, "delete_key") as delete_key:
+			ask_alyf_settings.clear_boot_cache()
+
+		delete_key.assert_called_once_with("bootinfo")
+
+	def test_saving_the_settings_clears_the_boot_cache(self):
+		settings = frappe.get_single("Ask ALYF Settings")
+		with patch.object(ask_alyf_settings, "clear_boot_cache") as clear_boot_cache:
+			settings.on_update()
+
+		clear_boot_cache.assert_called_once_with()
