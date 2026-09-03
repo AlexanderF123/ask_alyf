@@ -1174,3 +1174,56 @@
 	color: var(--red-500, #e03131);
 	animation: ask_alyf-mic-pulse 1.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
+
+/* ---- Fold-out composer for longer texts in the desk search bar ------------ */
+
+.ask_alyf-has-awesomebar-composer {
+	position: relative;
+}
+
+.ask_alyf-awesomebar-composer {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: min(36rem, calc(100vw - 2rem));
+	min-width: 100%;
+	z-index: 5;
+	padding: 0.35rem;
+	background: var(--card-bg, var(--fg-color, #fff));
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	box-shadow: var(--shadow-md);
+}
+
+.ask_alyf-awesomebar-textarea {
+	display: block;
+	width: 100%;
+	min-height: 2.3rem;
+	max-height: 20rem;
+	padding: 0.4rem 2.2rem 0.4rem 0.5rem;
+	border: 0;
+	background: transparent;
+	color: var(--text-color);
+	font-size: var(--text-md);
+	line-height: 1.45;
+	resize: none;
+	outline: none;
+	box-shadow: none;
+}
+
+.ask_alyf-awesomebar-composer-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.15rem 0.5rem 0.2rem;
+}
+
+.ask_alyf-awesomebar-composer-hint {
+	font-size: var(--text-xs);
+	color: var(--text-muted);
+}
+
+.ask_alyf-has-awesomebar-composer.is-composing .ask_alyf-navbar-mic {
+	z-index: 6;
+}

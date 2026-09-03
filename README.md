@@ -58,6 +58,8 @@ When a mode is enabled, the search bar also gets:
 
 - a **microphone button** (browsers with the Web Speech API): the spoken text lands in the search bar and opens the results, so Enter sends it. In _Offer in Results_ mode the transcript is prefixed with `?` so that Enter still reaches the assistant.
 - an entry **"Attach a document for ..."** whenever the typed text mentions a file, document, upload, or attachment (German or English), if _Allow File Upload_ is enabled. It opens the file uploader of the current conversation.
+- the assistant's name in the placeholder ("Frage mich, search or type a command").
+- a **fold-out composer for longer texts**: as soon as the typed text no longer fits into the search input (in _Default Action_ mode, or after a leading `?`), on Shift+Enter, or when multi-line text is pasted, a larger text area folds out below the search bar. Enter or the _Send_ button sends the text to the assistant, Shift+Enter adds a line, Esc folds the area back while keeping the text in the search input.
 
 The goal of this fork is to make the assistant the main interface for staff: they talk to the system, hand it documents, and the system carries out the tasks (Agent mode with confirmation, Skills for recurring procedures).
 
