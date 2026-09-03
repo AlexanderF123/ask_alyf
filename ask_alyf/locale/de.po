@@ -1561,3 +1561,19 @@ msgstr "Spracheingabe für {0}"
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Attach a document for {0}"
 msgstr "Dokument für {0} anhängen"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "{0}, search or type a command ({1})"
+msgstr "{0}, suchen oder einen Befehl eingeben ({1})"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Your question or task for {0}"
+msgstr "Ihre Frage oder Aufgabe für {0}"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Enter sends to {0}, Shift + Enter adds a line, Esc closes"
+msgstr "Enter sendet an {0}, Umschalt + Enter für eine neue Zeile, Esc schließt"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Send"
+msgstr "Senden"

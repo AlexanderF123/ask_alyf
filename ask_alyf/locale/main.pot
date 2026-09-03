@@ -1559,3 +1559,19 @@ msgstr ""
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Attach a document for {0}"
 msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "{0}, search or type a command ({1})"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Your question or task for {0}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Enter sends to {0}, Shift + Enter adds a line, Esc closes"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Send"
+msgstr ""
