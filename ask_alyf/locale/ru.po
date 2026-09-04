@@ -1665,3 +1665,7 @@ msgstr ""
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Upload failed."
 msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "{0} is still working on the previous message. Please drop the document again when the answer is there."
+msgstr ""
