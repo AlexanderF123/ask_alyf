@@ -1,4 +1,6 @@
 import "./field_agent";
+import { getAssistantName, isAgentModeEnabled, isFileUploadEnabled } from "./boot";
+import { setupAwesomebarIntegration } from "./awesomebar";
 
 (function () {
 	if (window.ask_alyfWidget) {
@@ -11,30 +13,6 @@ import "./field_agent";
 	const ASK_ALYF_FRAPPE_CHART_MAX_HEIGHT = 720;
 	const ASK_ALYF_JOB_POLL_INTERVAL_MS = 2000;
 	const ASK_ALYF_MISSING_JOB_CHECKS = 3;
-	const ASK_ALYF_DEFAULT_ASSISTANT_NAME = "Frage mich";
-	const ASK_ALYF_AWESOMEBAR_DISABLED = "Disabled";
-	const ASK_ALYF_AWESOMEBAR_OFFER = "Offer in Results";
-	const ASK_ALYF_AWESOMEBAR_DEFAULT = "Default Action";
-	const ASK_ALYF_AWESOMEBAR_MODES = new Set([
-		ASK_ALYF_AWESOMEBAR_DISABLED,
-		ASK_ALYF_AWESOMEBAR_OFFER,
-		ASK_ALYF_AWESOMEBAR_DEFAULT,
-	]);
-	// Built-in "Search for ..." has index 100; the default action must rank above it.
-	const ASK_ALYF_AWESOMEBAR_DEFAULT_INDEX = 110;
-	const ASK_ALYF_AWESOMEBAR_OFFER_INDEX = 95;
-	const ASK_ALYF_AWESOMEBAR_PREFIX = "?";
-	const ASK_ALYF_AWESOMEBAR_UPLOAD_INDEX = 96;
-	// Words that suggest the user wants to hand over a document (German and English).
-	const ASK_ALYF_AWESOMEBAR_UPLOAD_PATTERN =
-		/(upload|hochlad|datei|dokument|anhang|anh[äa]ng|beleg|scan|attach|file\b|document)/i;
-	const ASK_ALYF_NAVBAR_RETRIES = 10;
-	const ASK_ALYF_NAVBAR_RETRY_MS = 500;
-	const ASK_ALYF_AWESOMEBAR_COMPOSER_MAX_HEIGHT = 320;
-
-	function getAssistantName() {
-		return frappe?.boot?.ask_alyf?.assistant_name || ASK_ALYF_DEFAULT_ASSISTANT_NAME;
-	}
 
 	function getIcon(name, size = "sm", svgClass = "", currentColor = false) {
 		if (typeof frappe.utils?.icon !== "function") {
@@ -182,7 +160,7 @@ import "./field_agent";
 			this.handledFrontendCallIds = new Set();
 			this.resizeState = null;
 			this.voiceRecognition = null;
-			this.navbarMicEl = null;
+			this.awesomebar = null;
 			this.boundResizeMove = (event) => this.resizePanel(event);
 			this.boundResizeEnd = (event) => this.stopPanelResize(event);
 			this.boundDocumentClick = (event) => this.onDocumentClick(event);
@@ -779,7 +757,7 @@ import "./field_agent";
 				return;
 			}
 
-			if (this.state.mode === "Agent" && !this.isAgentModeEnabled()) {
+			if (this.state.mode === "Agent" && !isAgentModeEnabled()) {
 				this.state.mode = "Ask";
 			}
 
@@ -787,323 +765,8 @@ import "./field_agent";
 			this.make();
 			this.bindRealtime();
 			this.bindRouteChange();
-			this.setupAwesomebarChat();
+			this.awesomebar = setupAwesomebarIntegration(this);
 			this.loadBootstrap();
-		}
-
-		getAwesomebarChatMode() {
-			const boot = frappe?.boot?.ask_alyf || {};
-			if (!boot.allowed) {
-				return ASK_ALYF_AWESOMEBAR_DISABLED;
-			}
-			const mode = String(boot.awesomebar_chat || "");
-			return ASK_ALYF_AWESOMEBAR_MODES.has(mode) ? mode : ASK_ALYF_AWESOMEBAR_DISABLED;
-		}
-
-		/**
-		 * Let the desk search bar (Awesomebar) send messages to the assistant.
-		 *
-		 * Frappe builds the dropdown in AwesomeBar.add_defaults on every keystroke,
-		 * so wrapping that method is enough to add our own entry. The entry's
-		 * onclick receives `match`, which is the typed text.
-		 */
-		setupAwesomebarChat() {
-			if (this.getAwesomebarChatMode() === ASK_ALYF_AWESOMEBAR_DISABLED) {
-				return;
-			}
-			this.patchAwesomebarOptions();
-			this.whenNavbarSearchReady((input) => {
-				this.setupAwesomebarComposer(input);
-				this.mountAwesomebarVoiceButton(input);
-			});
-		}
-
-		/** Add our entry to the dropdown. The prototype is patched once per page. */
-		patchAwesomebarOptions() {
-			const AwesomeBar = frappe.search?.AwesomeBar;
-			if (!AwesomeBar?.prototype || AwesomeBar.prototype._askAlyfChatPatched) {
-				return;
-			}
-			const originalAddDefaults = AwesomeBar.prototype.add_defaults;
-			if (typeof originalAddDefaults !== "function") {
-				return;
-			}
-			const widget = this;
-			AwesomeBar.prototype.add_defaults = function (txt) {
-				originalAddDefaults.call(this, txt);
-				widget.addAwesomebarChatOption(this, txt);
-			};
-			AwesomeBar.prototype._askAlyfChatPatched = true;
-		}
-
-		/** The navbar is rendered by the desk, so wait for the search input. */
-		whenNavbarSearchReady(callback, attempt = 0) {
-			const input = document.getElementById("navbar-search");
-			if (input?.parentElement) {
-				callback(input);
-				return;
-			}
-			if (attempt < ASK_ALYF_NAVBAR_RETRIES) {
-				setTimeout(() => this.whenNavbarSearchReady(callback, attempt + 1), ASK_ALYF_NAVBAR_RETRY_MS);
-			}
-		}
-
-		/**
-		 * Name the assistant in the search bar placeholder and add a composer
-		 * that folds out below the search bar for longer texts.
-		 *
-		 * The composer opens when the typed text no longer fits into the input,
-		 * on Shift+Enter, or when multi-line text is pasted. Enter sends the
-		 * text to the assistant, Shift+Enter adds a line, Escape folds it back.
-		 */
-		setupAwesomebarComposer(input) {
-			if (input.parentElement.querySelector(".ask_alyf-awesomebar-composer")) {
-				return;
-			}
-			const name = getAssistantName();
-			const shortcut = frappe.utils.is_mac?.() ? "⌘ + G" : "Ctrl + G";
-			input.placeholder = __("{0}, search or type a command ({1})", [name, shortcut]);
-
-			const composer = document.createElement("div");
-			composer.className = "ask_alyf-awesomebar-composer";
-			composer.hidden = true;
-			const textareaLabel = frappe.utils.escape_html(__("Your question or task for {0}", [name]));
-			composer.innerHTML = `
-				<textarea
-					class="ask_alyf-awesomebar-textarea"
-					rows="2"
-					placeholder="${textareaLabel}"
-					aria-label="${textareaLabel}"
-				></textarea>
-				<div class="ask_alyf-awesomebar-composer-footer">
-					<span class="ask_alyf-awesomebar-composer-hint">${__(
-						"Enter sends to {0}, Shift + Enter adds a line, Esc closes",
-						[name],
-					)}</span>
-					<button type="button" class="btn btn-primary btn-xs ask_alyf-awesomebar-send">${__(
-						"Send",
-					)}</button>
-				</div>
-			`;
-			input.parentElement.classList.add("ask_alyf-has-awesomebar-composer");
-			input.parentElement.appendChild(composer);
-			this.awesomebarInputEl = input;
-			this.awesomebarComposerEl = composer;
-			this.awesomebarTextareaEl = composer.querySelector("textarea");
-			this.awesomebarDraft = "";
-			this.awesomebarComposerDismissed = false;
-
-			// Capture runs before Awesomplete's own Enter handler on the same
-			// input, so Shift+Enter never selects a result.
-			input.addEventListener(
-				"keydown",
-				(event) => {
-					if (event.key !== "Enter" || !event.shiftKey) {
-						return;
-					}
-					event.preventDefault();
-					event.stopPropagation();
-					this.awesomebarComposerDismissed = false;
-					this.openAwesomebarComposer(`${this.getAwesomebarDraft()}\n`);
-				},
-				true,
-			);
-			input.addEventListener("input", () => {
-				if (!input.value.trim()) {
-					this.awesomebarDraft = "";
-					this.awesomebarComposerDismissed = false;
-					return;
-				}
-				if (this.awesomebarComposerDismissed || !this.shouldOpenAwesomebarComposer(input)) {
-					return;
-				}
-				this.openAwesomebarComposer(this.getAwesomebarDraft());
-			});
-			input.addEventListener("blur", () => {
-				this.awesomebarComposerDismissed = false;
-			});
-
-			const textarea = this.awesomebarTextareaEl;
-			textarea.addEventListener("input", () => this.autoResizeAwesomebarComposer());
-			textarea.addEventListener("keydown", (event) => {
-				if (event.key === "Enter" && !event.shiftKey) {
-					event.preventDefault();
-					event.stopPropagation();
-					this.submitAwesomebarComposer();
-				} else if (event.key === "Escape") {
-					event.preventDefault();
-					event.stopPropagation();
-					this.awesomebarComposerDismissed = true;
-					this.closeAwesomebarComposer({ focusInput: true });
-				}
-			});
-			composer.querySelector(".ask_alyf-awesomebar-send").addEventListener("click", (event) => {
-				event.preventDefault();
-				this.submitAwesomebarComposer();
-			});
-			composer.addEventListener("focusout", (event) => {
-				const next = event.relatedTarget;
-				if (next && (composer.contains(next) || next.classList?.contains("ask_alyf-navbar-mic"))) {
-					return;
-				}
-				this.closeAwesomebarComposer();
-			});
-		}
-
-		isAwesomebarComposerOpen() {
-			return Boolean(this.awesomebarComposerEl && !this.awesomebarComposerEl.hidden);
-		}
-
-		/** Full text behind the single-line search input, including line breaks. */
-		getAwesomebarDraft() {
-			const value = this.awesomebarInputEl?.value || "";
-			if (
-				this.awesomebarDraft &&
-				this.flattenAwesomebarText(this.awesomebarDraft) === value.trim()
-			) {
-				return this.awesomebarDraft;
-			}
-			return value;
-		}
-
-		flattenAwesomebarText(text) {
-			return (text || "").replace(/\s*\n\s*/g, " ").trim();
-		}
-
-		shouldOpenAwesomebarComposer(input) {
-			const value = input.value || "";
-			const mode = this.getAwesomebarChatMode();
-			const forced = value.trimStart().startsWith(ASK_ALYF_AWESOMEBAR_PREFIX);
-			if (mode !== ASK_ALYF_AWESOMEBAR_DEFAULT && !forced) {
-				return false;
-			}
-			if (value.includes("\n")) {
-				return true;
-			}
-			return input.scrollWidth > input.clientWidth + 1;
-		}
-
-		openAwesomebarComposer(text) {
-			const composer = this.awesomebarComposerEl;
-			const textarea = this.awesomebarTextareaEl;
-			const input = this.awesomebarInputEl;
-			if (!composer || !textarea || !input) {
-				return;
-			}
-			input.awesomplete?.close?.();
-			textarea.value = text || "";
-			composer.hidden = false;
-			input.parentElement.classList.add("is-composing");
-			this.autoResizeAwesomebarComposer();
-			textarea.focus();
-			const end = textarea.value.length;
-			textarea.setSelectionRange(end, end);
-		}
-
-		/**
-		 * Fold the composer back. The text is kept: the search input shows it
-		 * on one line and the full draft (with line breaks) is restored when
-		 * the composer opens again.
-		 */
-		closeAwesomebarComposer({ clear = false, focusInput = false } = {}) {
-			const composer = this.awesomebarComposerEl;
-			const textarea = this.awesomebarTextareaEl;
-			const input = this.awesomebarInputEl;
-			if (!composer || composer.hidden) {
-				return;
-			}
-			const text = clear ? "" : textarea.value;
-			this.awesomebarDraft = text;
-			input.value = this.flattenAwesomebarText(text);
-			textarea.value = "";
-			composer.hidden = true;
-			input.parentElement.classList.remove("is-composing");
-			if (focusInput) {
-				input.focus();
-			}
-		}
-
-		autoResizeAwesomebarComposer() {
-			const textarea = this.awesomebarTextareaEl;
-			if (!textarea) {
-				return;
-			}
-			textarea.style.height = "auto";
-			const height = Math.min(textarea.scrollHeight, ASK_ALYF_AWESOMEBAR_COMPOSER_MAX_HEIGHT);
-			textarea.style.height = `${height}px`;
-			textarea.style.overflowY =
-				textarea.scrollHeight > ASK_ALYF_AWESOMEBAR_COMPOSER_MAX_HEIGHT ? "auto" : "hidden";
-		}
-
-		async submitAwesomebarComposer() {
-			const textarea = this.awesomebarTextareaEl;
-			let text = (textarea?.value || "").trim();
-			if (text.startsWith(ASK_ALYF_AWESOMEBAR_PREFIX)) {
-				text = text.slice(ASK_ALYF_AWESOMEBAR_PREFIX.length).trim();
-			}
-			if (!text) {
-				return;
-			}
-			this.closeAwesomebarComposer({ clear: true });
-			this.awesomebarInputEl?.blur();
-			await this.sendMessageFromText(text);
-		}
-
-		/**
-		 * Add a microphone next to the desk search input so a question can be
-		 * spoken instead of typed. The transcript lands in the search input and
-		 * opens the dropdown, so Enter sends it like a typed question.
-		 */
-		mountAwesomebarVoiceButton(input) {
-			if (!this.isSpeechRecognitionAvailable()) {
-				return;
-			}
-			if (input.parentElement.querySelector(".ask_alyf-navbar-mic")) {
-				return;
-			}
-			const button = document.createElement("button");
-			button.type = "button";
-			button.className = "ask_alyf-navbar-mic";
-			button.innerHTML = getIcon("mic", "sm", "", true);
-			const tooltip = __("Voice input for {0}", [getAssistantName()]);
-			button.title = tooltip;
-			button.setAttribute("aria-label", tooltip);
-			button.setAttribute("aria-pressed", "false");
-			button.addEventListener("click", (event) => {
-				event.preventDefault();
-				event.stopPropagation();
-				this.startAwesomebarVoiceInput(input, button);
-			});
-			input.parentElement.classList.add("ask_alyf-has-navbar-mic");
-			input.insertAdjacentElement("afterend", button);
-			this.navbarMicEl = button;
-		}
-
-		startAwesomebarVoiceInput(input, button) {
-			this.startVoiceRecognition({
-				onListening: (isListening) => {
-					button.classList.toggle("is-listening", isListening);
-					button.setAttribute("aria-pressed", isListening ? "true" : "false");
-				},
-				onResult: (transcript) => {
-					if (this.isAwesomebarComposerOpen()) {
-						const textarea = this.awesomebarTextareaEl;
-						const current = textarea.value.trimEnd();
-						textarea.value = current ? `${current} ${transcript}` : transcript;
-						this.autoResizeAwesomebarComposer();
-						textarea.focus();
-						return;
-					}
-					const mode = this.getAwesomebarChatMode();
-					const text =
-						mode === ASK_ALYF_AWESOMEBAR_DEFAULT
-							? transcript
-							: `${ASK_ALYF_AWESOMEBAR_PREFIX} ${transcript}`;
-					input.value = text;
-					input.focus();
-					input.dispatchEvent(new Event("input", { bubbles: true }));
-				},
-			});
 		}
 
 		async openFileUploaderFromAwesomebar() {
@@ -1113,53 +776,6 @@ import "./field_agent";
 				await this.loadBootstrap();
 			}
 			this.openFileUploader();
-		}
-
-		addAwesomebarChatOption(awesomeBar, txt) {
-			const mode = this.getAwesomebarChatMode();
-			if (mode === ASK_ALYF_AWESOMEBAR_DISABLED || !Array.isArray(awesomeBar?.options)) {
-				return;
-			}
-			let text = (txt || "").trim();
-			let forced = false;
-			if (text.startsWith(ASK_ALYF_AWESOMEBAR_PREFIX)) {
-				forced = true;
-				text = text.slice(ASK_ALYF_AWESOMEBAR_PREFIX.length).trim();
-			}
-			if (!text) {
-				return;
-			}
-			const isDefault = forced || mode === ASK_ALYF_AWESOMEBAR_DEFAULT;
-			const safeText = frappe.utils.xss_sanitise(text);
-			const name = getAssistantName();
-			awesomeBar.options.push({
-				label: `
-					<span class="flex justify-between text-medium">
-						<span class="ellipsis">${__("Send to {0}: {1}", [name, safeText.bold()])}</span>
-						${isDefault ? "<kbd>↵</kbd>" : ""}
-					</span>
-				`,
-				value: __("Send to {0}: {1}", [name, safeText]),
-				match: text,
-				index: isDefault ? ASK_ALYF_AWESOMEBAR_DEFAULT_INDEX : ASK_ALYF_AWESOMEBAR_OFFER_INDEX,
-				default: "AskAlyfChat",
-				onclick: (message) => this.sendMessageFromText(message),
-			});
-
-			if (this.isFileUploadEnabled() && ASK_ALYF_AWESOMEBAR_UPLOAD_PATTERN.test(text)) {
-				awesomeBar.options.push({
-					label: `
-						<span class="flex justify-between text-medium">
-							<span class="ellipsis">${__("Attach a document for {0}", [name])}</span>
-						</span>
-					`,
-					value: __("Attach a document for {0}", [name]),
-					match: text,
-					index: ASK_ALYF_AWESOMEBAR_UPLOAD_INDEX,
-					default: "AskAlyfUpload",
-					onclick: () => this.openFileUploaderFromAwesomebar(),
-				});
-			}
 		}
 
 		async sendMessageFromText(text) {
@@ -1683,7 +1299,7 @@ import "./field_agent";
 				}
 			}
 			const hasAttachment = messages.some((message) => message?.metadata?.files?.length);
-			return hasAttachment && this.isAgentModeEnabled() ? "Agent" : "Ask";
+			return hasAttachment && isAgentModeEnabled() ? "Agent" : "Ask";
 		}
 
 		syncConversationMode(messages = this.state.messages) {
@@ -1691,20 +1307,11 @@ import "./field_agent";
 			this.syncModeControl();
 		}
 
-		isAgentModeEnabled() {
-			const askAlyfSettings = frappe?.boot?.ask_alyf || {};
-			return Boolean(askAlyfSettings.agent_mode_enabled);
-		}
-
-		isFileUploadEnabled() {
-			return Boolean(frappe?.boot?.ask_alyf?.file_upload_enabled);
-		}
-
 		syncFileUploadButton() {
 			if (!this.attachEl) {
 				return;
 			}
-			this.attachEl.classList.toggle("ask_alyf-hidden", !this.isFileUploadEnabled());
+			this.attachEl.classList.toggle("ask_alyf-hidden", !isFileUploadEnabled());
 		}
 
 		/**
@@ -1724,7 +1331,7 @@ import "./field_agent";
 
 			// A drag that carries files, and that we may accept at all.
 			const isDocumentDrag = (event) =>
-				this.isFileUploadEnabled() && Array.from(event.dataTransfer?.types || []).includes("Files");
+				isFileUploadEnabled() && Array.from(event.dataTransfer?.types || []).includes("Files");
 
 			// dragleave also fires when the pointer moves onto a child, so count
 			// enter and leave instead of hiding on the first leave.
@@ -1922,7 +1529,7 @@ import "./field_agent";
 				return;
 			}
 
-			const isAgentModeAllowed = this.isAgentModeEnabled();
+			const isAgentModeAllowed = isAgentModeEnabled();
 			if (!isAgentModeAllowed && this.state.mode === "Agent") {
 				this.state.mode = "Ask";
 			}
