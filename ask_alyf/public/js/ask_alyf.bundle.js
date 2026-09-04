@@ -1095,6 +1095,14 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 		restoreProcessingState() {
 			const userMessage = this.getAwaitingResponseMessage();
 			if (!userMessage) {
+				// Nothing is waiting for an answer, so never leave the composer
+				// loading: the send button is a stop button while it is, and
+				// Enter does nothing at all. A run that is still going says so
+				// again with ask_alyf_response_start.
+				if (this.state.loading) {
+					this.setLoading(false);
+					this.setStatus("");
+				}
 				return;
 			}
 
@@ -1292,14 +1300,22 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 		 * without a confirmation in either mode.
 		 */
 		getConversationMode(messages = []) {
+			// Walk back through the history and take the first signal that says
+			// something about the mode: a document handed over after the last
+			// message carries the day (it is given so something is done with it,
+			// and Ask mode has no tools that could), while a mode the user chose
+			// afterwards stays chosen.
 			for (let index = messages.length - 1; index >= 0; index -= 1) {
-				const storedMode = messages[index]?.metadata?.mode;
+				const metadata = messages[index]?.metadata;
+				if (metadata?.files?.length) {
+					return isAgentModeEnabled() ? "Agent" : "Ask";
+				}
+				const storedMode = metadata?.mode;
 				if (storedMode === "Ask" || storedMode === "Agent") {
 					return storedMode;
 				}
 			}
-			const hasAttachment = messages.some((message) => message?.metadata?.files?.length);
-			return hasAttachment && isAgentModeEnabled() ? "Agent" : "Ask";
+			return "Ask";
 		}
 
 		syncConversationMode(messages = this.state.messages) {
@@ -1382,7 +1398,17 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 		}
 
 		async uploadDroppedFiles(files) {
-			if (!files.length || this.state.loading) {
+			if (!files.length) {
+				return;
+			}
+			if (this.state.loading) {
+				frappe.show_alert({
+					message: __(
+						"{0} is still working on the previous message. Please drop the document again when the answer is there.",
+						[getAssistantName()],
+					),
+					indicator: "orange",
+				});
 				return;
 			}
 			this.setActiveTab("chat");
