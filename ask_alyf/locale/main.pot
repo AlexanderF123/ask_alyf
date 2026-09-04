@@ -1583,3 +1583,15 @@ msgstr ""
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Send"
 msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Drop the document here for {0}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Switched to Agent mode so {0} can turn the document into a record."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Upload failed."
+msgstr ""
