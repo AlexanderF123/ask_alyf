@@ -1644,6 +1644,8 @@ msgstr ""
 
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Send"
+msgstr ""
+
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "Use Responses API"
 msgstr ""
