@@ -26,6 +26,7 @@ from ask_alyf.ask_alyf.agent import (
 	_tool_call_label,
 	ask_alyfAgentRunner,
 	build_chat_model,
+	supports_temperature,
 )
 from ask_alyf.ask_alyf.history import history_item_to_native_message
 from ask_alyf.ask_alyf.toolset import (
@@ -46,11 +47,12 @@ class FakeSettings(SimpleNamespace):
 		reasoning_effort: str = "",
 		llm_provider: str = "OpenAI",
 		use_responses_api: int = 0,
+		model: str = "gpt-test",
 	):
 		super().__init__(
 			allow_code_search=allow_code_search,
 			system_prompt="",
-			model="gpt-test",
+			model=model,
 			llm_provider=llm_provider,
 			base_url="",
 			reasoning_effort=reasoning_effort,
@@ -167,6 +169,23 @@ class UnitTestCodeTools(UnitTestCase):
 		)
 
 		self.assertTrue(model.use_responses_api)
+
+	def test_build_chat_model_sends_temperature_to_models_that_accept_it(self):
+		model = build_chat_model(FakeSettings(allow_code_search=False, model="gpt-4o"))
+
+		self.assertEqual(model.temperature, 0.2)
+
+	def test_build_chat_model_omits_temperature_for_models_that_reject_it(self):
+		model = build_chat_model(FakeSettings(allow_code_search=False, model="claude-sonnet-5"))
+
+		self.assertIsNone(model.temperature)
+
+	def test_supports_temperature_knows_the_current_model_families(self):
+		for model in ("gpt-4o", "claude-sonnet-4-6", "claude-opus-4-6", ""):
+			self.assertTrue(supports_temperature(model), model)
+
+		for model in ("claude-sonnet-5", "claude-opus-5", "claude-fable-5-1", "GPT-5", "o3-mini"):
+			self.assertFalse(supports_temperature(model), model)
 
 	def test_build_chat_model_passes_reasoning_effort_when_set(self):
 		model = build_chat_model(FakeSettings(allow_code_search=False, reasoning_effort="high"))
