@@ -284,19 +284,50 @@ def should_use_responses_api(settings) -> bool:
 	return True
 
 
+# Model families that removed the sampling parameters. Sending `temperature`
+# to one of them fails the request with
+# "`temperature` is deprecated for this model." (Anthropic) or an equivalent
+# error from OpenAI's reasoning models, so it is left out for these.
+MODELS_WITHOUT_SAMPLING_PARAMS = (
+	"claude-fable-",
+	"claude-mythos-",
+	"claude-opus-5",
+	"claude-opus-4-7",
+	"claude-opus-4-8",
+	"claude-sonnet-5",
+	"gpt-5",
+	"o1",
+	"o3",
+	"o4",
+)
+
+
+def supports_temperature(model_name: str) -> bool:
+	"""Whether the model accepts the `temperature` sampling parameter."""
+	name = (model_name or "").strip().lower()
+	return not name.startswith(MODELS_WITHOUT_SAMPLING_PARAMS)
+
+
 def build_chat_model(settings, *, temperature: float = 0.2) -> ChatOpenAI:
 	"""Build a LangChain `ChatOpenAI` from Ask ALYF Settings values.
 
 	Supports OpenAI and OpenAI-compatible `base_url` configurations by
 	preserving the existing settings-driven model/api_key/base_url resolution.
+	Newer reasoning models reject `temperature`, so it is only sent to models
+	that still accept it.
 	"""
+	model_name = _get_model_name_from_settings(settings)
+	kwargs: dict = {}
+	if supports_temperature(model_name):
+		kwargs["temperature"] = temperature
+
 	return ChatOpenAI(
-		model=_get_model_name_from_settings(settings),
+		model=model_name,
 		api_key=_get_api_key_from_settings(settings),
 		base_url=(settings.base_url or "").strip() or None,
-		temperature=temperature,
 		use_responses_api=should_use_responses_api(settings),
 		reasoning_effort=(settings.reasoning_effort or "").strip() or None,
+		**kwargs,
 	)
 
 
