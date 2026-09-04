@@ -30,7 +30,8 @@ const INDEX_OFFER = 95;
 // A leading "?" always means "send this to the assistant".
 const PREFIX = "?";
 
-const UPLOAD_PATTERN = /(upload|hochlad|datei|dokument|anhang|anh[äa]ng|beleg|scan|attach|file\b|document)/i;
+const UPLOAD_PATTERN =
+	/(upload|hochlad|datei|dokument|anhang|anh[äa]ng|beleg|scan|attach|file\b|document)/i;
 
 const COMPOSER_MAX_HEIGHT = 320;
 const NAVBAR_RETRIES = 10;
@@ -177,9 +178,11 @@ class AwesomebarChat {
 			<div class="ask_alyf-awesomebar-composer-footer">
 				<span class="ask_alyf-awesomebar-composer-hint">${__(
 					"Enter sends to {0}, Shift + Enter adds a line, Esc closes",
-					[name]
+					[name],
 				)}</span>
-				<button type="button" class="btn btn-primary btn-xs ask_alyf-awesomebar-send">${__("Send")}</button>
+				<button type="button" class="btn btn-primary btn-xs ask_alyf-awesomebar-send">${__(
+					"Send",
+				)}</button>
 			</div>
 		`;
 		input.parentElement.classList.add("ask_alyf-has-awesomebar-composer");
@@ -200,7 +203,7 @@ class AwesomebarChat {
 				this.composerDismissed = false;
 				this.openComposer(`${this.getDraft()}\n`);
 			},
-			true
+			true,
 		);
 		input.addEventListener("input", () => {
 			if (!input.value.trim()) {
