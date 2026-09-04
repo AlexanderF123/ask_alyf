@@ -1584,3 +1584,15 @@ msgstr "Responses-API verwenden"
 #: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
 msgid "Only for compatible providers that serve the OpenAI Responses API (/v1/responses). Leave off for providers that only serve chat completions, such as Anthropic's OpenAI-compatible endpoint. OpenAI itself always uses the Responses API."
 msgstr "Nur für kompatible Anbieter, die die OpenAI Responses-API (/v1/responses) anbieten. Aus lassen bei Anbietern, die nur Chat Completions anbieten, etwa Anthropics OpenAI-kompatibler Endpunkt. OpenAI selbst nutzt immer die Responses-API."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Drop the document here for {0}"
+msgstr "Dokument hier für {0} ablegen"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Switched to Agent mode so {0} can turn the document into a record."
+msgstr "Agentenmodus eingeschaltet, damit {0} daraus einen Beleg anlegen kann."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "Upload failed."
+msgstr "Hochladen fehlgeschlagen."
