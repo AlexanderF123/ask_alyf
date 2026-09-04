@@ -1319,6 +1319,7 @@ import "./field_agent";
 				.querySelector(".ask_alyf-new-chat")
 				.addEventListener("click", () => this.startNewConversation());
 			this.attachEl.addEventListener("click", () => this.openFileUploader());
+			this.setupDropZone(root);
 			this.micEl.addEventListener("click", () => this.startVoiceInput());
 			this.resizeHandleEl.addEventListener("pointerdown", (event) => this.startPanelResize(event));
 			this.inputEl.addEventListener("keydown", (event) => {
@@ -1699,6 +1700,133 @@ import "./field_agent";
 			this.attachEl.classList.toggle("ask_alyf-hidden", !this.isFileUploadEnabled());
 		}
 
+		/**
+		 * Accept documents dropped anywhere on the chat window or on the closed
+		 * bubble. The bubble opens the chat first so the drop always lands in a
+		 * conversation.
+		 */
+		setupDropZone(root) {
+			const overlay = document.createElement("div");
+			overlay.className = "ask_alyf-dropzone ask_alyf-hidden";
+			overlay.innerHTML = `<div class="ask_alyf-dropzone-label">${__(
+				"Drop the document here for {0}",
+				[getAssistantName()],
+			)}</div>`;
+			this.panel.appendChild(overlay);
+			this.dropzoneEl = overlay;
+			this.dropDepth = 0;
+
+			const carriesFiles = (event) =>
+				Array.from(event.dataTransfer?.types || []).includes("Files");
+
+			const showOverlay = (visible) => {
+				this.dropDepth = visible ? this.dropDepth : 0;
+				overlay.classList.toggle("ask_alyf-hidden", !visible);
+			};
+
+			[this.panel, this.bubbleEl].forEach((target) => {
+				target.addEventListener("dragenter", (event) => {
+					if (!this.isFileUploadEnabled() || !carriesFiles(event)) {
+						return;
+					}
+					event.preventDefault();
+					this.dropDepth += 1;
+					if (target === this.bubbleEl) {
+						this.toggle(true);
+					}
+					showOverlay(true);
+				});
+				target.addEventListener("dragover", (event) => {
+					if (!this.isFileUploadEnabled() || !carriesFiles(event)) {
+						return;
+					}
+					event.preventDefault();
+					event.dataTransfer.dropEffect = "copy";
+				});
+				target.addEventListener("dragleave", () => {
+					this.dropDepth = Math.max(0, this.dropDepth - 1);
+					if (!this.dropDepth) {
+						showOverlay(false);
+					}
+				});
+				target.addEventListener("drop", (event) => {
+					if (!this.isFileUploadEnabled() || !carriesFiles(event)) {
+						return;
+					}
+					event.preventDefault();
+					showOverlay(false);
+					this.uploadDroppedFiles(Array.from(event.dataTransfer.files || []));
+				});
+			});
+		}
+
+		async uploadDroppedFiles(files) {
+			if (!files.length) {
+				return;
+			}
+			this.setActiveTab("chat");
+			this.toggle(true);
+			if (!this.state.conversation?.name) {
+				await this.loadBootstrap();
+			}
+			if (!this.state.conversation?.name) {
+				return;
+			}
+			for (const file of files) {
+				try {
+					const fileDoc = await this.uploadFileToConversation(file);
+					await this.onFileUploaded(fileDoc);
+				} catch (error) {
+					frappe.msgprint(error.message || __("Failed to attach file to conversation."));
+				}
+			}
+		}
+
+		/**
+		 * Upload one dropped file through Frappe's own upload endpoint, so the
+		 * File record, permissions and size limits behave exactly as they do in
+		 * the file dialog.
+		 */
+		async uploadFileToConversation(file) {
+			const form = new FormData();
+			form.append("file", file, file.name);
+			form.append("is_private", "1");
+			form.append("folder", "Home/Attachments");
+			form.append("doctype", "Ask ALYF Conversation");
+			form.append("docname", this.state.conversation.name);
+
+			const response = await fetch("/api/method/upload_file", {
+				method: "POST",
+				headers: { "X-Frappe-CSRF-Token": frappe.csrf_token },
+				body: form,
+			});
+			const payload = await response.json();
+			if (!response.ok) {
+				throw new Error(payload?._server_messages || payload?.message || __("Upload failed."));
+			}
+			return payload.message;
+		}
+
+		/**
+		 * A document is handed over so something is done with it. Switch to Agent
+		 * mode when the user is allowed to use it, and say so — the mode stays
+		 * visible in the composer and can be switched back at any time. Nothing is
+		 * written without a confirmation either way.
+		 */
+		announceAgentModeForUpload() {
+			if (this.state.mode === "Agent" || !this.isAgentModeEnabled()) {
+				return;
+			}
+			this.state.mode = "Agent";
+			this.syncModeControl();
+			frappe.show_alert({
+				message: __("Switched to Agent mode so {0} can turn the document into a record.", [
+					getAssistantName(),
+				]),
+				indicator: "blue",
+			});
+		}
+
 		openFileUploader() {
 			if (!this.state.conversation?.name || this.state.loading) {
 				return;
@@ -1729,6 +1857,7 @@ import "./field_agent";
 				if (response.message?.conversation) {
 					await this.applyConversation(response.message.conversation);
 				}
+				this.announceAgentModeForUpload();
 			} catch (error) {
 				frappe.msgprint(error.message || __("Failed to attach file to conversation."));
 			}
