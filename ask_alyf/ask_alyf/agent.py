@@ -288,6 +288,8 @@ def should_use_responses_api(settings) -> bool:
 # to one of them fails the request with
 # "`temperature` is deprecated for this model." (Anthropic) or an equivalent
 # error from OpenAI's reasoning models, so it is left out for these.
+CHAT_TEMPERATURE = 0.2
+
 MODELS_WITHOUT_SAMPLING_PARAMS = (
 	"claude-fable-",
 	"claude-mythos-",
@@ -308,7 +310,7 @@ def supports_temperature(model_name: str) -> bool:
 	return not name.startswith(MODELS_WITHOUT_SAMPLING_PARAMS)
 
 
-def build_chat_model(settings, *, temperature: float = 0.2) -> ChatOpenAI:
+def build_chat_model(settings) -> ChatOpenAI:
 	"""Build a LangChain `ChatOpenAI` from Ask ALYF Settings values.
 
 	Supports OpenAI and OpenAI-compatible `base_url` configurations by
@@ -319,7 +321,7 @@ def build_chat_model(settings, *, temperature: float = 0.2) -> ChatOpenAI:
 	model_name = _get_model_name_from_settings(settings)
 	kwargs: dict = {}
 	if supports_temperature(model_name):
-		kwargs["temperature"] = temperature
+		kwargs["temperature"] = CHAT_TEMPERATURE
 
 	return ChatOpenAI(
 		model=model_name,
@@ -340,7 +342,7 @@ class ask_alyfAgentRunner:
 		self.settings = tools.get_settings()
 		self.toolset = ask_alyfToolset(runtime, settings=self.settings)
 		_ensure_ask_alyf_harness_profile()
-		self.model = build_chat_model(self.settings, temperature=0.2)
+		self.model = build_chat_model(self.settings)
 		app_roots = tools.get_installed_app_roots() if self.settings.is_code_search_enabled() else {}
 		self.backend = build_ask_alyf_backend(app_roots)
 		self.checkpointer = FrappeCheckpointSaver()
