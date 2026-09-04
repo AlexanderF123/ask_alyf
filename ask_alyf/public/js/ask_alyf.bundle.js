@@ -29,8 +29,8 @@ import "./field_agent";
 	// Words that suggest the user wants to hand over a document (German and English).
 	const ASK_ALYF_AWESOMEBAR_UPLOAD_PATTERN =
 		/(upload|hochlad|datei|dokument|anhang|anh[äa]ng|beleg|scan|attach|file\b|document)/i;
-	const ASK_ALYF_NAVBAR_MIC_RETRIES = 10;
-	const ASK_ALYF_NAVBAR_MIC_RETRY_MS = 500;
+	const ASK_ALYF_NAVBAR_RETRIES = 10;
+	const ASK_ALYF_NAVBAR_RETRY_MS = 500;
 	const ASK_ALYF_AWESOMEBAR_COMPOSER_MAX_HEIGHT = 320;
 
 	function getAssistantName() {
@@ -798,6 +798,15 @@ import "./field_agent";
 			if (this.getAwesomebarChatMode() === ASK_ALYF_AWESOMEBAR_DISABLED) {
 				return;
 			}
+			this.patchAwesomebarOptions();
+			this.whenNavbarSearchReady((input) => {
+				this.setupAwesomebarComposer(input);
+				this.mountAwesomebarVoiceButton(input);
+			});
+		}
+
+		/** Add our entry to the dropdown. The prototype is patched once per page. */
+		patchAwesomebarOptions() {
 			const AwesomeBar = frappe.search?.AwesomeBar;
 			if (!AwesomeBar?.prototype || AwesomeBar.prototype._askAlyfChatPatched) {
 				return;
@@ -812,8 +821,18 @@ import "./field_agent";
 				widget.addAwesomebarChatOption(this, txt);
 			};
 			AwesomeBar.prototype._askAlyfChatPatched = true;
-			this.setupAwesomebarComposer();
-			this.mountAwesomebarVoiceButton();
+		}
+
+		/** The navbar is rendered by the desk, so wait for the search input. */
+		whenNavbarSearchReady(callback, attempt = 0) {
+			const input = document.getElementById("navbar-search");
+			if (input?.parentElement) {
+				callback(input);
+				return;
+			}
+			if (attempt < ASK_ALYF_NAVBAR_RETRIES) {
+				setTimeout(() => this.whenNavbarSearchReady(callback, attempt + 1), ASK_ALYF_NAVBAR_RETRY_MS);
+			}
 		}
 
 		/**
@@ -824,14 +843,7 @@ import "./field_agent";
 		 * on Shift+Enter, or when multi-line text is pasted. Enter sends the
 		 * text to the assistant, Shift+Enter adds a line, Escape folds it back.
 		 */
-		setupAwesomebarComposer(attempt = 0) {
-			const input = document.getElementById("navbar-search");
-			if (!input || !input.parentElement) {
-				if (attempt < ASK_ALYF_NAVBAR_MIC_RETRIES) {
-					setTimeout(() => this.setupAwesomebarComposer(attempt + 1), ASK_ALYF_NAVBAR_MIC_RETRY_MS);
-				}
-				return;
-			}
+		setupAwesomebarComposer(input) {
 			if (input.parentElement.querySelector(".ask_alyf-awesomebar-composer")) {
 				return;
 			}
@@ -866,12 +878,12 @@ import "./field_agent";
 			this.awesomebarDraft = "";
 			this.awesomebarComposerDismissed = false;
 
-			// Capture phase on the parent runs before Awesomplete's own Enter
-			// handler on the input, so Shift+Enter never selects a result.
-			input.parentElement.addEventListener(
+			// Capture runs before Awesomplete's own Enter handler on the same
+			// input, so Shift+Enter never selects a result.
+			input.addEventListener(
 				"keydown",
 				(event) => {
-					if (event.target !== input || event.key !== "Enter" || !event.shiftKey) {
+					if (event.key !== "Enter" || !event.shiftKey) {
 						return;
 					}
 					event.preventDefault();
@@ -1024,18 +1036,8 @@ import "./field_agent";
 		 * spoken instead of typed. The transcript lands in the search input and
 		 * opens the dropdown, so Enter sends it like a typed question.
 		 */
-		mountAwesomebarVoiceButton(attempt = 0) {
+		mountAwesomebarVoiceButton(input) {
 			if (!this.isSpeechRecognitionAvailable()) {
-				return;
-			}
-			const input = document.getElementById("navbar-search");
-			if (!input || !input.parentElement) {
-				if (attempt < ASK_ALYF_NAVBAR_MIC_RETRIES) {
-					setTimeout(
-						() => this.mountAwesomebarVoiceButton(attempt + 1),
-						ASK_ALYF_NAVBAR_MIC_RETRY_MS
-					);
-				}
 				return;
 			}
 			if (input.parentElement.querySelector(".ask_alyf-navbar-mic")) {
@@ -1298,7 +1300,7 @@ import "./field_agent";
 				this.startNewConversation()
 			);
 			this.attachEl.addEventListener("click", () => this.openFileUploader());
-			this.setupDropZone(root);
+			this.setupDropZone();
 			this.micEl.addEventListener("click", () => this.startVoiceInput());
 			this.resizeHandleEl.addEventListener("pointerdown", (event) => this.startPanelResize(event));
 			this.inputEl.addEventListener("keydown", (event) => {
@@ -1646,6 +1648,13 @@ import "./field_agent";
 			this.syncModeControl();
 		}
 
+		/**
+		 * The mode of a conversation follows from its history: the mode of the
+		 * last message that carries one, and otherwise Agent as soon as a
+		 * document was handed over — a document is given so something is done
+		 * with it, and Ask mode has no tools that could. Nothing is written
+		 * without a confirmation in either mode.
+		 */
 		getConversationMode(messages = []) {
 			for (let index = messages.length - 1; index >= 0; index -= 1) {
 				const storedMode = messages[index]?.metadata?.mode;
@@ -1653,7 +1662,8 @@ import "./field_agent";
 					return storedMode;
 				}
 			}
-			return "Ask";
+			const hasAttachment = messages.some((message) => message?.metadata?.files?.length);
+			return hasAttachment && this.isAgentModeEnabled() ? "Agent" : "Ask";
 		}
 
 		syncConversationMode(messages = this.state.messages) {
@@ -1682,7 +1692,7 @@ import "./field_agent";
 		 * bubble. The bubble opens the chat first so the drop always lands in a
 		 * conversation.
 		 */
-		setupDropZone(root) {
+		setupDropZone() {
 			const overlay = document.createElement("div");
 			overlay.className = "ask_alyf-dropzone ask_alyf-hidden";
 			overlay.innerHTML = `<div class="ask_alyf-dropzone-label">${__("Drop the document here for {0}", [
@@ -1690,53 +1700,61 @@ import "./field_agent";
 			])}</div>`;
 			this.panel.appendChild(overlay);
 			this.dropzoneEl = overlay;
+
+			// A drag that carries files, and that we may accept at all.
+			const isDocumentDrag = (event) =>
+				this.isFileUploadEnabled() && Array.from(event.dataTransfer?.types || []).includes("Files");
+
+			// dragleave also fires when the pointer moves onto a child, so count
+			// enter and leave instead of hiding on the first leave.
 			this.dropDepth = 0;
-
-			const carriesFiles = (event) => Array.from(event.dataTransfer?.types || []).includes("Files");
-
-			const showOverlay = (visible) => {
-				this.dropDepth = visible ? this.dropDepth : 0;
-				overlay.classList.toggle("ask_alyf-hidden", !visible);
+			const setDragging = (dragging) => {
+				this.dropDepth = dragging ? this.dropDepth + 1 : Math.max(0, this.dropDepth - 1);
+				overlay.classList.toggle("ask_alyf-hidden", !this.dropDepth);
 			};
 
-			[this.panel, this.bubbleEl].forEach((target) => {
-				target.addEventListener("dragenter", (event) => {
-					if (!this.isFileUploadEnabled() || !carriesFiles(event)) {
-						return;
-					}
+			this.panel.addEventListener("dragenter", (event) => {
+				if (!isDocumentDrag(event)) {
+					return;
+				}
+				event.preventDefault();
+				setDragging(true);
+			});
+			this.panel.addEventListener("dragleave", () => setDragging(false));
+			this.panel.addEventListener("dragover", (event) => {
+				if (!isDocumentDrag(event)) {
+					return;
+				}
+				event.preventDefault();
+				event.dataTransfer.dropEffect = "copy";
+			});
+			this.panel.addEventListener("drop", (event) => {
+				if (!isDocumentDrag(event)) {
+					return;
+				}
+				event.preventDefault();
+				this.dropDepth = 0;
+				overlay.classList.add("ask_alyf-hidden");
+				this.uploadDroppedFiles(Array.from(event.dataTransfer.files || []));
+			});
+
+			// The closed bubble only opens the chat; the panel below takes the drop.
+			this.bubbleEl.addEventListener("dragenter", (event) => {
+				if (!isDocumentDrag(event)) {
+					return;
+				}
+				event.preventDefault();
+				this.toggle(true);
+			});
+			this.bubbleEl.addEventListener("dragover", (event) => {
+				if (isDocumentDrag(event)) {
 					event.preventDefault();
-					this.dropDepth += 1;
-					if (target === this.bubbleEl) {
-						this.toggle(true);
-					}
-					showOverlay(true);
-				});
-				target.addEventListener("dragover", (event) => {
-					if (!this.isFileUploadEnabled() || !carriesFiles(event)) {
-						return;
-					}
-					event.preventDefault();
-					event.dataTransfer.dropEffect = "copy";
-				});
-				target.addEventListener("dragleave", () => {
-					this.dropDepth = Math.max(0, this.dropDepth - 1);
-					if (!this.dropDepth) {
-						showOverlay(false);
-					}
-				});
-				target.addEventListener("drop", (event) => {
-					if (!this.isFileUploadEnabled() || !carriesFiles(event)) {
-						return;
-					}
-					event.preventDefault();
-					showOverlay(false);
-					this.uploadDroppedFiles(Array.from(event.dataTransfer.files || []));
-				});
+				}
 			});
 		}
 
 		async uploadDroppedFiles(files) {
-			if (!files.length) {
+			if (!files.length || this.state.loading) {
 				return;
 			}
 			this.setActiveTab("chat");
@@ -1782,26 +1800,6 @@ import "./field_agent";
 			return payload.message;
 		}
 
-		/**
-		 * A document is handed over so something is done with it. Switch to Agent
-		 * mode when the user is allowed to use it, and say so — the mode stays
-		 * visible in the composer and can be switched back at any time. Nothing is
-		 * written without a confirmation either way.
-		 */
-		announceAgentModeForUpload() {
-			if (this.state.mode === "Agent" || !this.isAgentModeEnabled()) {
-				return;
-			}
-			this.state.mode = "Agent";
-			this.syncModeControl();
-			frappe.show_alert({
-				message: __("Switched to Agent mode so {0} can turn the document into a record.", [
-					getAssistantName(),
-				]),
-				indicator: "blue",
-			});
-		}
-
 		openFileUploader() {
 			if (!this.state.conversation?.name || this.state.loading) {
 				return;
@@ -1817,6 +1815,7 @@ import "./field_agent";
 			if (!fileDoc?.file_name) {
 				return;
 			}
+			const modeBefore = this.state.mode;
 			try {
 				const response = await frappe.call({
 					method: "ask_alyf.api.attach_file",
@@ -1832,7 +1831,14 @@ import "./field_agent";
 				if (response.message?.conversation) {
 					await this.applyConversation(response.message.conversation);
 				}
-				this.announceAgentModeForUpload();
+				if (this.state.mode === "Agent" && modeBefore !== "Agent") {
+					frappe.show_alert({
+						message: __("Switched to Agent mode so {0} can turn the document into a record.", [
+							getAssistantName(),
+						]),
+						indicator: "blue",
+					});
+				}
 			} catch (error) {
 				frappe.msgprint(error.message || __("Failed to attach file to conversation."));
 			}
