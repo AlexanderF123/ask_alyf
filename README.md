@@ -61,6 +61,12 @@ When a mode is enabled, the search bar also gets:
 
 The goal of this fork is to make the assistant the main interface for staff: they talk to the system, hand it documents, and the system carries out the tasks (Agent mode with confirmation, Skills for recurring procedures).
 
+## Dropping Documents Into The Chat
+
+A document can be dragged from the desktop onto the chat window — or onto the closed chat bubble, which opens the chat first. The file is uploaded through Frappe's own upload endpoint, so File record, permissions and size limits behave exactly as in the file dialog, and is then attached to the conversation.
+
+Once a document is attached (dropped, picked from the dialog, or added from the search bar), the composer switches to **Agent** mode if the user is allowed to use it, and says so in a short alert. Handing over a document usually means something should be done with it, and Agent mode is what lets the assistant turn it into a record. The mode stays visible in the composer and can be switched back at any time; in both modes nothing is written without an explicit confirmation, and the user's own permissions still apply.
+
 ## Voice Input
 
 Users can type messages. In browsers that support the Web Speech API, the chat bubble also offers microphone input that turns speech into text.

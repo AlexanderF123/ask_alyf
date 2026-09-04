@@ -1166,6 +1166,30 @@
 	animation: ask_alyf-mic-pulse 1.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
 
+/* ---- Drop zone for documents dragged onto the chat ------------------------ */
+
+.ask_alyf-dropzone {
+	position: absolute;
+	inset: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	background: color-mix(in srgb, var(--fg-color, #fff) 88%, transparent);
+	border: 2px dashed var(--primary, #2490ef);
+	border-radius: inherit;
+	pointer-events: none;
+}
+
+.ask_alyf-dropzone-label {
+	max-width: 18rem;
+	text-align: center;
+	font-size: var(--text-md);
+	font-weight: 600;
+	color: var(--text-color);
+}
+
 /* ---- Fold-out composer for longer texts in the desk search bar ------------ */
 
 .ask_alyf-has-awesomebar-composer {
