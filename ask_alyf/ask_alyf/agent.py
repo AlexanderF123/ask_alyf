@@ -368,18 +368,18 @@ def supports_temperature(model_name: str) -> bool:
 	return not name.startswith(MODELS_WITHOUT_SAMPLING_PARAMS)
 
 
-def build_chat_model(settings) -> ChatOpenAI:
+def build_chat_model(settings, temperature: float = CHAT_TEMPERATURE) -> ChatOpenAI:
 	"""Build a LangChain `ChatOpenAI` from Ask ALYF Settings values.
 
 	Supports OpenAI and OpenAI-compatible `base_url` configurations by
 	preserving the existing settings-driven model/api_key/base_url resolution.
 	Newer reasoning models reject `temperature`, so it is only sent to models
-	that still accept it.
+	that still accept it, whatever the caller asked for.
 	"""
 	model_name = _get_model_name_from_settings(settings)
 	kwargs: dict = {}
 	if supports_temperature(model_name):
-		kwargs["temperature"] = CHAT_TEMPERATURE
+		kwargs["temperature"] = temperature
 
 	return ChatOpenAI(
 		model=model_name,

@@ -193,6 +193,19 @@ class UnitTestCodeTools(FrappeTestCase):
 
 		self.assertIsNone(model.temperature)
 
+	def test_build_chat_model_accepts_a_caller_temperature(self):
+		# The field agent asks for a lower temperature than the chat.
+		model = build_chat_model(FakeSettings(allow_code_search=False, model="gpt-4o"), temperature=0.1)
+
+		self.assertEqual(model.temperature, 0.1)
+
+	def test_build_chat_model_drops_a_caller_temperature_for_models_that_reject_it(self):
+		model = build_chat_model(
+			FakeSettings(allow_code_search=False, model="claude-opus-5-5"), temperature=0.1
+		)
+
+		self.assertIsNone(model.temperature)
+
 	def test_supports_temperature_knows_the_current_model_families(self):
 		for model in ("gpt-4o", "claude-sonnet-4-6", "claude-opus-4-6", ""):
 			self.assertTrue(supports_temperature(model), model)
