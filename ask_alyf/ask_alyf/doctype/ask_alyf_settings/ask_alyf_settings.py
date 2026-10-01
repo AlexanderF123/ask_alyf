@@ -1,5 +1,6 @@
 from enum import StrEnum
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 import frappe
 from any_llm import AnyLLM
@@ -15,6 +16,9 @@ if TYPE_CHECKING:
 	from ask_alyf.ask_alyf.doctype.ask_alyf_excluded_doctype.ask_alyf_excluded_doctype import (
 		AskALYFExcludedDocType,
 	)
+
+
+ANTHROPIC_API_VERSION = "2023-06-01"
 
 
 class ModelConfiguration(StrEnum):
@@ -164,6 +168,7 @@ def get_available_models(configuration: str = ModelConfiguration.CHAT) -> list[d
 		provider=get_any_llm_provider(llm_provider),
 		api_key=api_key,
 		api_base=base_url,
+		**provider_client_kwargs(base_url, api_key),
 	)
 	response = client.list_models()
 	models = sorted(
@@ -196,6 +201,24 @@ def get_any_llm_provider(llm_provider: str) -> str:
 		return "openai"
 
 	frappe.throw(_("Unsupported LLM provider: {0}").format(llm_provider))
+
+
+def provider_client_kwargs(base_url: str | None, api_key: str | None) -> dict:
+	"""Extra kwargs for the any_llm client depending on the endpoint.
+
+	Anthropic's OpenAI compatibility layer covers chat/completions only.
+	Native endpoints such as GET /v1/models require the anthropic-version
+	header and authenticate via x-api-key. any_llm passes these kwargs on to
+	the OpenAI client, so the headers apply to every request it sends.
+	"""
+	host = (urlparse(base_url or "").hostname or "").lower()
+	if host != "anthropic.com" and not host.endswith(".anthropic.com"):
+		return {}
+
+	headers = {"anthropic-version": ANTHROPIC_API_VERSION}
+	if api_key:
+		headers["x-api-key"] = api_key
+	return {"default_headers": headers}
 
 
 def normalize_api_key(api_key: str | None) -> str:
