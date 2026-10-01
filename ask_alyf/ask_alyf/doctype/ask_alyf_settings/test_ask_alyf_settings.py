@@ -81,6 +81,43 @@ class UnitTestAskALYFSettings(UnitTestCase):
 		)
 		self.assertEqual(models, [{"id": "gpt-4.1-mini"}])
 
+	def test_get_available_models_sends_anthropic_headers_for_anthropic_base_url(self):
+		settings = FakeSettings(
+			llm_provider="OpenAI Compatible",
+			base_url="https://api.anthropic.com/v1/",
+			passwords={"api_key": "anthropic-key"},
+		)
+		client = SimpleNamespace(list_models=lambda: [SimpleNamespace(id="claude-opus-5-5")])
+
+		with (
+			patch.object(ask_alyf_settings.frappe, "get_single", return_value=settings),
+			patch.object(ask_alyf_settings, "is_available_model", return_value=True),
+			patch.object(ask_alyf_settings.AnyLLM, "create", return_value=client) as create_client,
+		):
+			models = ask_alyf_settings.get_available_models()
+
+		create_client.assert_called_once_with(
+			provider="openai",
+			api_key="anthropic-key",
+			api_base="https://api.anthropic.com/v1/",
+			default_headers={
+				"anthropic-version": ask_alyf_settings.ANTHROPIC_API_VERSION,
+				"x-api-key": "anthropic-key",
+			},
+		)
+		self.assertEqual(models, [{"id": "claude-opus-5-5"}])
+
+	def test_provider_client_kwargs_is_empty_for_other_endpoints(self):
+		for base_url in (None, "", "https://api.openai.com/v1", "https://anthropic.com.example.test/v1"):
+			with self.subTest(base_url=base_url):
+				self.assertEqual(ask_alyf_settings.provider_client_kwargs(base_url, "key"), {})
+
+	def test_provider_client_kwargs_omits_x_api_key_without_key(self):
+		self.assertEqual(
+			ask_alyf_settings.provider_client_kwargs("https://API.Anthropic.com/v1/", None),
+			{"default_headers": {"anthropic-version": ask_alyf_settings.ANTHROPIC_API_VERSION}},
+		)
+
 	def test_get_available_models_returns_empty_when_configuration_is_blank(self):
 		settings = FakeSettings(
 			vision_llm_provider="",
