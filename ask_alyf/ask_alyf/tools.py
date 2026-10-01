@@ -831,10 +831,13 @@ async def _run_document_extraction_completion(
 	"""Execute the vision completion request that returns JSON."""
 	from any_llm import AnyLLM
 
+	from ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings import provider_client_kwargs
+
 	client = AnyLLM.create(
 		provider=model_config.provider_name,
 		api_key=model_config.api_key,
 		api_base=model_config.api_base,
+		**provider_client_kwargs(model_config.api_base, model_config.api_key),
 	)
 	# Do not pass temperature: gpt-5.x (and similar) reject non-default values.
 	return await client.acompletion(
