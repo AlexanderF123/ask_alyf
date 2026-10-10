@@ -46,7 +46,6 @@ class UnitTestAskALYFApi(FrappeTestCase):
 			payload = api.get_ask_alyf_boot_payload()
 
 		self.assertEqual(payload["awesomebar_chat"], "Default Action")
-		self.assertEqual(payload["assistant_name"], api.ASSISTANT_NAME)
 		self.assertTrue(payload["configured"])
 
 	def test_boot_payload_falls_back_to_disabled_for_unknown_awesomebar_mode(self):
@@ -74,5 +73,4 @@ class UnitTestAskALYFApi(FrappeTestCase):
 			payload = api.get_ask_alyf_boot_payload()
 
 		self.assertEqual(payload["awesomebar_chat"], "Disabled")
-		self.assertEqual(payload["assistant_name"], api.ASSISTANT_NAME)
 		self.assertFalse(payload["configured"])

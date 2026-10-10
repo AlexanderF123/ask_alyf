@@ -1,12 +1,8 @@
 import "./icons";
 import "./field_agent";
-import {
-	getAssistantName,
-	isAgentModeEnabled,
-	isConversationDeletionEnabled,
-	isFileUploadEnabled,
-} from "./boot";
+import { isAgentModeEnabled, isConversationDeletionEnabled, isFileUploadEnabled } from "./boot";
 import { setupAwesomebarIntegration } from "./awesomebar";
+import { setupDropZone } from "./dropzone";
 
 (function () {
 	if (window.ask_alyfWidget) {
@@ -154,7 +150,6 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			this.handledFrontendCallIds = new Set();
 			this.resizeState = null;
 			this.voiceRecognition = null;
-			this.awesomebar = null;
 			this.boundResizeMove = (event) => this.resizePanel(event);
 			this.boundResizeEnd = (event) => this.stopPanelResize(event);
 			this.boundDocumentClick = (event) => this.onDocumentClick(event);
@@ -923,17 +918,28 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			this.make();
 			this.bindRealtime();
 			this.bindRouteChange();
-			this.awesomebar = setupAwesomebarIntegration(this);
+			setupAwesomebarIntegration(this);
 			this.loadBootstrap();
 		}
 
-		async openFileUploaderFromAwesomebar() {
+		/**
+		 * Show the chat tab and make sure there is a conversation, so input
+		 * that arrives from outside the composer (search bar, dropped document)
+		 * always lands in one. Resolves to false if none could be loaded.
+		 */
+		async openChatWithConversation() {
 			this.setActiveTab("chat");
 			this.toggle(true);
 			if (!this.state.conversation?.name) {
 				await this.loadBootstrap();
 			}
-			this.openFileUploader();
+			return Boolean(this.state.conversation?.name);
+		}
+
+		async openFileUploaderFromAwesomebar() {
+			if (await this.openChatWithConversation()) {
+				this.openFileUploader();
+			}
 		}
 
 		async sendMessageFromText(text) {
@@ -941,15 +947,16 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			if (!message) {
 				return;
 			}
-			this.setActiveTab("chat");
-			this.toggle(true);
+			const ready = await this.openChatWithConversation();
 			this.inputEl.value = message;
 			this.autoResizeInput();
+			if (!ready) {
+				return;
+			}
 			if (this.state.loading) {
 				frappe.show_alert({
 					message: __(
-						"{0} is still working on the previous message. Your text was kept in the chat input.",
-						[getAssistantName()]
+						"Ask ALYF is still working on the previous message. Your text was kept in the chat input."
 					),
 					indicator: "orange",
 				});
@@ -962,16 +969,14 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			const root = document.createElement("div");
 			root.className = "ask_alyf-root";
 			root.innerHTML = `
-				<button class="ask_alyf-bubble" type="button" title="${__("Open {0}", [
-					getAssistantName(),
-				])}" aria-label="${__("Open {0}", [
-				getAssistantName(),
-			])}"><img class="ask_alyf-bubble-logo" src="/assets/ask_alyf/img/logo.png" alt="" aria-hidden="true"></button>
+				<button class="ask_alyf-bubble" type="button" title="${__("Open Ask ALYF")}" aria-label="${__(
+				"Open Ask ALYF"
+			)}"><img class="ask_alyf-bubble-logo" src="/assets/ask_alyf/img/logo.png" alt="" aria-hidden="true"></button>
 				<div class="ask_alyf-panel ask_alyf-hidden">
 					<div class="ask_alyf-resize-handle" title="${__("Resize chat window")}"></div>
 					<div class="ask_alyf-header">
 						<div>
-							<div class="ask_alyf-title">${frappe.utils.escape_html(getAssistantName())}</div>
+							<div class="ask_alyf-title">${__("Ask ALYF")}</div>
 							<div class="ask_alyf-subtitle">${__("ERPNext assistant")}</div>
 						</div>
 						<div class="ask_alyf-actions">
@@ -989,9 +994,7 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 						</div>
 					</div>
 					<div class="form-tabs-list ask_alyf-tabs-list">
-						<ul class="nav form-tabs ask_alyf-tabs" role="tablist" aria-label="${__("{0} sections", [
-							getAssistantName(),
-						])}">
+						<ul class="nav form-tabs ask_alyf-tabs" role="tablist" aria-label="${__("Ask ALYF sections")}">
 							<li class="nav-item">
 								<button class="nav-link ask_alyf-tab active" type="button" role="tab" data-tab="chat" aria-selected="true">${__(
 									"Chat"
@@ -1039,8 +1042,7 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 								</div>
 							</div>
 							<div class="ask_alyf-disclaimer">${__(
-								"{0} is an AI and can make mistakes, including with numbers and information about people.",
-								[getAssistantName()]
+								"Ask ALYF is an AI and can make mistakes, including with numbers and information about people."
 							)}</div>
 						</div>
 					</div>
@@ -1091,7 +1093,7 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 				this.startNewConversation()
 			);
 			this.attachEl.addEventListener("click", () => this.openFileUploader());
-			this.setupDropZone();
+			setupDropZone(this);
 			this.micEl.addEventListener("click", () => this.startVoiceInput());
 			this.resizeHandleEl.addEventListener("pointerdown", (event) => this.startPanelResize(event));
 			this.inputEl.addEventListener("keydown", (event) => {
@@ -1186,8 +1188,7 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			if (!askAlyfBoot.configured) {
 				this.warningEl.classList.remove("ask_alyf-hidden");
 				this.warningEl.textContent = __(
-					"{0} is visible, but no API key/model is configured yet in Ask ALYF Settings.",
-					[getAssistantName()]
+					"Ask ALYF is visible, but no API key/model is configured yet in Ask ALYF Settings."
 				);
 			}
 		}
@@ -1386,10 +1387,8 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			this.setLoading(false);
 			this.setStatus(
 				result.status === "failed"
-					? __("{0} could not finish processing this message. Please try again.", [
-							getAssistantName(),
-					  ])
-					: __("{0} stopped processing this message. Please try again.", [getAssistantName()])
+					? __("Ask ALYF could not finish processing this message. Please try again.")
+					: __("Ask ALYF stopped processing this message. Please try again.")
 			);
 		}
 
@@ -1478,11 +1477,6 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 		 * without a confirmation in either mode.
 		 */
 		getConversationMode(messages = []) {
-			// Walk back through the history and take the first signal that says
-			// something about the mode: a document handed over after the last
-			// message carries the day (it is given so something is done with it,
-			// and Ask mode has no tools that could), while a mode the user chose
-			// afterwards stays chosen.
 			for (let index = messages.length - 1; index >= 0; index -= 1) {
 				const metadata = messages[index]?.metadata;
 				if (metadata?.files?.length) {
@@ -1506,129 +1500,6 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 				return;
 			}
 			this.attachEl.classList.toggle("ask_alyf-hidden", !isFileUploadEnabled());
-		}
-
-		/**
-		 * Accept documents dropped anywhere on the chat window or on the closed
-		 * bubble. The bubble opens the chat first so the drop always lands in a
-		 * conversation.
-		 */
-		setupDropZone() {
-			const overlay = document.createElement("div");
-			overlay.className = "ask_alyf-dropzone ask_alyf-hidden";
-			overlay.innerHTML = `<div class="ask_alyf-dropzone-label">${__("Drop the document here for {0}", [
-				getAssistantName(),
-			])}</div>`;
-			this.panel.appendChild(overlay);
-			this.dropzoneEl = overlay;
-
-			// A drag that carries files, and that we may accept at all.
-			const isDocumentDrag = (event) =>
-				isFileUploadEnabled() && Array.from(event.dataTransfer?.types || []).includes("Files");
-
-			// dragleave also fires when the pointer moves onto a child, so count
-			// enter and leave instead of hiding on the first leave.
-			this.dropDepth = 0;
-			const setDragging = (dragging) => {
-				this.dropDepth = dragging ? this.dropDepth + 1 : Math.max(0, this.dropDepth - 1);
-				overlay.classList.toggle("ask_alyf-hidden", !this.dropDepth);
-			};
-
-			this.panel.addEventListener("dragenter", (event) => {
-				if (!isDocumentDrag(event)) {
-					return;
-				}
-				event.preventDefault();
-				setDragging(true);
-			});
-			this.panel.addEventListener("dragleave", () => setDragging(false));
-			this.panel.addEventListener("dragover", (event) => {
-				if (!isDocumentDrag(event)) {
-					return;
-				}
-				event.preventDefault();
-				event.dataTransfer.dropEffect = "copy";
-			});
-			this.panel.addEventListener("drop", (event) => {
-				if (!isDocumentDrag(event)) {
-					return;
-				}
-				event.preventDefault();
-				this.dropDepth = 0;
-				overlay.classList.add("ask_alyf-hidden");
-				this.uploadDroppedFiles(Array.from(event.dataTransfer.files || []));
-			});
-
-			// The closed bubble only opens the chat; the panel below takes the drop.
-			this.bubbleEl.addEventListener("dragenter", (event) => {
-				if (!isDocumentDrag(event)) {
-					return;
-				}
-				event.preventDefault();
-				this.toggle(true);
-			});
-			this.bubbleEl.addEventListener("dragover", (event) => {
-				if (isDocumentDrag(event)) {
-					event.preventDefault();
-				}
-			});
-		}
-
-		async uploadDroppedFiles(files) {
-			if (!files.length) {
-				return;
-			}
-			if (this.state.loading) {
-				frappe.show_alert({
-					message: __(
-						"{0} is still working on the previous message. Please drop the document again when the answer is there.",
-						[getAssistantName()]
-					),
-					indicator: "orange",
-				});
-				return;
-			}
-			this.setActiveTab("chat");
-			this.toggle(true);
-			if (!this.state.conversation?.name) {
-				await this.loadBootstrap();
-			}
-			if (!this.state.conversation?.name) {
-				return;
-			}
-			for (const file of files) {
-				try {
-					const fileDoc = await this.uploadFileToConversation(file);
-					await this.onFileUploaded(fileDoc);
-				} catch (error) {
-					frappe.msgprint(error.message || __("Failed to attach file to conversation."));
-				}
-			}
-		}
-
-		/**
-		 * Upload one dropped file through Frappe's own upload endpoint, so the
-		 * File record, permissions and size limits behave exactly as they do in
-		 * the file dialog.
-		 */
-		async uploadFileToConversation(file) {
-			const form = new FormData();
-			form.append("file", file, file.name);
-			form.append("is_private", "1");
-			form.append("folder", "Home/Attachments");
-			form.append("doctype", "Ask ALYF Conversation");
-			form.append("docname", this.state.conversation.name);
-
-			const response = await fetch("/api/method/upload_file", {
-				method: "POST",
-				headers: { "X-Frappe-CSRF-Token": frappe.csrf_token },
-				body: form,
-			});
-			const payload = await response.json();
-			if (!response.ok) {
-				throw new Error(payload?._server_messages || payload?.message || __("Upload failed."));
-			}
-			return payload.message;
 		}
 
 		openFileUploader() {
@@ -1664,9 +1535,9 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 				}
 				if (this.state.mode === "Agent" && modeBefore !== "Agent") {
 					frappe.show_alert({
-						message: __("Switched to Agent mode so {0} can turn the document into a record.", [
-							getAssistantName(),
-						]),
+						message: __(
+							"Switched to Agent mode so Ask ALYF can turn the document into a record."
+						),
 						indicator: "blue",
 					});
 				}

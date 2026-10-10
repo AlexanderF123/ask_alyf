@@ -6,7 +6,12 @@
  * entry's `onclick` receives `match`, which is the typed text. On top of that
  * entry this module owns a composer that folds out below the search bar for
  * longer texts, a microphone button, and an entry that opens the file
- * uploader when the typed text mentions a document.
+ * uploader when a `?` question mentions a document.
+ *
+ * Patching `add_defaults` relies on a Frappe internal without a stability
+ * promise; Frappe has no official extension point for the search bar. If a
+ * Frappe update renames it, `patchOptions` does nothing and the search bar
+ * simply behaves as usual.
  *
  * What it needs from the chat widget is deliberately small:
  *   - sendMessageFromText(text)
@@ -14,12 +19,11 @@
  *   - startVoiceRecognition({ onListening, onResult })
  *   - isSpeechRecognitionAvailable()
  */
-import { getAskAlyfBoot, getAssistantName, isFileUploadEnabled } from "./boot";
+import { getAskAlyfBoot, isFileUploadEnabled } from "./boot";
 
+// The server sends a valid mode (`normalize_awesomebar_chat_mode`).
 export const MODE_DISABLED = "Disabled";
-export const MODE_OFFER = "Offer in Results";
 export const MODE_DEFAULT = "Default Action";
-const MODES = new Set([MODE_DISABLED, MODE_OFFER, MODE_DEFAULT]);
 
 // Awesomplete sorts by index and `autoFirst` selects the highest one;
 // Frappe's own "Search for ..." entry sits at 100.
@@ -38,11 +42,14 @@ const NAVBAR_RETRY_MS = 500;
 
 export function getAwesomebarChatMode() {
 	const boot = getAskAlyfBoot();
-	if (!boot.allowed) {
-		return MODE_DISABLED;
-	}
-	const mode = String(boot.awesomebar_chat || "");
-	return MODES.has(mode) ? mode : MODE_DISABLED;
+	return (boot.allowed && boot.awesomebar_chat) || MODE_DISABLED;
+}
+
+/** Split off the leading `?` that always addresses the assistant. */
+export function parseQuery(value) {
+	const text = (value || "").trim();
+	const forced = text.startsWith(PREFIX);
+	return { forced, text: forced ? text.slice(PREFIX.length).trim() : text };
 }
 
 /** The text as the single-line search input shows it. */
@@ -105,40 +112,36 @@ class AwesomebarChat {
 		if (mode === MODE_DISABLED || !Array.isArray(awesomeBar?.options)) {
 			return;
 		}
-		let text = (txt || "").trim();
-		let forced = false;
-		if (text.startsWith(PREFIX)) {
-			forced = true;
-			text = text.slice(PREFIX.length).trim();
-		}
+		const { text, forced } = parseQuery(txt);
 		if (!text) {
 			return;
 		}
 		const isDefault = forced || mode === MODE_DEFAULT;
 		const safeText = frappe.utils.xss_sanitise(text);
-		const name = getAssistantName();
 		awesomeBar.options.push({
 			label: `
 				<span class="flex justify-between text-medium">
-					<span class="ellipsis">${__("Send to {0}: {1}", [name, safeText.bold()])}</span>
+					<span class="ellipsis">${__("Send to Ask ALYF: {0}", [safeText.bold()])}</span>
 					${isDefault ? "<kbd>↵</kbd>" : ""}
 				</span>
 			`,
-			value: __("Send to {0}: {1}", [name, safeText]),
+			value: __("Send to Ask ALYF: {0}", [safeText]),
 			match: text,
 			index: isDefault ? INDEX_DEFAULT : INDEX_OFFER,
 			default: "AskAlyfChat",
 			onclick: (message) => this.widget.sendMessageFromText(message),
 		});
 
-		if (isFileUploadEnabled() && UPLOAD_PATTERN.test(text)) {
+		// Only for questions to the assistant: a plain search such as
+		// "Belegnummer 4711" is not a request to upload anything.
+		if (forced && isFileUploadEnabled() && UPLOAD_PATTERN.test(text)) {
 			awesomeBar.options.push({
 				label: `
 					<span class="flex justify-between text-medium">
-						<span class="ellipsis">${__("Attach a document for {0}", [name])}</span>
+						<span class="ellipsis">${__("Attach a document for Ask ALYF")}</span>
 					</span>
 				`,
-				value: __("Attach a document for {0}", [name]),
+				value: __("Attach a document for Ask ALYF"),
 				match: text,
 				index: INDEX_UPLOAD,
 				default: "AskAlyfUpload",
@@ -159,14 +162,13 @@ class AwesomebarChat {
 		if (input.parentElement.querySelector(".ask_alyf-awesomebar-composer")) {
 			return;
 		}
-		const name = getAssistantName();
 		const shortcut = frappe.utils.is_mac?.() ? "⌘ + G" : "Ctrl + G";
-		input.placeholder = __("{0}, search or type a command ({1})", [name, shortcut]);
+		input.placeholder = __("Ask ALYF, search or type a command ({0})", [shortcut]);
 
 		const composer = document.createElement("div");
 		composer.className = "ask_alyf-awesomebar-composer";
 		composer.hidden = true;
-		const textareaLabel = frappe.utils.escape_html(__("Your question or task for {0}", [name]));
+		const textareaLabel = frappe.utils.escape_html(__("Your question or task for Ask ALYF"));
 		composer.innerHTML = `
 			<textarea
 				class="ask_alyf-awesomebar-textarea"
@@ -176,8 +178,7 @@ class AwesomebarChat {
 			></textarea>
 			<div class="ask_alyf-awesomebar-composer-footer">
 				<span class="ask_alyf-awesomebar-composer-hint">${__(
-					"Enter sends to {0}, Shift + Enter adds a line, Esc closes",
-					[name]
+					"Enter sends to Ask ALYF, Shift + Enter adds a line, Esc closes"
 				)}</span>
 				<button type="button" class="btn btn-primary btn-xs ask_alyf-awesomebar-send">${__("Send")}</button>
 			</div>
@@ -259,8 +260,7 @@ class AwesomebarChat {
 
 	shouldOpenComposer(input) {
 		const value = input.value || "";
-		const forced = value.trimStart().startsWith(PREFIX);
-		if (getAwesomebarChatMode() !== MODE_DEFAULT && !forced) {
+		if (getAwesomebarChatMode() !== MODE_DEFAULT && !parseQuery(value).forced) {
 			return false;
 		}
 		if (value.includes("\n")) {
@@ -316,10 +316,7 @@ class AwesomebarChat {
 	}
 
 	async submitComposer() {
-		let text = (this.textareaEl?.value || "").trim();
-		if (text.startsWith(PREFIX)) {
-			text = text.slice(PREFIX.length).trim();
-		}
+		const { text } = parseQuery(this.textareaEl?.value);
 		if (!text) {
 			return;
 		}
@@ -345,7 +342,7 @@ class AwesomebarChat {
 		button.className = "ask_alyf-navbar-mic";
 		button.innerHTML =
 			typeof frappe.utils?.icon === "function" ? frappe.utils.icon("mic", "sm", "", "", "") : "";
-		const tooltip = __("Voice input for {0}", [getAssistantName()]);
+		const tooltip = __("Voice input for Ask ALYF");
 		button.title = tooltip;
 		button.setAttribute("aria-label", tooltip);
 		button.setAttribute("aria-pressed", "false");

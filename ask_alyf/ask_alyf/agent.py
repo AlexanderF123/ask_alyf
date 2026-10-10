@@ -41,7 +41,6 @@ from ask_alyf.ask_alyf.toolset import (
 	in_private_frappe_context,
 	is_stop_requested,
 )
-from ask_alyf.ask_alyf.utils import get_assistant_name
 
 OPERATION_RESUME_SAVEPOINT = "ask_alyf_operation_resume"
 
@@ -336,58 +335,25 @@ def should_use_responses_api(settings) -> bool:
 	`/v1/chat/completions` and answer 404 otherwise, so compatible
 	providers opt in through the settings.
 	"""
-	provider = (getattr(settings, "llm_provider", "") or "").strip()
-	if provider == "OpenAI Compatible":
-		return bool(getattr(settings, "use_responses_api", 0))
+	if (settings.llm_provider or "").strip() == "OpenAI Compatible":
+		return bool(settings.use_responses_api)
 	return True
 
 
-# Model families that removed the sampling parameters. Sending `temperature`
-# to one of them fails the request with
-# "`temperature` is deprecated for this model." (Anthropic) or an equivalent
-# error from OpenAI's reasoning models, so it is left out for these.
-CHAT_TEMPERATURE = 0.2
-
-MODELS_WITHOUT_SAMPLING_PARAMS = (
-	"claude-fable-",
-	"claude-mythos-",
-	"claude-opus-5",
-	"claude-opus-4-7",
-	"claude-opus-4-8",
-	"claude-sonnet-5",
-	"gpt-5",
-	"o1",
-	"o3",
-	"o4",
-)
-
-
-def supports_temperature(model_name: str) -> bool:
-	"""Whether the model accepts the `temperature` sampling parameter."""
-	name = (model_name or "").strip().lower()
-	return not name.startswith(MODELS_WITHOUT_SAMPLING_PARAMS)
-
-
-def build_chat_model(settings, temperature: float = CHAT_TEMPERATURE) -> ChatOpenAI:
+def build_chat_model(settings) -> ChatOpenAI:
 	"""Build a LangChain `ChatOpenAI` from Ask ALYF Settings values.
 
 	Supports OpenAI and OpenAI-compatible `base_url` configurations by
 	preserving the existing settings-driven model/api_key/base_url resolution.
-	Newer reasoning models reject `temperature`, so it is only sent to models
-	that still accept it, whatever the caller asked for.
+	`temperature` is never sent: newer reasoning models (Claude 5, gpt-5, o-series)
+	reject it, and every other model falls back to its provider default.
 	"""
-	model_name = _get_model_name_from_settings(settings)
-	kwargs: dict = {}
-	if supports_temperature(model_name):
-		kwargs["temperature"] = temperature
-
 	return ChatOpenAI(
-		model=model_name,
+		model=_get_model_name_from_settings(settings),
 		api_key=_get_api_key_from_settings(settings),
 		base_url=(settings.base_url or "").strip() or None,
 		use_responses_api=should_use_responses_api(settings),
 		reasoning_effort=(settings.reasoning_effort or "").strip() or None,
-		**kwargs,
 	)
 
 
@@ -490,7 +456,7 @@ class ask_alyfAgentRunner:
 			)
 
 		base_instructions = f"""
-You are {get_assistant_name()}, an ERPNext and Frappe assistant embedded inside the user's desk.
+You are Ask ALYF, an ERPNext and Frappe assistant embedded inside the user's desk.
 
 Always follow these rules:
 - Adapt your language to the user. Prefer short, direct answers for everyday operational questions. Offer more detail only when the question calls for it or the user asks. Avoid ERP jargon and internal field names in your prose — use the labels the user sees on screen. If the user writes informally, respond in kind.
