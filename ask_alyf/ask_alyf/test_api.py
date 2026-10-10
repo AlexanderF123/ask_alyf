@@ -29,6 +29,7 @@ class UnitTestAskALYFApi(FrappeTestCase):
 				"allow_agent_mode": 0,
 				"allow_field_agent": 0,
 				"allow_file_upload": 0,
+				"allow_conversation_deletion": 0,
 				"model": "gpt-test",
 				"support_phone_number": "",
 				"get": lambda self, key, default=None: {"awesomebar_chat": "Default Action"}.get(
@@ -45,7 +46,7 @@ class UnitTestAskALYFApi(FrappeTestCase):
 			payload = api.get_ask_alyf_boot_payload()
 
 		self.assertEqual(payload["awesomebar_chat"], "Default Action")
-		self.assertEqual(payload["assistant_name"], "Frag mich")
+		self.assertEqual(payload["assistant_name"], api.ASSISTANT_NAME)
 		self.assertTrue(payload["configured"])
 
 	def test_boot_payload_falls_back_to_disabled_for_unknown_awesomebar_mode(self):
@@ -56,6 +57,7 @@ class UnitTestAskALYFApi(FrappeTestCase):
 				"allow_agent_mode": 0,
 				"allow_field_agent": 0,
 				"allow_file_upload": 0,
+				"allow_conversation_deletion": 0,
 				"model": "",
 				"support_phone_number": "",
 				"get": lambda self, key, default=None: {"awesomebar_chat": "Something Else"}.get(
