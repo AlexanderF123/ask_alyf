@@ -221,8 +221,8 @@ msgid "Ask ALYF is an AI and can make mistakes, including with numbers and infor
 msgstr "Ask ALYF 是一个 AI，可能会出错，包括关于数字和人员信息的内容。"
 
 #: ask_alyf/ask_alyf/api.py:432
-msgid "Ask ALYF is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
-msgstr "Ask ALYF 仍在处理此对话中的一条消息。删除前请先停止或等待其完成。"
+msgid "{0} is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
+msgstr "{0} 仍在处理此对话中的一条消息。删除前请先停止或等待其完成。"
 
 #: ask_alyf/ask_alyf/api.py:463
 msgid "Ask ALYF is still working on the previous message in this conversation."

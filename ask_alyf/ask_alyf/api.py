@@ -436,7 +436,7 @@ def _has_running_job(messages: list[dict]) -> bool:
 @frappe.whitelist(methods=["POST"])
 def delete_conversation(conversation: str) -> dict:
 	if not can_access_ask_alyf():
-		frappe.throw(_("You do not have access to Ask ALYF."))
+		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
 	if not get_settings().allow_conversation_deletion:
 		frappe.throw(_("Conversation deletion is not allowed."))
@@ -446,8 +446,8 @@ def delete_conversation(conversation: str) -> dict:
 	if _has_running_job(get_messages(doc)):
 		frappe.throw(
 			_(
-				"Ask ALYF is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
-			)
+				"{0} is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
+			).format(get_assistant_name())
 		)
 
 	doc.delete()
