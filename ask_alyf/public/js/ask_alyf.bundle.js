@@ -1,6 +1,11 @@
 import "./icons";
 import "./field_agent";
-import { getAssistantName, isAgentModeEnabled, isFileUploadEnabled } from "./boot";
+import {
+	getAssistantName,
+	isAgentModeEnabled,
+	isConversationDeletionEnabled,
+	isFileUploadEnabled,
+} from "./boot";
 import { setupAwesomebarIntegration } from "./awesomebar";
 
 (function () {
@@ -307,38 +312,99 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 
 			const list = document.createElement("ol");
 			list.className = "ask_alyf-tool-call-list";
-			for (const call of toolCalls) {
-				list.appendChild(this.buildToolCallItem(call));
+			for (const group of this.groupToolCalls(toolCalls)) {
+				list.appendChild(this.buildToolCallItem(group));
 			}
 			holder.appendChild(list);
 			return holder;
 		}
 
-		buildToolCallItem(call, { showArgs = true } = {}) {
+		groupToolCalls(toolCalls) {
+			// A run of calls under the same label — the source code analyzer
+			// reading dozens of files — becomes one row instead of a wall of
+			// identical ones.
+			const groups = [];
+			for (const call of toolCalls) {
+				// Older messages predate the server-side label and only carry
+				// the raw tool name.
+				const label = call?.label || (call?.name || "").replace(/_/g, " ");
+				const lastGroup = groups[groups.length - 1];
+				if (lastGroup?.label === label) {
+					lastGroup.calls.push(call);
+				} else {
+					groups.push({ label, calls: [call] });
+				}
+			}
+			return groups;
+		}
+
+		buildToolCallItem(group, { showArgs = true } = {}) {
+			const { label, calls } = group;
+			const runningCalls = calls.filter((call) => call?.status === "running");
+			const failedCount = calls.filter((call) => call?.status === "failed").length;
+			// Parallel calls can finish out of order, so the row describes the
+			// newest call that still runs, not just the newest call.
+			const currentCall = runningCalls[runningCalls.length - 1] || calls[calls.length - 1];
 			const item = document.createElement("li");
-			if (call?.status === "failed") {
+			if (failedCount === calls.length) {
 				item.classList.add("ask_alyf-tool-call-failed");
 			}
-			if (call?.status === "running") {
+			if (runningCalls.length) {
 				item.classList.add("ask_alyf-tool-call-running");
 			}
 
 			const name = document.createElement("span");
 			name.className = "ask_alyf-tool-call-name";
-			// Older messages predate the server-side label and only carry the
-			// raw tool name.
-			name.textContent = call?.label || (call?.name || "").replace(/_/g, " ");
+			name.textContent = calls.length > 1 ? `${label} ×${calls.length}` : label;
 			item.appendChild(name);
 
-			const args = showArgs ? this.formatToolCallArgs(call?.args) : "";
-			if (args) {
+			// A failed read among many is routine for the analyzer, so it does
+			// not turn the whole row red, but a failed save must not hide in
+			// a group of successful ones either.
+			if (failedCount && failedCount < calls.length) {
+				const failed = document.createElement("span");
+				failed.className = "ask_alyf-tool-call-failed-count";
+				failed.textContent = __("{0} failed", [failedCount]);
+				item.appendChild(failed);
+			}
+
+			if (showArgs && calls.length > 1) {
+				item.appendChild(this.buildToolCallGroupDetails(calls));
+				return item;
+			}
+
+			const text = showArgs
+				? currentCall?.detail || this.formatToolCallArgs(currentCall?.args)
+				: currentCall?.detail || "";
+			if (text) {
 				const detail = document.createElement("span");
 				detail.className = "ask_alyf-tool-call-args";
-				detail.textContent = args;
+				detail.textContent = text;
 				item.appendChild(detail);
 			}
 
 			return item;
+		}
+
+		buildToolCallGroupDetails(calls) {
+			const holder = document.createElement("details");
+			holder.className = "ask_alyf-tool-call-args";
+
+			const summary = document.createElement("summary");
+			summary.textContent = __("Show all");
+			holder.appendChild(summary);
+
+			const list = document.createElement("ol");
+			for (const call of calls) {
+				const entry = document.createElement("li");
+				if (call?.status === "failed") {
+					entry.className = "ask_alyf-tool-call-failed";
+				}
+				entry.textContent = call?.detail || this.formatToolCallArgs(call?.args);
+				list.appendChild(entry);
+			}
+			holder.appendChild(list);
+			return holder;
 		}
 
 		applyStepUpdate(step) {
@@ -411,10 +477,10 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			wrapper.className = "ask_alyf-message ask_alyf-assistant ask_alyf-live-steps";
 			const list = document.createElement("ol");
 			list.className = "ask_alyf-tool-call-list";
-			for (const step of this.state.steps) {
-				// Labels only while it runs; the arguments are there to read in
+			for (const group of this.groupToolCalls(this.state.steps)) {
+				// No raw arguments while it runs; they are there to read in
 				// the message once the turn is done.
-				list.appendChild(this.buildToolCallItem(step, { showArgs: false }));
+				list.appendChild(this.buildToolCallItem(group, { showArgs: false }));
 			}
 			wrapper.appendChild(list);
 
@@ -638,6 +704,111 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			if (entry.html !== html) {
 				entry.body.innerHTML = html;
 				entry.html = html;
+				for (const table of entry.body.querySelectorAll("table")) {
+					const PAGE = 10;
+					const body = table.tBodies[0];
+					if (body && body.rows.length > PAGE) {
+						const nav = document.createElement("div");
+						nav.className = "ask_alyf-table-pager";
+						nav.setAttribute("role", "navigation");
+						nav.setAttribute("aria-label", __("Table pagination"));
+						const prev = document.createElement("button");
+						const next = document.createElement("button");
+						const label = document.createElement("span");
+						prev.type = next.type = "button";
+						prev.setAttribute("aria-label", __("Previous page"));
+						next.setAttribute("aria-label", __("Next page"));
+						label.setAttribute("aria-live", "polite");
+						prev.innerHTML = frappe.utils.icon("es-line-left-chevron", "xs", "", true);
+						next.innerHTML = frappe.utils.icon("es-line-right-chevron", "xs", "", true);
+						const show = (page) => {
+							const rows = [...body.rows];
+							const pages = Math.ceil(rows.length / PAGE);
+							page = Math.min(Math.max(page, 0), pages - 1);
+							rows.forEach((row, i) => {
+								row.hidden = i < page * PAGE || i >= (page + 1) * PAGE;
+							});
+							table.dataset.page = String(page);
+							label.textContent = `${page + 1}/${pages}`;
+						};
+						prev.addEventListener("click", () => show(Number(table.dataset.page) - 1));
+						next.addEventListener("click", () => show(Number(table.dataset.page) + 1));
+						nav.append(prev, label, next);
+						table.after(nav);
+						table.showPage = show;
+						show(0);
+					}
+					const header = table.tHead?.rows[0];
+					if (!header) continue;
+					const sortIcon = (name) => frappe.utils.icon(name, "xs", "", true);
+					const sortButtonLabel = (columnLabel, direction) => {
+						if (direction === "asc") {
+							return __("Sorted ascending by {0}", [columnLabel]);
+						}
+						if (direction === "desc") {
+							return __("Sorted descending by {0}", [columnLabel]);
+						}
+						return __("Sort by {0}", [columnLabel]);
+					};
+					const setHeaderSortUi = (cell, direction) => {
+						const columnLabel = cell.dataset.columnLabel || __("Column");
+						cell.setAttribute(
+							"aria-sort",
+							direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "none"
+						);
+						const btn = cell.querySelector(".ask_alyf-sort-btn");
+						if (!btn) {
+							return;
+						}
+						btn.className = direction
+							? "ask_alyf-sort-btn ask_alyf-sort-icon"
+							: "ask_alyf-sort-btn ask_alyf-sort-icon ask_alyf-sort-icon-default";
+						btn.innerHTML = sortIcon(
+							direction === "asc"
+								? "es-line-up"
+								: direction === "desc"
+								? "es-line-down"
+								: "es-line-sort"
+						);
+						btn.setAttribute("aria-label", sortButtonLabel(columnLabel, direction));
+					};
+					for (const cell of header.cells) {
+						const columnLabel = (cell.textContent || "").trim() || __("Column");
+						cell.dataset.columnLabel = columnLabel;
+						cell.dataset.sort = "desc";
+						cell.setAttribute("aria-sort", "none");
+						const labelHtml = cell.innerHTML;
+						cell.innerHTML = `<span class="ask_alyf-th">${labelHtml}<button type="button" class="ask_alyf-sort-btn ask_alyf-sort-icon ask_alyf-sort-icon-default" aria-label="${this.escapeHtml(
+							sortButtonLabel(columnLabel, null)
+						)}">${sortIcon("es-line-sort")}</button></span>`;
+					}
+					table.tHead?.addEventListener("click", (event) => {
+						const sortBtn = event.target.closest(".ask_alyf-sort-btn");
+						if (!sortBtn) return;
+						const th = sortBtn.closest("th");
+						const index = th.cellIndex;
+						const desc = th.dataset.sort === "asc";
+						const direction = desc ? "desc" : "asc";
+						for (const cell of table.tHead.rows[0].cells) {
+							delete cell.dataset.sort;
+							setHeaderSortUi(cell, null);
+						}
+						th.dataset.sort = direction;
+						setHeaderSortUi(th, direction);
+						const body = table.tBodies[0];
+						[...body.rows]
+							.sort((a, b) => {
+								const cmp = (a.cells[index]?.innerText || "").localeCompare(
+									b.cells[index]?.innerText || "",
+									undefined,
+									{ numeric: true }
+								);
+								return desc ? -cmp : cmp;
+							})
+							.forEach((row) => body.appendChild(row));
+						table.showPage?.(Number(table.dataset.page) || 0);
+					});
+				}
 			}
 
 			this.syncMessageToolCalls(entry, message);
@@ -1200,6 +1371,13 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 				}
 			}
 
+			if (result.status === "conversation_not_found") {
+				this.stopResponseJobMonitor();
+				this.setLoading(false);
+				this.setStatus(__("Conversation not found. Please start a new conversation."));
+				return;
+			}
+
 			this.stopResponseJobMonitor();
 			if (activeJob.conversation !== this.state.conversation?.name) {
 				return;
@@ -1258,6 +1436,22 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			}
 
 			this.openConversation(conversationName);
+		}
+
+		onHistoryConversationDeleteClick(event, conversationName, title) {
+			event.preventDefault();
+			event.stopPropagation();
+			if (!conversationName || !isConversationDeletionEnabled()) {
+				return;
+			}
+
+			frappe.confirm(__("Delete conversation '{0}'?", [title]), async () => {
+				try {
+					await this.deleteConversation(conversationName);
+				} catch (error) {
+					frappe.msgprint(error.message || __("Failed to delete conversation."));
+				}
+			});
 		}
 
 		onModeOptionClick(event) {
@@ -1818,29 +2012,58 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 				return;
 			}
 
+			const deletionEnabled = isConversationDeletionEnabled();
+
 			recentConversations.forEach((conversation) => {
-				const itemEl = document.createElement("button");
-				itemEl.type = "button";
-				itemEl.className = "ask_alyf-history-item btn btn-secondary btn-sm";
-				itemEl.dataset.conversation = conversation.name;
+				const itemEl = document.createElement("div");
+				itemEl.className = "ask_alyf-history-item";
+
+				const mainEl = document.createElement("button");
+				mainEl.type = "button";
+				mainEl.className = "ask_alyf-history-item-main btn btn-secondary btn-sm";
+				mainEl.dataset.conversation = conversation.name;
 
 				if (conversation.name === currentName) {
-					itemEl.classList.remove("btn-secondary");
-					itemEl.classList.add("btn-primary");
+					mainEl.classList.remove("btn-secondary");
+					mainEl.classList.add("btn-primary");
 				}
 
 				const titleEl = document.createElement("div");
+				const title = this.formatConversationLabel(conversation);
 				titleEl.className = "ask_alyf-history-item-title";
-				titleEl.textContent = this.formatConversationLabel(conversation);
+				titleEl.textContent = title;
 
 				const metaEl = document.createElement("div");
 				metaEl.className = "ask_alyf-history-item-meta";
 				const timestampLabel = this.formatConversationTimestamp(conversation);
 				metaEl.textContent = timestampLabel || "";
 
-				itemEl.appendChild(titleEl);
-				itemEl.appendChild(metaEl);
-				itemEl.addEventListener("click", (event) => this.onHistoryConversationClick(event));
+				mainEl.appendChild(titleEl);
+				mainEl.appendChild(metaEl);
+				mainEl.addEventListener("click", (event) => this.onHistoryConversationClick(event));
+				itemEl.appendChild(mainEl);
+
+				if (deletionEnabled) {
+					const deleteEl = document.createElement("button");
+					deleteEl.type = "button";
+					deleteEl.className = "ask_alyf-history-item-delete ask_alyf-icon-button btn btn-sm";
+					if (conversation.name === currentName) {
+						deleteEl.classList.add("btn-primary");
+					} else {
+						deleteEl.classList.add("btn-secondary");
+					}
+					deleteEl.title = __("Delete conversation");
+					deleteEl.setAttribute("aria-label", __("Delete conversation"));
+					deleteEl.innerHTML =
+						typeof frappe.utils?.icon === "function"
+							? frappe.utils.icon("es-line-delete", "sm")
+							: "Delete";
+					deleteEl.addEventListener("click", (event) =>
+						this.onHistoryConversationDeleteClick(event, conversation.name, title)
+					);
+					itemEl.appendChild(deleteEl);
+				}
+
 				this.historyListEl.appendChild(itemEl);
 			});
 		}
@@ -2258,6 +2481,30 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			this.setLoading(false);
 			this.refreshConversationList();
 			this.setStatus("");
+		}
+
+		async deleteConversation(conversationName) {
+			if (!isConversationDeletionEnabled()) {
+				return;
+			}
+
+			const name = (conversationName || this.state.conversation?.name || "").toString();
+			if (!name) {
+				return;
+			}
+
+			await frappe.call({
+				method: "ask_alyf.api.delete_conversation",
+				type: "POST",
+				args: { conversation: name },
+			});
+
+			if (name === this.state.conversation?.name) {
+				await this.startNewConversation();
+				return;
+			}
+
+			this.refreshConversationList();
 		}
 
 		isFrontendAction(operation) {

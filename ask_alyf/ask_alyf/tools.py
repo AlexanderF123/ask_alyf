@@ -20,6 +20,8 @@ from frappe import _, client
 from frappe.utils import get_bench_path
 from frappe.utils.data import cint
 
+from ask_alyf.ask_alyf.source_files import SourceTree
+
 CODE_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx", ".md", ".json", ".yml", ".yaml", ".toml"}
 READ_ONLY_SQL_RE = re.compile(r"^\s*(with|select|show|explain|describe|desc)\b", re.IGNORECASE)
 FORBIDDEN_SQL_RE = re.compile(
@@ -57,6 +59,12 @@ VISION_MIME_TYPES = {
 }
 MAX_VISION_PAGES = 10
 VISION_DPI = 200
+# How much of a docs page one read returns. A longer page is read on in a
+# second call, from the offset the first one reported.
+MAX_COMPENDIUM_PAGE_CHARS = 6000
+# Wider than the Awesome Bar's snippet: the model picks which page to read
+# from it, where a user picks from the title.
+COMPENDIUM_SNIPPET_TOKENS = 60
 DEFAULT_DOCUMENT_EXTRACTION_PROMPT = (
 	"Extract all structured data from this document. "
 	"Use clearly labeled fields and include all text, tables, amounts, dates, names, "
@@ -271,41 +279,10 @@ def iter_scoped_entries(
 	include_hidden: bool,
 ) -> list[Path]:
 	ensure_app_target_exists(app_root, target)
-	if target.is_file():
-		return [target]
-
-	results: list[Path] = []
-	real_app_root = app_root.resolve()
-	seen_paths = {target}
-	pending_paths = [target]
-
-	while pending_paths:
-		current_path = pending_paths.pop()
-		try:
-			children = sorted(current_path.iterdir(), key=lambda child: child.name.lower())
-		except Exception:
-			continue
-
-		for child in children:
-			resolved_child = child.resolve()
-			if resolved_child in seen_paths or not is_path_within(real_app_root, resolved_child):
-				continue
-			if not include_hidden and is_hidden_path(app_root, child):
-				continue
-
-			seen_paths.add(resolved_child)
-			results.append(resolved_child)
-			if recursive and resolved_child.is_dir():
-				pending_paths.append(resolved_child)
-
-	return results
+	return SourceTree(app_root, include_hidden=include_hidden).entries(target, recursive=recursive)
 
 
 def iter_scoped_files(app_root: Path, target: Path, include_hidden: bool = False) -> list[Path]:
-	if target.is_file():
-		ensure_app_target_exists(app_root, target)
-		return [target]
-
 	return [
 		entry
 		for entry in iter_scoped_entries(app_root, target, recursive=True, include_hidden=include_hidden)
@@ -561,6 +538,8 @@ def ls(
 		iter_scoped_entries(app_root, target, recursive=bool(recursive), include_hidden=bool(include_hidden)),
 		key=to_bench_relative_path,
 	)
+	if target.is_file():
+		entries = [target]
 
 	return {
 		"app_name": app_name,
@@ -1096,6 +1075,62 @@ def read_github_releases(app_name: str, limit: int = 5) -> list[dict[str, Any]]:
 		}
 		for item in payload
 	]
+
+
+def get_compendium_locale() -> str:
+	"""The docs locale for this request, and the guard that Compendium is installed."""
+	if "compendium" not in frappe.get_installed_apps():
+		frappe.throw(_("The Compendium app is not installed."))
+
+	from compendium import docs
+
+	return docs.normalize_locale(frappe.local.lang or docs.DEFAULT_LANG)
+
+
+def search_compendium(query: str, limit: int = 10) -> list[dict[str, Any]]:
+	locale = get_compendium_locale()
+
+	from compendium import search
+
+	match_query = search.build_match_query(query)
+	if not match_query:
+		return []
+
+	limit = coerce_int(limit, 10, minimum=1)
+
+	# `search` returns only pages this user may read, best match first.
+	return [
+		{
+			"path": path,
+			"title": title,
+			"snippet": snippet,
+			"route": f"/app/docs/{locale}/{path}" if path else f"/app/docs/{locale}",
+		}
+		for path, title, snippet in search.search(
+			locale, match_query, snippet_tokens=COMPENDIUM_SNIPPET_TOKENS
+		)[:limit]
+	]
+
+
+def read_compendium_page(path: str, offset: int = 0) -> dict[str, Any]:
+	locale = get_compendium_locale()
+
+	from compendium import docs
+
+	# `normalize_path` rejects the traversal a model could put in `path`.
+	page = docs.get_page_record(docs.normalize_path(path), locale=locale, check_permission=True)
+	body = page.body or ""
+	offset = coerce_int(offset, 0, minimum=0)
+	content = body[offset : offset + MAX_COMPENDIUM_PAGE_CHARS]
+
+	return {
+		"path": page.path,
+		"title": page.title,
+		"content": content,
+		"offset": offset,
+		"next_offset": offset + len(content) if offset + len(content) < len(body) else None,
+		"total_chars": len(body),
+	}
 
 
 def read_documentation_page(app_name: str, relative_path: str = "") -> dict[str, Any]:
