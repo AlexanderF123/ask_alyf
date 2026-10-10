@@ -5,14 +5,8 @@
  * delivered with the desk boot, so it is available before the widget starts.
  */
 
-const DEFAULT_ASSISTANT_NAME = "Frage mich";
-
 export function getAskAlyfBoot() {
 	return frappe?.boot?.ask_alyf || {};
-}
-
-export function getAssistantName() {
-	return getAskAlyfBoot().assistant_name || DEFAULT_ASSISTANT_NAME;
 }
 
 export function isAgentModeEnabled() {

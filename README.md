@@ -2,7 +2,7 @@
 
 Ask ALYF adds an assistant to ERPNext so users can ask questions, find information, and get help working with documents without leaving the Desk.
 
-> **Branding in this fork:** the assistant is shown to users as **"Frage mich"** with the axessio logo. Technical identifiers such as the module, DocType names (`Ask ALYF Settings`, `Ask ALYF Skill`, ...), the `Ask ALYF User` role, and API paths keep their original names. The display name is the field _Assistant Name_ in **Ask ALYF Settings** (default `Frage mich`, fallback in `ask_alyf/ask_alyf/utils.py`) and reaches the browser through the boot payload.
+> **Fork rule — stay mergeable with upstream:** this fork keeps every upstream message word for word. The name users see ("Frage mich") comes only from records in the site's **Translation** DocType (language `de`), not from code or `.po` files here. Strings this fork adds name the assistant "Ask ALYF" in English, so the same Translation records cover them. The `.po` files in `ask_alyf/locale/` are upstream's, unchanged. Branding assets belong in the site's own app, not here.
 
 It is built for teams that already use ERPNext and want a practical assistant inside their existing system, not a separate chat product with a separate permission model.
 
@@ -45,7 +45,7 @@ The assistant does not become an all-powerful back door. If a user cannot read o
 Ask ALYF can also take messages from the desk search bar (Awesomebar). The behaviour is chosen in **Ask ALYF Settings**, field _Chat via Search Bar_:
 
 - _Disabled_: the search bar behaves as usual.
-- _Offer in Results_: while typing, the search results include an entry "Send to Frage mich: ...". Selecting it sends the text to the assistant.
+- _Offer in Results_: while typing, the search results include an entry "Send to Ask ALYF: ...". Selecting it sends the text to the assistant.
 - _Default Action_: that entry is listed first, so pressing Enter sends the typed text to the assistant. The regular "Search for ..." entry stays reachable with the arrow keys.
 
 In both enabled modes, a leading `?` always sends the text to the assistant (for example `? which leases end this month`).
@@ -55,15 +55,17 @@ The answer is shown in the chat window, which opens automatically. Further messa
 When a mode is enabled, the search bar also gets:
 
 - a **microphone button** (browsers with the Web Speech API): the spoken text lands in the search bar and opens the results, so Enter sends it. In _Offer in Results_ mode the transcript is prefixed with `?` so that Enter still reaches the assistant.
-- an entry **"Attach a document for ..."** whenever the typed text mentions a file, document, upload, or attachment (German or English), if _Allow File Upload_ is enabled. It opens the file uploader of the current conversation.
-- the assistant's name in the placeholder ("Frage mich, search or type a command").
+- an entry **"Attach a document for Ask ALYF"** when a question starting with `?` mentions a file, document, upload, or attachment (German or English), if _Allow File Upload_ is enabled. It opens the file uploader of the current conversation. Plain searches never get this entry.
+- the assistant's name in the placeholder ("Ask ALYF, search or type a command").
+
+The search bar integration wraps `AwesomeBar.prototype.add_defaults`, a Frappe internal without a stability promise (there is no official extension point). If an update renames it, the integration does nothing and the search bar behaves as usual.
 - a **fold-out composer for longer texts**: as soon as the typed text no longer fits into the search input (in _Default Action_ mode, or after a leading `?`), on Shift+Enter, or when multi-line text is pasted, a larger text area folds out below the search bar. Enter or the _Send_ button sends the text to the assistant, Shift+Enter adds a line, Esc folds the area back while keeping the text in the search input.
 
 The goal of this fork is to make the assistant the main interface for staff: they talk to the system, hand it documents, and the system carries out the tasks (Agent mode with confirmation, Skills for recurring procedures).
 
 ## Dropping Documents Into The Chat
 
-A document can be dragged from the desktop onto the chat window — or onto the closed chat bubble, which opens the chat first. The file is uploaded through Frappe's own `upload_file` endpoint, so the File record and its permissions are the same as from the file dialog, and is then attached to the conversation. The dialog's client-side checks (maximum file size, allowed types) are not run on a dropped file — the server-side limits still apply, and a rejected upload is reported as an error.
+A document can be dragged from the desktop onto the chat window — or onto the closed chat bubble, which opens the chat first (`public/js/dropzone.js`). The file is uploaded through Frappe's own `upload_file` endpoint, so the File record and its permissions are the same as from the file dialog, and is then attached to the conversation. The dialog's client-side checks (maximum file size, allowed types) are not run on a dropped file — the server-side limits still apply, and a rejected upload is reported as an error.
 
 Once a document is attached (dropped, picked from the dialog, or added from the search bar), the composer switches to **Agent** mode if the user is allowed to use it, and says so in a short alert. Handing over a document usually means something should be done with it, and Agent mode is what lets the assistant turn it into a record. The mode stays visible in the composer and can be switched back at any time; in both modes nothing is written without an explicit confirmation, and the user's own permissions still apply.
 
