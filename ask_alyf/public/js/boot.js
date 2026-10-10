@@ -22,3 +22,7 @@ export function isAgentModeEnabled() {
 export function isFileUploadEnabled() {
 	return Boolean(getAskAlyfBoot().file_upload_enabled);
 }
+
+export function isConversationDeletionEnabled() {
+	return Boolean(getAskAlyfBoot().conversation_deletion_enabled);
+}

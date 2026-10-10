@@ -70,14 +70,19 @@ class AskALYFSettings(Document):
 
 		allow_agent_mode: DF.Check
 		allow_code_search: DF.Check
+		allow_conversation_deletion: DF.Check
 		allow_field_agent: DF.Check
 		allow_file_upload: DF.Check
 		api_key: DF.Password | None
 		assistant_name: DF.Data | None
 		awesomebar_chat: DF.Literal["Disabled", "Offer in Results", "Default Action"]
 		base_url: DF.Data | None
+		enable_tracing: DF.Check
 		enabled: DF.Check
 		excluded_doctypes: DF.TableMultiSelect[AskALYFExcludedDocType]
+		langsmith_api_key: DF.Password | None
+		langsmith_endpoint: DF.Data | None
+		langsmith_project: DF.Data | None
 		llm_provider: DF.Literal["OpenAI", "OpenAI Compatible"]
 		model: DF.Autocomplete | None
 		reasoning_effort: DF.Literal["", "low", "medium", "high", "xhigh", "max"]

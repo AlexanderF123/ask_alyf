@@ -1,5 +1,7 @@
+import contextlib
+import os
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import Any
 
 import frappe
@@ -10,7 +12,9 @@ from deepagents import (
 	create_deep_agent,
 	register_harness_profile,
 )
+from deepagents.middleware.filesystem import DEFAULT_READ_LIMIT
 from frappe import _
+from frappe.utils import cint
 from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware, ToolErrorMiddleware, hook_config
 from langchain.agents.middleware.types import ToolCallRequest
@@ -117,8 +121,15 @@ def _tool_call_label(name: str, args: Any) -> str:
 		return _("Reading instructions") if name == "read_skill" else _("Saving instructions")
 	if name in ("get_file_id", "read_file_record", "extract_document_data"):
 		return _("Reading the attached document")
-	if name in ("get_app_version", "read_github_releases", "read_documentation_page"):
+	if name in (
+		"get_app_version",
+		"read_github_releases",
+		"read_documentation_page",
+		"read_compendium_page",
+	):
 		return _("Reading documentation")
+	if name == "search_compendium":
+		return _("Searching the documentation")
 	if name in ("ls", "read_file", "glob", "grep"):
 		return _("Searching the source code")
 	if name == "task":
@@ -159,6 +170,51 @@ def _tool_call_label(name: str, args: Any) -> str:
 		return _("Filling in the open form")
 
 	return name.replace("_", " ").capitalize()
+
+
+def _tool_call_detail(name: str, args: dict[str, Any]) -> str:
+	"""Say what one call of a repeated step is doing, below its shared label.
+
+	The source code analyzer makes dozens of calls in a row under the same
+	label. The chat folds them into one row, and this line tells the user
+	which file or pattern the latest one is on. Pass the summarized
+	arguments, so a long pattern stays as short as it is everywhere else.
+	"""
+	# Most searches are scoped to an app, a folder or a single file, and
+	# that scope is what tells one search from the next.
+	scope = _source_relative_path(args.get("path"))
+	if name == "grep":
+		pattern = args.get("pattern") or ""
+		file_filter = args.get("glob") or ""
+		# The same pattern is often searched again with only another file
+		# filter, such as `*.py` and then `*.json`. A filter does nothing on a
+		# single file, so it is left out there.
+		if file_filter and not os.path.splitext(scope)[1]:
+			scope = f"{scope}/{file_filter}" if scope else file_filter
+		return (
+			_('Searching for "{0}" in {1}').format(pattern, scope)
+			if scope
+			else _('Searching for "{0}"').format(pattern)
+		)
+	if name == "glob":
+		pattern = args.get("pattern") or ""
+		return _("Finding {0} in {1}").format(pattern, scope) if scope else _("Finding {0}").format(pattern)
+	if name == "read_file":
+		# The analyzer reads files in slices, often several of the same file,
+		# so the line range is what tells those reads apart.
+		first_line = cint(args.get("offset")) + 1
+		last_line = first_line + cint(args.get("limit") or DEFAULT_READ_LIMIT) - 1
+		return _("Reading {0}, lines {1}-{2}").format(
+			_source_relative_path(args.get("file_path")), first_line, last_line
+		)
+	if name == "ls":
+		return _("Listing {0}").format(scope or "/")
+	return ""
+
+
+def _source_relative_path(path: Any) -> str:
+	"""Drop the `/source` mount from a path, which the model writes with or without a slash."""
+	return (path or "").removeprefix("/source").strip("/") if isinstance(path, str) else ""
 
 
 class ToolCallLogMiddleware(AgentMiddleware):
@@ -205,11 +261,13 @@ class ToolCallLogMiddleware(AgentMiddleware):
 				tool_call_id=call_id,
 			)
 
+		args = _summarize_tool_args(call.get("args"))
 		self.runtime.begin_tool_call(
 			call_id,
 			call.get("name") or "",
-			_summarize_tool_args(call.get("args")),
+			args,
 			_tool_call_label(call.get("name") or "", call.get("args")),
+			_tool_call_detail(call.get("name") or "", args),
 		)
 		try:
 			result = handler(request)
@@ -310,18 +368,18 @@ def supports_temperature(model_name: str) -> bool:
 	return not name.startswith(MODELS_WITHOUT_SAMPLING_PARAMS)
 
 
-def build_chat_model(settings) -> ChatOpenAI:
+def build_chat_model(settings, temperature: float = CHAT_TEMPERATURE) -> ChatOpenAI:
 	"""Build a LangChain `ChatOpenAI` from Ask ALYF Settings values.
 
 	Supports OpenAI and OpenAI-compatible `base_url` configurations by
 	preserving the existing settings-driven model/api_key/base_url resolution.
 	Newer reasoning models reject `temperature`, so it is only sent to models
-	that still accept it.
+	that still accept it, whatever the caller asked for.
 	"""
 	model_name = _get_model_name_from_settings(settings)
 	kwargs: dict = {}
 	if supports_temperature(model_name):
-		kwargs["temperature"] = CHAT_TEMPERATURE
+		kwargs["temperature"] = temperature
 
 	return ChatOpenAI(
 		model=model_name,
@@ -331,6 +389,48 @@ def build_chat_model(settings) -> ChatOpenAI:
 		reasoning_effort=(settings.reasoning_effort or "").strip() or None,
 		**kwargs,
 	)
+
+
+@contextlib.contextmanager
+def _langsmith_tracing(settings, *, metadata: dict[str, Any]) -> Generator[None]:
+	"""Publish this invoke to LangSmith when tracing is enabled in settings.
+
+	Tracing is scoped to the invoke, not the process: workers are shared across
+	sites, so LANGSMITH_* must not be set as environment variables.
+	"""
+	if not settings.enable_tracing:
+		yield
+		return
+
+	api_key = (settings.get_password("langsmith_api_key", raise_exception=False) or "").strip()
+	if not api_key:
+		yield
+		return
+
+	from langsmith.client import Client
+	from langsmith.run_helpers import tracing_context
+
+	client = Client(
+		api_key=api_key,
+		api_url=(settings.langsmith_endpoint or "").strip() or None,
+	)
+	with tracing_context(
+		enabled=True,
+		client=client,
+		project_name=(settings.langsmith_project or "").strip() or None,
+		metadata=metadata,
+	):
+		try:
+			yield
+		finally:
+			try:
+				client.flush()
+			except Exception:
+				# Tracing must not replace a finished invoke, or resume will
+				# treat a completed run as a follow-up failure.
+				frappe.log_error(
+					"Ask ALYF LangSmith Tracing Error", frappe.get_traceback()
+				)  # traceback intentionally without context
 
 
 # --- Deep Agents coordinator --------------------------------------------------
@@ -458,6 +558,9 @@ Mode awareness and behavior:
 			self.toolset.read_github_releases,
 			self.toolset.read_documentation_page,
 		]
+
+		if "compendium" in frappe.get_installed_apps():
+			tool_defs.extend([self.toolset.search_compendium, self.toolset.read_compendium_page])
 
 		if self.runtime.mode == "Agent":
 			if self._can_write_skill():
@@ -602,17 +705,27 @@ Mode awareness and behavior:
 		the stored pause left exactly as it was, so it owns its own handling.
 		"""
 		try:
-			return self._finish(self.agent.invoke(payload, config=self.thread_config))
+			return self._finish(self._invoke(payload))
 		except Exception:
 			self.checkpointer.flush()
 			raise
+
+	def _invoke(self, payload: Any) -> Any:
+		with _langsmith_tracing(
+			self.settings,
+			metadata={
+				"conversation": self.runtime.conversation_name,
+				"mode": self.runtime.mode,
+			},
+		):
+			return self.agent.invoke(payload, config=self.thread_config)
 
 	def resume(self, call_id: str, status: str, **decision: Any) -> dict[str, Any]:
 		"""Continue a run that paused on a proposal, with the user's decision."""
 		command = Command(resume={"call_id": call_id, "status": status, **decision})
 		frappe.db.savepoint(OPERATION_RESUME_SAVEPOINT)
 		try:
-			return self._finish(self.agent.invoke(command, config=self.thread_config))
+			return self._finish(self._invoke(command))
 		except Exception:
 			frappe.db.rollback(save_point=OPERATION_RESUME_SAVEPOINT)
 			if not self.runtime.backend_operation_committed:
@@ -626,7 +739,9 @@ Mode awareness and behavior:
 			# the write a second time, so the thread goes and the next turn is
 			# seeded from the stored conversation history instead.
 			self.checkpointer.delete_thread(self.runtime.conversation_name)
-			frappe.log_error("Ask ALYF Action Follow-Up Error")
+			frappe.log_error(
+				"Ask ALYF Action Follow-Up Error", frappe.get_traceback()
+			)  # traceback intentionally without context
 			frappe.clear_messages()
 			return {
 				"response": _(

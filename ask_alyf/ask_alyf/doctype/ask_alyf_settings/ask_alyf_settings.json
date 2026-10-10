@@ -17,6 +17,7 @@
   "allow_code_search",
   "allow_file_upload",
   "allow_field_agent",
+  "allow_conversation_deletion",
   "awesomebar_section",
   "awesomebar_chat",
   "chat_provider_tab",
@@ -34,7 +35,12 @@
   "vision_model",
   "access_tab",
   "section_break_kmgx",
-  "excluded_doctypes"
+  "excluded_doctypes",
+  "tracing_tab",
+  "enable_tracing",
+  "langsmith_api_key",
+  "langsmith_endpoint",
+  "langsmith_project"
  ],
  "fields": [
   {
@@ -127,6 +133,12 @@
    "label": "Allow File Upload"
   },
   {
+   "default": "0",
+   "fieldname": "allow_conversation_deletion",
+   "fieldtype": "Check",
+   "label": "Allow Conversation Deletion"
+  },
+  {
    "fieldname": "chat_provider_tab",
    "fieldtype": "Tab Break",
    "label": "Chat Provider"
@@ -204,13 +216,43 @@
    "fieldtype": "Select",
    "label": "Reasoning Effort",
    "options": "\nlow\nmedium\nhigh\nxhigh\nmax"
+  },
+  {
+   "fieldname": "tracing_tab",
+   "fieldtype": "Tab Break",
+   "label": "Tracing"
+  },
+  {
+   "fieldname": "langsmith_api_key",
+   "fieldtype": "Password",
+   "label": "LangSmith API Key",
+   "mandatory_depends_on": "enable_tracing"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_tracing",
+   "fieldtype": "Check",
+   "label": "Enable Tracing"
+  },
+  {
+   "fieldname": "langsmith_endpoint",
+   "fieldtype": "Data",
+   "label": "LangSmith Endpoint",
+   "mandatory_depends_on": "enable_tracing",
+   "options": "URL"
+  },
+  {
+   "fieldname": "langsmith_project",
+   "fieldtype": "Data",
+   "label": "LangSmith Project",
+   "mandatory_depends_on": "enable_tracing"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-26 02:47:09.080302",
+ "modified": "2026-09-13 22:56:48.788226",
  "modified_by": "Administrator",
  "module": "Ask ALYF",
  "name": "Ask ALYF Settings",
