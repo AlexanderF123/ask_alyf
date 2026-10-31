@@ -50,7 +50,6 @@ class FakeSettings(SimpleNamespace):
 		*,
 		allow_code_search: bool,
 		reasoning_effort: str = "",
-		use_responses_api: int = 0,
 		enable_tracing: int = 0,
 		langsmith_endpoint: str = "",
 		langsmith_project: str = "",
@@ -63,7 +62,6 @@ class FakeSettings(SimpleNamespace):
 			llm_provider="openai",
 			base_url="",
 			reasoning_effort=reasoning_effort,
-			use_responses_api=use_responses_api,
 			enable_tracing=enable_tracing,
 			langsmith_endpoint=langsmith_endpoint,
 			langsmith_project=langsmith_project,
@@ -176,27 +174,11 @@ class UnitTestCodeTools(FrappeTestCase):
 		runner.checkpointer = FakeCheckpointer(stored_state=stored_state)
 		return runner
 
-	def test_build_chat_model_uses_responses_api_for_openai(self):
+	def test_build_chat_model_uses_responses_api_for_any_model(self):
 		model = build_chat_model(FakeSettings(allow_code_search=False))
 
 		self.assertTrue(model.use_responses_api)
 		self.assertIsNone(model.reasoning_effort)
-
-	def test_build_chat_model_uses_chat_completions_for_compatible_endpoints_by_default(self):
-		settings = FakeSettings(allow_code_search=False)
-		settings.base_url = "https://example.test/v1/"
-
-		model = build_chat_model(settings)
-
-		self.assertFalse(model.use_responses_api)
-
-	def test_build_chat_model_lets_compatible_endpoints_opt_into_responses_api(self):
-		settings = FakeSettings(allow_code_search=False, use_responses_api=1)
-		settings.base_url = "https://example.test/v1/"
-
-		model = build_chat_model(settings)
-
-		self.assertTrue(model.use_responses_api)
 
 	def test_build_chat_model_passes_reasoning_effort_when_set(self):
 		model = build_chat_model(FakeSettings(allow_code_search=False, reasoning_effort="high"))

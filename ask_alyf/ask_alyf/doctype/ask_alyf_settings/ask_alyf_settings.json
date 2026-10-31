@@ -22,7 +22,6 @@
   "chat_provider_tab",
   "llm_provider",
   "base_url",
-  "use_responses_api",
   "api_key",
   "model",
   "reasoning_effort",
@@ -64,14 +63,6 @@
    "label": "Base URL"
   },
   {
-   "default": "0",
-   "depends_on": "eval: doc.llm_provider == \"openai\" && doc.base_url",
-   "description": "Only for OpenAI-compatible endpoints (custom Base URL) that serve the OpenAI Responses API (/v1/responses). Leave off for endpoints that only serve chat completions, such as Anthropic's OpenAI-compatible endpoint. Without a Base URL, OpenAI itself always uses the Responses API.",
-   "fieldname": "use_responses_api",
-   "fieldtype": "Check",
-   "label": "Use Responses API"
-  },
-  {
    "fieldname": "api_key",
    "fieldtype": "Password",
    "label": "API Key"
@@ -91,7 +82,7 @@
    "options": "Ask ALYF Excluded DocType"
   },
   {
-   "default": "Frage mich",
+   "default": "Ask ALYF",
    "description": "Display name of the assistant in the desk (chat window, search bar, messages). Technical names such as DocTypes and roles stay unchanged.",
    "fieldname": "assistant_name",
    "fieldtype": "Data",

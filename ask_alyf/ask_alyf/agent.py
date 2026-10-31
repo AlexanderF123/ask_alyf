@@ -341,19 +341,6 @@ def init_settings_chat_model(
 	return init_chat_model(model, model_provider=provider, **kwargs)
 
 
-def should_use_responses_api(settings) -> bool:
-	"""Decide whether an "openai" chat model talks to the Responses API.
-
-	OpenAI itself serves `/v1/responses`. Many OpenAI-compatible endpoints
-	reached through a custom Base URL (for example Anthropic's) only serve
-	`/v1/chat/completions` and answer 404 otherwise, so they opt in through
-	the settings.
-	"""
-	if not (getattr(settings, "base_url", "") or "").strip():
-		return True
-	return bool(getattr(settings, "use_responses_api", 0))
-
-
 # The LangChain argument that takes the Reasoning Effort setting, per provider.
 # Providers missing here get no reasoning argument.
 REASONING_EFFORT_ARGUMENTS = {
@@ -374,7 +361,7 @@ def build_chat_model(settings) -> BaseChatModel:
 	provider = settings.llm_provider
 	kwargs = {}
 	if provider == "openai":
-		kwargs["use_responses_api"] = should_use_responses_api(settings)
+		kwargs["use_responses_api"] = True
 
 	reasoning_effort = (settings.reasoning_effort or "").strip()
 	if provider == "google_genai":

@@ -7,7 +7,7 @@ import frappe
 # Default display name of the assistant in user-facing texts. Administrators
 # can change it in Ask ALYF Settings (field `assistant_name`). Technical
 # identifiers (DocType names, roles, module, API paths) keep the "Ask ALYF" name.
-ASSISTANT_NAME = "Frage mich"
+ASSISTANT_NAME = "Ask ALYF"
 
 AWESOMEBAR_CHAT_DISABLED = "Disabled"
 AWESOMEBAR_CHAT_OFFER = "Offer in Results"
