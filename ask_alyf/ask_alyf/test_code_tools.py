@@ -146,9 +146,22 @@ class UnitTestCodeTools(UnitTestCase):
 		return runtime
 
 	def make_agent(self, invoke, *, interrupts=()):
-		"""Stand in for the compiled graph, which the runner also asks for state."""
+		"""Stand in for the compiled graph, which the runner also asks for state.
+
+		The runner streams the graph; `stream` replays what `invoke` returns
+		the way LangGraph's stream does: interrupts as an update, then the state.
+		"""
+
+		def stream(payload, config=None, stream_mode=None):
+			result = invoke(payload, config=config)
+			if isinstance(result, dict) and "__interrupt__" in result:
+				yield "updates", {"__interrupt__": result["__interrupt__"]}
+				result = {key: value for key, value in result.items() if key != "__interrupt__"}
+			yield "values", result
+
 		return SimpleNamespace(
 			invoke=invoke,
+			stream=stream,
 			get_state=lambda _config: SimpleNamespace(interrupts=interrupts),
 		)
 
