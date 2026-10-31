@@ -1,5 +1,7 @@
+import contextlib
+import os
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import Any
 
 import frappe
@@ -10,16 +12,20 @@ from deepagents import (
 	create_deep_agent,
 	register_harness_profile,
 )
+from deepagents.middleware.filesystem import DEFAULT_READ_LIMIT
 from frappe import _
+from frappe.utils import cint, get_system_timezone, getdate, nowdate
 from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware, ToolErrorMiddleware, hook_config
 from langchain.agents.middleware.types import ToolCallRequest
+from langchain.chat_models import init_chat_model
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AnyMessage, HumanMessage, ToolMessage
-from langchain_openai import ChatOpenAI
 from langgraph.errors import GraphBubbleUp
 from langgraph.types import Command
 
 from ask_alyf.ask_alyf import tools
+from ask_alyf.ask_alyf.answer_stream import AnswerDraftPublisher, invoke_streaming
 from ask_alyf.ask_alyf.checkpointer import FrappeCheckpointSaver
 from ask_alyf.ask_alyf.deep_agent_backend import build_ask_alyf_backend
 from ask_alyf.ask_alyf.history import history_item_to_native_message
@@ -117,8 +123,15 @@ def _tool_call_label(name: str, args: Any) -> str:
 		return _("Reading instructions") if name == "read_skill" else _("Saving instructions")
 	if name in ("get_file_id", "read_file_record", "extract_document_data"):
 		return _("Reading the attached document")
-	if name in ("get_app_version", "read_github_releases", "read_documentation_page"):
+	if name in (
+		"get_app_version",
+		"read_github_releases",
+		"read_documentation_page",
+		"read_compendium_page",
+	):
 		return _("Reading documentation")
+	if name == "search_compendium":
+		return _("Searching the documentation")
 	if name in ("ls", "read_file", "glob", "grep"):
 		return _("Searching the source code")
 	if name == "task":
@@ -159,6 +172,51 @@ def _tool_call_label(name: str, args: Any) -> str:
 		return _("Filling in the open form")
 
 	return name.replace("_", " ").capitalize()
+
+
+def _tool_call_detail(name: str, args: dict[str, Any]) -> str:
+	"""Say what one call of a repeated step is doing, below its shared label.
+
+	The source code analyzer makes dozens of calls in a row under the same
+	label. The chat folds them into one row, and this line tells the user
+	which file or pattern the latest one is on. Pass the summarized
+	arguments, so a long pattern stays as short as it is everywhere else.
+	"""
+	# Most searches are scoped to an app, a folder or a single file, and
+	# that scope is what tells one search from the next.
+	scope = _source_relative_path(args.get("path"))
+	if name == "grep":
+		pattern = args.get("pattern") or ""
+		file_filter = args.get("glob") or ""
+		# The same pattern is often searched again with only another file
+		# filter, such as `*.py` and then `*.json`. A filter does nothing on a
+		# single file, so it is left out there.
+		if file_filter and not os.path.splitext(scope)[1]:
+			scope = f"{scope}/{file_filter}" if scope else file_filter
+		return (
+			_('Searching for "{0}" in {1}').format(pattern, scope)
+			if scope
+			else _('Searching for "{0}"').format(pattern)
+		)
+	if name == "glob":
+		pattern = args.get("pattern") or ""
+		return _("Finding {0} in {1}").format(pattern, scope) if scope else _("Finding {0}").format(pattern)
+	if name == "read_file":
+		# The analyzer reads files in slices, often several of the same file,
+		# so the line range is what tells those reads apart.
+		first_line = cint(args.get("offset")) + 1
+		last_line = first_line + cint(args.get("limit") or DEFAULT_READ_LIMIT) - 1
+		return _("Reading {0}, lines {1}-{2}").format(
+			_source_relative_path(args.get("file_path")), first_line, last_line
+		)
+	if name == "ls":
+		return _("Listing {0}").format(scope or "/")
+	return ""
+
+
+def _source_relative_path(path: Any) -> str:
+	"""Drop the `/source` mount from a path, which the model writes with or without a slash."""
+	return (path or "").removeprefix("/source").strip("/") if isinstance(path, str) else ""
 
 
 class ToolCallLogMiddleware(AgentMiddleware):
@@ -205,11 +263,13 @@ class ToolCallLogMiddleware(AgentMiddleware):
 				tool_call_id=call_id,
 			)
 
+		args = _summarize_tool_args(call.get("args"))
 		self.runtime.begin_tool_call(
 			call_id,
 			call.get("name") or "",
-			_summarize_tool_args(call.get("args")),
+			args,
 			_tool_call_label(call.get("name") or "", call.get("args")),
+			_tool_call_detail(call.get("name") or "", args),
 		)
 		try:
 			result = handler(request)
@@ -231,36 +291,31 @@ class ToolCallLogMiddleware(AgentMiddleware):
 # Deep Agents exposes built-in filesystem write tools (``write_file``,
 # ``edit_file``) and a shell ``execute`` tool by default. Ask ALYF must never
 # let the model mutate the host filesystem or run shell commands directly, so
-# we register a provider-wide OpenAI harness profile that strips those tools
-# from every Deep Agents graph built from a ``ChatOpenAI`` model. Read-only
-# filesystem tools (``ls``, ``read_file``, ``glob``, ``grep``) remain available
-# and operate on the restricted composite VFS (workspace, source, attachments).
+# we register a provider-wide harness profile that strips those tools for the
+# configured model's provider. Read-only filesystem tools (``ls``,
+# ``read_file``, ``glob``, ``grep``) remain available and operate on the
+# restricted composite VFS (workspace, source, attachments).
 ASK_ALYF_EXCLUDED_TOOLS = frozenset({"write_file", "edit_file", "execute"})
-_ASK_ALYF_PROFILE_REGISTERED = False
+_ASK_ALYF_PROFILE_PROVIDERS: set[str] = set()
 _ASK_ALYF_PROFILE_LOCK = threading.Lock()
 
 
-def _ensure_ask_alyf_harness_profile() -> None:
-	"""Register the Ask ALYF harness profile once per process.
+def _ensure_ask_alyf_harness_profile(model: BaseChatModel) -> None:
+	"""Register the Ask ALYF harness profile once per provider and process.
 
-	Registration is additive and idempotent, but the check-then-set is guarded
-	by a lock so concurrent ``ask_alyfAgentRunner`` constructions (e.g. two
-	gunicorn threads or RQ jobs in one process) cannot both register.
+	Deep Agents matches profiles by the provider a model reports to LangSmith
+	(``ls_provider``), which is not always the ``init_chat_model`` provider key
+	(e.g. Bedrock reports ``amazon_bedrock``). So we register under the name the
+	model itself reports. The lock keeps concurrent runner constructions in one
+	process from registering twice.
 	"""
-	global _ASK_ALYF_PROFILE_REGISTERED
+	provider = model._get_ls_params()["ls_provider"]
 	with _ASK_ALYF_PROFILE_LOCK:
-		if _ASK_ALYF_PROFILE_REGISTERED:
+		if provider in _ASK_ALYF_PROFILE_PROVIDERS:
 			return
 		profile = HarnessProfile(excluded_tools=ASK_ALYF_EXCLUDED_TOOLS)
-		register_harness_profile("openai", profile)
-		_ASK_ALYF_PROFILE_REGISTERED = True
-
-
-def _get_api_key_from_settings(settings) -> str:
-	api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
-	if not api_key:
-		frappe.throw(_("Configure an API key in Ask ALYF Settings before sending messages."))
-	return api_key
+		register_harness_profile(provider, profile)
+		_ASK_ALYF_PROFILE_PROVIDERS.add(provider)
 
 
 def _get_model_name_from_settings(settings) -> str:
@@ -270,70 +325,144 @@ def _get_model_name_from_settings(settings) -> str:
 	return model_name
 
 
-def should_use_responses_api(settings) -> bool:
-	"""Decide whether the chat model talks to the OpenAI Responses API.
+def init_settings_chat_model(
+	provider: str, model: str, *, api_key: str | None, base_url: str | None, **kwargs
+) -> BaseChatModel:
+	"""Build a LangChain chat model for any ``init_chat_model`` provider.
 
-	OpenAI itself serves `/v1/responses`. Many OpenAI-compatible providers
-	(for example Anthropic's OpenAI-compatible endpoint) only serve
-	`/v1/chat/completions` and answer 404 otherwise, so compatible
-	providers opt in through the settings.
+	Credentials are optional: some providers (Bedrock, Vertex AI, Ollama) read
+	them from the environment instead.
 	"""
-	provider = (getattr(settings, "llm_provider", "") or "").strip()
-	if provider == "OpenAI Compatible":
-		return bool(getattr(settings, "use_responses_api", 0))
-	return True
+	if api_key:
+		kwargs["api_key"] = api_key
+	if base_url:
+		kwargs["base_url"] = base_url
+
+	return init_chat_model(model, model_provider=provider, **kwargs)
 
 
-# Model families that removed the sampling parameters. Sending `temperature`
-# to one of them fails the request with
-# "`temperature` is deprecated for this model." (Anthropic) or an equivalent
-# error from OpenAI's reasoning models, so it is left out for these.
-CHAT_TEMPERATURE = 0.2
+# The LangChain argument that takes the Reasoning Effort setting, per provider.
+# Providers missing here get no reasoning argument.
+REASONING_EFFORT_ARGUMENTS = {
+	"openai": "reasoning_effort",
+	"anthropic": "effort",
+	"google_genai": "thinking_level",
+}
 
-MODELS_WITHOUT_SAMPLING_PARAMS = (
-	"claude-fable-",
-	"claude-mythos-",
-	"claude-opus-5",
-	"claude-opus-4-7",
-	"claude-opus-4-8",
-	"claude-sonnet-5",
-	"gpt-5",
-	"o1",
-	"o3",
-	"o4",
-)
+# Gemini's thinking levels stop at "high".
+GEMINI_THINKING_LEVELS = {"xhigh": "high", "max": "high"}
 
 
-def supports_temperature(model_name: str) -> bool:
-	"""Whether the model accepts the `temperature` sampling parameter."""
-	name = (model_name or "").strip().lower()
-	return not name.startswith(MODELS_WITHOUT_SAMPLING_PARAMS)
+# The mode whose model can differ from the Chat Model (see `uses_ask_model`).
+ASK_MODE = "Ask"
 
 
-def build_chat_model(settings) -> ChatOpenAI:
-	"""Build a LangChain `ChatOpenAI` from Ask ALYF Settings values.
+def uses_ask_model(settings, mode: str | None) -> bool:
+	"""Whether this run takes the separate Ask Mode Model from the settings.
 
-	Supports OpenAI and OpenAI-compatible `base_url` configurations by
-	preserving the existing settings-driven model/api_key/base_url resolution.
-	Newer reasoning models reject `temperature`, so it is only sent to models
-	that still accept it.
+	Only read-only Ask runs do; Agent mode and the field agent always use the
+	Chat Model, so the model that proposes writes stays the configured one.
 	"""
-	model_name = _get_model_name_from_settings(settings)
-	kwargs: dict = {}
-	if supports_temperature(model_name):
-		kwargs["temperature"] = CHAT_TEMPERATURE
+	return mode == ASK_MODE and not cint(getattr(settings, "ask_model_is_chat_model", 1))
 
-	return ChatOpenAI(
-		model=model_name,
-		api_key=_get_api_key_from_settings(settings),
-		base_url=(settings.base_url or "").strip() or None,
-		use_responses_api=should_use_responses_api(settings),
-		reasoning_effort=(settings.reasoning_effort or "").strip() or None,
+
+def build_chat_model(settings, mode: str | None = None) -> BaseChatModel:
+	"""Build the chat model configured in Ask ALYF Settings for a run in `mode`.
+
+	No temperature: newer models (gpt-5.x, recent Claude) reject non-default values.
+	"""
+	if uses_ask_model(settings, mode):
+		provider = settings.ask_llm_provider
+		model = (settings.ask_model or "").strip()
+		if not model:
+			frappe.throw(_("Configure an Ask Mode Model in Ask ALYF Settings before sending messages."))
+		api_key = settings.get_password("ask_api_key", raise_exception=False)
+		base_url = settings.ask_base_url
+		reasoning_effort = settings.ask_reasoning_effort
+	else:
+		provider = settings.llm_provider
+		model = _get_model_name_from_settings(settings)
+		api_key = settings.get_password("api_key", raise_exception=False)
+		base_url = settings.base_url
+		reasoning_effort = settings.reasoning_effort
+
+	kwargs = {}
+	if provider == "openai":
+		kwargs["use_responses_api"] = True
+
+	reasoning_effort = (reasoning_effort or "").strip()
+	if provider == "google_genai":
+		reasoning_effort = GEMINI_THINKING_LEVELS.get(reasoning_effort, reasoning_effort)
+	if reasoning_effort and provider in REASONING_EFFORT_ARGUMENTS:
+		kwargs[REASONING_EFFORT_ARGUMENTS[provider]] = reasoning_effort
+
+	return init_settings_chat_model(
+		provider,
+		model,
+		api_key=(api_key or "").strip(),
+		base_url=(base_url or "").strip(),
 		**kwargs,
 	)
 
 
+@contextlib.contextmanager
+def _langsmith_tracing(settings, *, metadata: dict[str, Any]) -> Generator[None]:
+	"""Publish this invoke to LangSmith when tracing is enabled in settings.
+
+	Tracing is scoped to the invoke, not the process: workers are shared across
+	sites, so LANGSMITH_* must not be set as environment variables.
+	"""
+	if not settings.enable_tracing:
+		yield
+		return
+
+	api_key = (settings.get_password("langsmith_api_key", raise_exception=False) or "").strip()
+	if not api_key:
+		yield
+		return
+
+	from langsmith.client import Client
+	from langsmith.run_helpers import tracing_context
+
+	client = Client(
+		api_key=api_key,
+		api_url=(settings.langsmith_endpoint or "").strip() or None,
+	)
+	with tracing_context(
+		enabled=True,
+		client=client,
+		project_name=(settings.langsmith_project or "").strip() or None,
+		metadata=metadata,
+	):
+		try:
+			yield
+		finally:
+			try:
+				client.flush()
+			except Exception:
+				# Tracing must not replace a finished invoke, or resume will
+				# treat a completed run as a follow-up failure.
+				frappe.log_error(
+					"Ask ALYF LangSmith Tracing Error", frappe.get_traceback()
+				)  # traceback intentionally without context
+
+
 # --- Deep Agents coordinator --------------------------------------------------
+
+
+def build_current_date_instruction() -> str:
+	"""Tell the model today's date, so it does not spend a tool call to look it up.
+
+	Only the date, not the time: the system prompt is part of the cached
+	prompt prefix, and a value that changes every minute would defeat the
+	cache between the model calls of one turn and the turns of one day.
+	"""
+	today = getdate(nowdate())
+	return (
+		f"- Today is {today.strftime('%A')}, {today.isoformat()} "
+		f"(system time zone {get_system_timezone()}). Use this date for relative periods such as "
+		'"today", "this month" or "last year"; do not query the database for the current date.'
+	)
 
 
 class ask_alyfAgentRunner:
@@ -341,8 +470,8 @@ class ask_alyfAgentRunner:
 		self.runtime = runtime
 		self.settings = tools.get_settings()
 		self.toolset = ask_alyfToolset(runtime, settings=self.settings)
-		_ensure_ask_alyf_harness_profile()
-		self.model = build_chat_model(self.settings)
+		self.model = build_chat_model(self.settings, mode=runtime.mode)
+		_ensure_ask_alyf_harness_profile(self.model)
 		app_roots = tools.get_installed_app_roots() if self.settings.is_code_search_enabled() else {}
 		self.backend = build_ask_alyf_backend(app_roots)
 		self.checkpointer = FrappeCheckpointSaver()
@@ -399,11 +528,13 @@ Always follow these rules:
 - Respect the current user's permissions. If a tool says something is not allowed, explain that plainly.{code_search_usage_instruction}
 - If request context `lang` is not English, always call `translate_ui_labels` before using user-facing UI terms (DocType names, field labels, button labels, tabs, menus, and status labels) in your response.
 - Render responses as Markdown when that helps.
+- Mermaid code blocks (```mermaid) render as diagrams in the chat. Use them for processes, workflows, document flows and relationships between records; use `show_chart` for numeric data.
 - If conversation history includes attachment metadata, use the exact file ID shown there. If you only know a document reference, file name, or file URL, call `get_file_id` first. Never guess or invent a file ID.
 - When the user asks about the contents of an attached PDF or image, prefer `extract_document_data`. Use `read_file_record` for text-like files.
 - If conversation history includes stored document extraction data, reuse it for follow-up questions instead of re-running extraction unless the user asks for a fresh read.
 - If a file tool returns a truncation warning, tell the user clearly that only part of the file was processed.
 {available_skills_instruction}
+{build_current_date_instruction()}
 
 - Current request context (includes `user_roles` for non-Administrator users):
 {context}
@@ -458,6 +589,9 @@ Mode awareness and behavior:
 			self.toolset.read_github_releases,
 			self.toolset.read_documentation_page,
 		]
+
+		if "compendium" in frappe.get_installed_apps():
+			tool_defs.extend([self.toolset.search_compendium, self.toolset.read_compendium_page])
 
 		if self.runtime.mode == "Agent":
 			if self._can_write_skill():
@@ -602,17 +736,29 @@ Mode awareness and behavior:
 		the stored pause left exactly as it was, so it owns its own handling.
 		"""
 		try:
-			return self._finish(self.agent.invoke(payload, config=self.thread_config))
+			return self._finish(self._invoke(payload))
 		except Exception:
 			self.checkpointer.flush()
 			raise
+
+	def _invoke(self, payload: Any) -> Any:
+		with _langsmith_tracing(
+			self.settings,
+			metadata={
+				"conversation": self.runtime.conversation_name,
+				"mode": self.runtime.mode,
+			},
+		):
+			# Streamed, so the chat can show the answer while it is written.
+			publisher = AnswerDraftPublisher(self.runtime.conversation_name)
+			return invoke_streaming(self.agent, payload, self.thread_config, publisher)
 
 	def resume(self, call_id: str, status: str, **decision: Any) -> dict[str, Any]:
 		"""Continue a run that paused on a proposal, with the user's decision."""
 		command = Command(resume={"call_id": call_id, "status": status, **decision})
 		frappe.db.savepoint(OPERATION_RESUME_SAVEPOINT)
 		try:
-			return self._finish(self.agent.invoke(command, config=self.thread_config))
+			return self._finish(self._invoke(command))
 		except Exception:
 			frappe.db.rollback(save_point=OPERATION_RESUME_SAVEPOINT)
 			if not self.runtime.backend_operation_committed:
@@ -626,7 +772,9 @@ Mode awareness and behavior:
 			# the write a second time, so the thread goes and the next turn is
 			# seeded from the stored conversation history instead.
 			self.checkpointer.delete_thread(self.runtime.conversation_name)
-			frappe.log_error("Ask ALYF Action Follow-Up Error")
+			frappe.log_error(
+				"Ask ALYF Action Follow-Up Error", frappe.get_traceback()
+			)  # traceback intentionally without context
 			frappe.clear_messages()
 			return {
 				"response": _(
