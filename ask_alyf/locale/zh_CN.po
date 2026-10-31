@@ -10,18 +10,17 @@ msgstr ""
 "POT-Creation-Date: 2026-05-02 19:04+0053\n"
 "PO-Revision-Date: 2026-05-02 19:04+0053\n"
 "Last-Translator: hallo@alyf.de\n"
-"Language: zh_CN\n"
 "Language-Team: hallo@alyf.de\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Settings'
 #. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Skill'
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-#: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
 msgid "Access"
 msgstr "访问"
 
@@ -68,8 +67,7 @@ msgstr "在当前表单的 {0} 中添加一行"
 msgid "Add child row action needs correction."
 msgstr "添加子行操作需要修正。"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:612
-#: ask_alyf/public/js/ask_alyf.bundle.js:1032
+#: ask_alyf/public/js/ask_alyf.bundle.js:612 ask_alyf/public/js/ask_alyf.bundle.js:1032
 msgid "Agent"
 msgstr "代理"
 
@@ -147,8 +145,7 @@ msgstr "Frage mich 入门引导"
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-#: ask_alyf/workspace_sidebar/ask_alyf.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json ask_alyf/workspace_sidebar/ask_alyf.json
 msgid "Ask ALYF Settings"
 msgstr "Frage mich 设置"
 
@@ -182,8 +179,7 @@ msgstr "询问此 ERPNext 实例相关问题"
 msgid "At least one role is required."
 msgstr "至少需要一个角色。"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:618
-#: ask_alyf/public/js/ask_alyf.bundle.js:620
+#: ask_alyf/public/js/ask_alyf.bundle.js:618 ask_alyf/public/js/ask_alyf.bundle.js:620
 msgid "Attach file"
 msgstr "附加文件"
 
@@ -204,9 +200,7 @@ msgstr "批量创建提案需要更正。"
 msgid "Buying"
 msgstr "采购"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:571
-#: ask_alyf/public/js/ask_alyf.bundle.js:573
-#: ask_alyf/public/js/ask_alyf.bundle.js:989
+#: ask_alyf/public/js/ask_alyf.bundle.js:571 ask_alyf/public/js/ask_alyf.bundle.js:573 ask_alyf/public/js/ask_alyf.bundle.js:989
 msgid "Call support"
 msgstr "联系支持"
 
@@ -419,8 +413,7 @@ msgstr "当前单据为 {0},预期为 {1}。"
 msgid "Current form is {0}, expected {1}."
 msgstr "当前表单为 {0},预期为 {1}。"
 
-#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488
-#: ask_alyf/ask_alyf/tools.py:1491
+#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488 ask_alyf/ask_alyf/tools.py:1491
 msgid "Dataset values must be numeric."
 msgstr "数据集的值必须为数字。"
 
@@ -608,8 +601,7 @@ msgstr "字段 Agent 未启用。"
 msgid "Field updated."
 msgstr "字段已更新。"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:1903
-#: ask_alyf/public/js/ask_alyf.bundle.js:1914
+#: ask_alyf/public/js/ask_alyf.bundle.js:1903 ask_alyf/public/js/ask_alyf.bundle.js:1914
 #, python-brace-format
 msgid "Field {0} does not exist on this form."
 msgstr "此表单上不存在字段 {0}。"
@@ -708,8 +700,7 @@ msgstr "使用 AI 生成"
 msgid "Generating print..."
 msgstr "正在生成打印..."
 
-#: ask_alyf/ask_alyf/api.py:661 ask_alyf/ask_alyf/api.py:728
-#: ask_alyf/ask_alyf/api.py:843
+#: ask_alyf/ask_alyf/api.py:661 ask_alyf/ask_alyf/api.py:728 ask_alyf/ask_alyf/api.py:843
 msgid "Generating response..."
 msgstr "正在生成回复..."
 
@@ -833,8 +824,7 @@ msgstr "找到多个匹配的文件。请提供 reference_field、file_url 或 f
 msgid "Navigate to {0}"
 msgstr "导航至 {0}"
 
-#: ask_alyf/ask_alyf/api.py:271 ask_alyf/ask_alyf/api.py:460
-#: ask_alyf/ask_alyf/api.py:486
+#: ask_alyf/ask_alyf/api.py:271 ask_alyf/ask_alyf/api.py:460 ask_alyf/ask_alyf/api.py:486
 msgid "New Conversation"
 msgstr "新对话"
 
@@ -1103,8 +1093,7 @@ msgstr "正在读取文件..."
 msgid "Reading skill..."
 msgstr "正在读取技能..."
 
-#: ask_alyf/ask_alyf/api.py:789 ask_alyf/ask_alyf/api.py:875
-#: ask_alyf/ask_alyf/api.py:904
+#: ask_alyf/ask_alyf/api.py:789 ask_alyf/ask_alyf/api.py:875 ask_alyf/ask_alyf/api.py:904
 #, python-brace-format
 msgid "Reason: {0}"
 msgstr "原因：{0}"
@@ -1455,8 +1444,7 @@ msgstr "Vision 模型"
 msgid "Vision Provider"
 msgstr "Vision 提供商"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:623
-#: ask_alyf/public/js/ask_alyf.bundle.js:625
+#: ask_alyf/public/js/ask_alyf.bundle.js:623 ask_alyf/public/js/ask_alyf.bundle.js:625
 msgid "Voice input"
 msgstr "语音输入"
 
@@ -1513,11 +1501,7 @@ msgstr "哪些项目任务已逾期？"
 msgid "Which users logged in today?"
 msgstr "今天哪些用户已登录？"
 
-#: ask_alyf/ask_alyf/api.py:427 ask_alyf/ask_alyf/api.py:439
-#: ask_alyf/ask_alyf/api.py:456 ask_alyf/ask_alyf/api.py:476
-#: ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697
-#: ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941
-#: ask_alyf/ask_alyf/api.py:979
+#: ask_alyf/ask_alyf/api.py:427 ask_alyf/ask_alyf/api.py:439 ask_alyf/ask_alyf/api.py:456 ask_alyf/ask_alyf/api.py:476 ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697 ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941 ask_alyf/ask_alyf/api.py:979
 msgid "You do not have access to {0}."
 msgstr "您无权访问 {0}。"
 
@@ -1579,8 +1563,6 @@ msgstr "{0} 个项目"
 #, python-brace-format
 msgid "{0} rows"
 msgstr "{0} 行"
-
-
 
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Send to {0}: {1}"
@@ -1669,3 +1651,493 @@ msgstr ""
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "{0} is still working on the previous message. Please drop the document again when the answer is there."
 msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:302
+msgid "1 step"
+msgstr "1 个步骤"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:163
+msgid "Access to hidden paths is not allowed"
+msgstr "不允许访问隐藏路径"
+
+#. Label of a Check field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Allow Conversation Deletion"
+msgstr "允许删除对话"
+
+#: ask_alyf/ask_alyf/agent.py:146
+#, python-brace-format
+msgid "Amending {0}"
+msgstr "正在修订 {0}"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:809 ask_alyf/public/js/ask_alyf.bundle.js:1382
+msgid "Ask"
+msgstr "提问"
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Ask ALYF Checkpoint"
+msgstr "Ask ALYF 检查点"
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Ask ALYF Checkpoint Write"
+msgstr "Ask ALYF 检查点写入"
+
+#. Title of the Module Onboarding 'Ask ALYF Onboarding'
+#: ask_alyf/ask_alyf/module_onboarding/ask_alyf_onboarding/ask_alyf_onboarding.json
+msgid "Ask ALYF Onboarding"
+msgstr "Ask ALYF 入门引导"
+
+#: ask_alyf/ask_alyf/agent.py:131
+#, python-brace-format
+msgid "Asking the {0} specialist"
+msgstr "正在询问 {0} 专家"
+
+#: ask_alyf/ask_alyf/agent.py:152
+#, python-brace-format
+msgid "Attaching a file to {0}"
+msgstr "正在将文件附加到 {0}"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:274
+msgid "Attachment name is required"
+msgstr "附件名称为必填项"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:43
+msgid "Attachments are read-only"
+msgstr "附件为只读"
+
+#: ask_alyf/ask_alyf/agent.py:104
+#, python-brace-format
+msgid "Checking the {0} form"
+msgstr "正在检查 {0} 表单"
+
+#: ask_alyf/ask_alyf/agent.py:106
+#, python-brace-format
+msgid "Checking your permissions on {0}"
+msgstr "正在检查您对 {0} 的权限"
+
+#. Label of a Long Text field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Checkpoint Data (base64)"
+msgstr "检查点数据 (base64)"
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint'
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Checkpoint ID"
+msgstr "检查点 ID"
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint'
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Checkpoint Namespace"
+msgstr "检查点命名空间"
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Checkpoint Type"
+msgstr "检查点类型"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:685 ask_alyf/public/js/ask_alyf.bundle.js:707
+msgid "Column"
+msgstr "列"
+
+#: ask_alyf/ask_alyf/api.py:426
+msgid "Conversation deletion is not allowed."
+msgstr "不允许删除对话。"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1156
+msgid "Conversation not found. Please start a new conversation."
+msgstr "未找到对话。请开始新的对话。"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:571
+msgid "Copy as Markdown"
+msgstr "复制为 Markdown"
+
+#: ask_alyf/ask_alyf/api.py:770
+#, python-brace-format
+msgid "Could not complete the operation: {0}."
+msgstr "无法完成操作：{0}。"
+
+#: ask_alyf/ask_alyf/agent.py:100
+#, python-brace-format
+msgid "Counting {0}"
+msgstr "正在统计 {0}"
+
+#: ask_alyf/ask_alyf/agent.py:138
+#, python-brace-format
+msgid "Creating several {0} records"
+msgstr "正在创建多条 {0} 记录"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1697 ask_alyf/public/js/ask_alyf.bundle.js:1698
+msgid "Delete conversation"
+msgstr "删除对话"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1225
+#, python-brace-format
+msgid "Delete conversation '{0}'?"
+msgstr "删除对话 '{0}'？"
+
+#: ask_alyf/ask_alyf/test_tool_error_middleware.py:84 ask_alyf/ask_alyf/test_tool_error_middleware.py:93
+msgid "DocType is excluded"
+msgstr "单据类型已被排除"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1229
+msgid "Failed to delete conversation."
+msgstr "删除对话失败。"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1831
+msgid "Failed to stop the run."
+msgstr "无法停止本次运行。"
+
+#: ask_alyf/ask_alyf/agent.py:165
+msgid "Filling in the open form"
+msgstr "正在填写打开的表单"
+
+#: ask_alyf/ask_alyf/agent.py:200
+#, python-brace-format
+msgid "Finding {0}"
+msgstr "正在查找 {0}"
+
+#: ask_alyf/ask_alyf/agent.py:200
+#, python-brace-format
+msgid "Finding {0} in {1}"
+msgstr "正在 {1} 中查找 {0}"
+
+#: ask_alyf/ask_alyf/agent.py:161
+msgid "Highlighting a field"
+msgstr "正在高亮显示字段"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:182
+#, python-brace-format
+msgid "Invalid regex pattern: {0}"
+msgstr "无效的正则表达式模式：{0}"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:172 ask_alyf/ask_alyf/deep_agent_backend.py:285
+#, python-brace-format
+msgid "Line offset {0} exceeds file length"
+msgstr "行偏移 {0} 超出文件长度"
+
+#: ask_alyf/ask_alyf/agent.py:210
+#, python-brace-format
+msgid "Listing {0}"
+msgstr "正在列出 {0}"
+
+#: ask_alyf/ask_alyf/agent.py:110
+msgid "Looking up available reports"
+msgstr "正在查找可用的报表"
+
+#: ask_alyf/ask_alyf/agent.py:108
+msgid "Looking up what you can access"
+msgstr "正在查找您可以访问的内容"
+
+#. Label of a Long Text field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Metadata Data (base64)"
+msgstr "元数据数据 (base64)"
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Metadata Type"
+msgstr "元数据类型"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:651
+msgid "Next page"
+msgstr "下一页"
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "One LangGraph checkpoint. Written by FrappeCheckpointSaver, not by users."
+msgstr "单个 LangGraph 检查点。由 FrappeCheckpointSaver 写入，而非由用户写入。"
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "One pending write of a LangGraph checkpoint. Written by FrappeCheckpointSaver, not by users."
+msgstr "LangGraph 检查点的一次待处理写入。由 FrappeCheckpointSaver 写入，而非由用户写入。"
+
+#: ask_alyf/ask_alyf/agent.py:159
+#, python-brace-format
+msgid "Opening a new {0}"
+msgstr "正在打开新的 {0}"
+
+#: ask_alyf/ask_alyf/agent.py:157
+msgid "Opening a page"
+msgstr "正在打开页面"
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Parent Checkpoint ID"
+msgstr "父检查点 ID"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:165
+#, python-brace-format
+msgid "Path is not a file: {0}"
+msgstr "路径不是文件：{0}"
+
+#: ask_alyf/ask_alyf/agent.py:133
+msgid "Planning the next steps"
+msgstr "正在规划后续步骤"
+
+#: ask_alyf/ask_alyf/agent.py:163
+msgid "Preparing a chart"
+msgstr "正在准备图表"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:650
+msgid "Previous page"
+msgstr "上一页"
+
+#: ask_alyf/ask_alyf/agent.py:125
+msgid "Reading documentation"
+msgstr "正在阅读文档"
+
+#: ask_alyf/ask_alyf/agent.py:116
+msgid "Reading instructions"
+msgstr "正在读取说明"
+
+#: ask_alyf/ask_alyf/agent.py:118
+msgid "Reading the attached document"
+msgstr "正在读取附加的单据"
+
+#: ask_alyf/ask_alyf/agent.py:102
+#, python-brace-format
+msgid "Reading {0}"
+msgstr "正在读取 {0}"
+
+#: ask_alyf/ask_alyf/agent.py:206
+#, python-brace-format
+msgid "Reading {0}, lines {1}-{2}"
+msgstr "正在读取 {0} 的第 {1}-{2} 行"
+
+#: ask_alyf/ask_alyf/agent.py:98
+#, python-brace-format
+msgid "Reading {0} list"
+msgstr "正在读取 {0} 列表"
+
+#. Label of a Select field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Reasoning Effort"
+msgstr "推理强度"
+
+#: ask_alyf/ask_alyf/agent.py:150
+#, python-brace-format
+msgid "Renaming {0}"
+msgstr "正在重命名 {0}"
+
+#: ask_alyf/ask_alyf/agent.py:114
+msgid "Running a database query"
+msgstr "正在运行数据库查询"
+
+#: ask_alyf/ask_alyf/agent.py:154
+#, python-brace-format
+msgid "Running {0}"
+msgstr "正在运行 {0}"
+
+#: ask_alyf/ask_alyf/agent.py:116
+msgid "Saving instructions"
+msgstr "正在保存说明"
+
+#: ask_alyf/ask_alyf/agent.py:196
+#, python-brace-format
+msgid "Searching for \"{0}\""
+msgstr "正在搜索“{0}”"
+
+#: ask_alyf/ask_alyf/agent.py:194
+#, python-brace-format
+msgid "Searching for \"{0}\" in {1}"
+msgstr "正在 {1} 中搜索“{0}”"
+
+#: ask_alyf/ask_alyf/agent.py:127
+msgid "Searching the documentation"
+msgstr "正在搜索文档"
+
+#: ask_alyf/ask_alyf/agent.py:129
+msgid "Searching the source code"
+msgstr "正在搜索源代码"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:398
+msgid "Show all"
+msgstr "显示全部"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:39
+msgid "Source code is read-only"
+msgstr "源代码为只读"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:160
+msgid "Source file path is required"
+msgstr "必须提供源文件路径"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1792
+msgid "Stop this run"
+msgstr "停止本次运行"
+
+#: ask_alyf/ask_alyf/api.py:629
+msgid "Stopped. Send a message to pick up from here."
+msgstr "已停止。发送消息即可从此处继续。"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:682
+#, python-brace-format
+msgid "Sort by {0}"
+msgstr "按{0}排序"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:677
+#, python-brace-format
+msgid "Sorted ascending by {0}"
+msgstr "按{0}升序排序"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:680
+#, python-brace-format
+msgid "Sorted descending by {0}"
+msgstr "按{0}降序排序"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1918
+msgid "Stopping..."
+msgstr "正在停止..."
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Task ID"
+msgstr "任务 ID"
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Task Path"
+msgstr "任务路径"
+
+#: ask_alyf/ask_alyf/toolset.py:312
+msgid "That confirmation did not match this operation. Propose it again on its own."
+msgstr "该确认与此操作不匹配。请单独重新提出该操作。"
+
+#: ask_alyf/ask_alyf/tools.py:1110
+msgid "The Compendium app is not installed."
+msgstr "未安装 Compendium 应用。"
+
+#: ask_alyf/ask_alyf/toolset.py:330
+msgid "The action could not be completed."
+msgstr "无法完成该操作。"
+
+#: ask_alyf/ask_alyf/api.py:532 ask_alyf/ask_alyf/api.py:562
+msgid "The background job does not match this message."
+msgstr "后台作业与此消息不匹配。"
+
+#: ask_alyf/ask_alyf/api.py:530 ask_alyf/ask_alyf/api.py:558 ask_alyf/ask_alyf/api.py:584
+msgid "The message could not be found in this conversation."
+msgstr "在此对话中找不到该消息。"
+
+#: ask_alyf/ask_alyf/agent.py:594
+msgid "The operation was completed, but the follow-up response could not be generated."
+msgstr "操作已完成，但无法生成后续回复。"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:242
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support Reasoning Effort ({1})."
+msgstr "所选聊天模型（{0}）不支持推理强度（{1}）。"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:238
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support Reasoning Effort ({1}). Supported values: {2}."
+msgstr "所选聊天模型（{0}）不支持推理强度（{1}）。支持的值：{2}。"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:99
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support function calling."
+msgstr "所选聊天模型（{0}）不支持函数调用。"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:107
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support vision. Choose a vision-capable chat model or configure a separate vision model."
+msgstr "所选聊天模型（{0}）不支持视觉功能。请选择支持视觉的聊天模型，或配置单独的视觉模型。"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:116
+#, python-brace-format
+msgid "The selected Vision Model ({0}) does not support vision."
+msgstr "所选视觉模型（{0}）不支持视觉功能。"
+
+#: ask_alyf/ask_alyf/toolset.py:320
+msgid "The user rejected this operation."
+msgstr "用户拒绝了此操作。"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:654
+msgid "Table pagination"
+msgstr "表格分页"
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint'
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Thread ID"
+msgstr "线程 ID"
+
+#: ask_alyf/ask_alyf/agent.py:112
+msgid "Translating labels"
+msgstr "正在翻译标签"
+
+#. Title of an Onboarding Step
+#: ask_alyf/ask_alyf/onboarding_step/update_ask_alyf_settings/update_ask_alyf_settings.json
+msgid "Update Ask ALYF Settings"
+msgstr "更新 Ask ALYF 设置"
+
+#. Label of a Long Text field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Value Data (base64)"
+msgstr "值数据（base64）"
+
+#. Label of a Data field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Value Type"
+msgstr "值类型"
+
+#: ask_alyf/ask_alyf/api.py:364 ask_alyf/ask_alyf/api.py:376 ask_alyf/ask_alyf/api.py:393 ask_alyf/ask_alyf/api.py:423 ask_alyf/ask_alyf/api.py:449 ask_alyf/ask_alyf/api.py:517 ask_alyf/ask_alyf/api.py:541 ask_alyf/ask_alyf/api.py:718 ask_alyf/ask_alyf/api.py:786 ask_alyf/ask_alyf/api.py:891 ask_alyf/ask_alyf/api.py:1010 ask_alyf/ask_alyf/api.py:1048
+msgid "You do not have access to Ask ALYF."
+msgstr "您无权访问 Ask ALYF。"
+
+#: ask_alyf/ask_alyf/agent.py:154
+msgid "an action"
+msgstr "操作"
+
+#: ask_alyf/ask_alyf/agent.py:131
+msgid "assistant"
+msgstr "助手"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "high"
+msgstr "高"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "low"
+msgstr "低"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "max"
+msgstr "最高"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "medium"
+msgstr "中"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "xhigh"
+msgstr "超高"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:371
+#, python-brace-format
+msgid "{0} failed"
+msgstr "{0} 个失败"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:302
+#, python-brace-format
+msgid "{0} steps"
+msgstr "{0} 步"
+
+#: ask_alyf/ask_alyf/api.py
+msgid "{0} is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
+msgstr "{0} 仍在处理此对话中的一条消息。删除前请先停止或等待其完成。"

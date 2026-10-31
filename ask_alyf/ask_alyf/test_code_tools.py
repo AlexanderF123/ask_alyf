@@ -1,8 +1,10 @@
 import asyncio
 import contextlib
 import contextvars
+import importlib.util
 import itertools
 import threading
+import unittest
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from typing import Any
@@ -23,6 +25,9 @@ from langgraph.errors import GraphInterrupt
 from ask_alyf.ask_alyf import tools
 from ask_alyf.ask_alyf.agent import (
 	ASK_ALYF_EXCLUDED_TOOLS,
+	TOOL_CALL_ARGS_LIMIT,
+	_summarize_tool_args,
+	_tool_call_detail,
 	_tool_call_label,
 	ask_alyfAgentRunner,
 	build_chat_model,
@@ -48,6 +53,10 @@ class FakeSettings(SimpleNamespace):
 		llm_provider: str = "OpenAI",
 		use_responses_api: int = 0,
 		model: str = "gpt-test",
+		enable_tracing: int = 0,
+		langsmith_endpoint: str = "",
+		langsmith_project: str = "",
+		passwords: dict[str, str] | None = None,
 	):
 		super().__init__(
 			allow_code_search=allow_code_search,
@@ -57,13 +66,17 @@ class FakeSettings(SimpleNamespace):
 			base_url="",
 			reasoning_effort=reasoning_effort,
 			use_responses_api=use_responses_api,
+			enable_tracing=enable_tracing,
+			langsmith_endpoint=langsmith_endpoint,
+			langsmith_project=langsmith_project,
 		)
+		self._passwords = {"api_key": "test-key", **(passwords or {})}
 
 	def is_code_search_enabled(self) -> bool:
 		return bool(self.allow_code_search)
 
-	def get_password(self, _fieldname, raise_exception=False):
-		return "test-key"
+	def get_password(self, fieldname, raise_exception=False):
+		return self._passwords.get(fieldname) or ""
 
 
 class FakeCheckpointer:
@@ -700,6 +713,143 @@ class UnitTestCodeTools(FrappeTestCase):
 		self.assertEqual(seen["config"]["configurable"]["thread_id"], "TEST-CONVERSATION")
 		self.assertEqual(runner.checkpointer.flush_count, 1)
 
+	def test_run_graph_does_not_trace_when_tracing_is_disabled(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=0,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
+
+		with patch("langsmith.client.Client") as Client:
+			runner._run_graph({"messages": []})
+
+		Client.assert_not_called()
+
+	def test_run_graph_does_not_trace_without_langsmith_key(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+		)
+		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
+
+		with patch("langsmith.client.Client") as Client:
+			runner._run_graph({"messages": []})
+
+		Client.assert_not_called()
+
+	def test_run_graph_traces_to_langsmith_when_configured(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf-prod",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
+
+		with (
+			patch("langsmith.client.Client") as Client,
+			patch("langsmith.run_helpers.tracing_context", return_value=contextlib.nullcontext()) as tracing,
+		):
+			result = runner._run_graph({"messages": []})
+
+		Client.assert_called_once_with(
+			api_key="ls-test-key",
+			api_url="https://eu.api.smith.langchain.com",
+		)
+		tracing.assert_called_once_with(
+			enabled=True,
+			client=Client.return_value,
+			project_name="ask-alyf-prod",
+			metadata={"conversation": "TEST-CONVERSATION", "mode": "Ask"},
+		)
+		Client.return_value.flush.assert_called_once()
+		self.assertEqual(result["response"], "Done.")
+
+	def test_run_graph_flushes_langsmith_when_invoke_fails(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+
+		def boom(_input, config=None):
+			raise RuntimeError("provider down")
+
+		runner.agent = self.make_agent(boom)
+
+		with (
+			patch("langsmith.client.Client") as Client,
+			patch("langsmith.run_helpers.tracing_context", return_value=contextlib.nullcontext()),
+			self.assertRaisesRegex(RuntimeError, "provider down"),
+		):
+			runner._run_graph({"messages": []})
+
+		Client.return_value.flush.assert_called_once()
+		self.assertEqual(runner.checkpointer.flush_count, 1)
+
+	def test_run_graph_keeps_the_result_when_langsmith_flush_fails(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
+
+		with (
+			patch("langsmith.client.Client") as Client,
+			patch("langsmith.run_helpers.tracing_context", return_value=contextlib.nullcontext()),
+			patch("ask_alyf.ask_alyf.agent.frappe.log_error") as log_error,
+		):
+			Client.return_value.flush.side_effect = RuntimeError("langsmith down")
+			result = runner._run_graph({"messages": []})
+
+		self.assertEqual(result["response"], "Done.")
+		log_error.assert_called_once()
+		self.assertEqual(log_error.call_args.args[0], "Ask ALYF LangSmith Tracing Error")
+		self.assertIn("RuntimeError: langsmith down", log_error.call_args.args[1])
+		self.assertEqual(runner.checkpointer.flush_count, 1)
+
+	def test_run_graph_keeps_the_invoke_error_when_langsmith_flush_also_fails(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+
+		def boom(_input, config=None):
+			raise RuntimeError("provider down")
+
+		runner.agent = self.make_agent(boom)
+
+		with (
+			patch("langsmith.client.Client") as Client,
+			patch("langsmith.run_helpers.tracing_context", return_value=contextlib.nullcontext()),
+			patch("ask_alyf.ask_alyf.agent.frappe.log_error"),
+			self.assertRaisesRegex(RuntimeError, "provider down"),
+		):
+			Client.return_value.flush.side_effect = RuntimeError("langsmith down")
+			runner._run_graph({"messages": []})
+
+		self.assertEqual(runner.checkpointer.flush_count, 1)
+
 	def test_resume_reports_a_committed_operation_when_follow_up_fails(self):
 		runner = self.make_runner(allow_code_search=False, mode="Agent")
 		runner.runtime.backend_operation_committed = True
@@ -728,7 +878,9 @@ class UnitTestCodeTools(FrappeTestCase):
 		self.assertEqual(runner.checkpointer.deleted_threads, ["TEST-CONVERSATION"])
 		savepoint.assert_called_once_with("ask_alyf_operation_resume")
 		rollback.assert_called_once_with(save_point="ask_alyf_operation_resume")
-		log_error.assert_called_once_with("Ask ALYF Action Follow-Up Error")
+		log_error.assert_called_once()
+		self.assertEqual(log_error.call_args.args[0], "Ask ALYF Action Follow-Up Error")
+		self.assertIn("RuntimeError: boom", log_error.call_args.args[1])
 		clear_messages.assert_called_once_with()
 
 	def test_resume_still_raises_when_the_operation_did_not_commit(self):
@@ -796,6 +948,73 @@ class UnitTestCodeTools(FrappeTestCase):
 		self.assertTrue(proposal_tools.issubset(agent_tool_names))
 		# No host filesystem, shell, or direct execution capability leaks in.
 		self.assertFalse(host_mutation_tools.intersection(agent_tool_names))
+
+	def test_compendium_tools_are_registered_only_when_the_app_is_installed(self):
+		compendium_tools = {"search_compendium", "read_compendium_page"}
+		runner = self.make_runner(allow_code_search=False)
+
+		with patch("frappe.get_installed_apps", return_value=["frappe"]):
+			names = {tool.__name__ for tool in runner._build_tools()}
+			self.assertFalse(compendium_tools.intersection(names))
+
+		with patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]):
+			names = {tool.__name__ for tool in runner._build_tools()}
+			self.assertTrue(compendium_tools.issubset(names))
+
+	@unittest.skipUnless(importlib.util.find_spec("compendium"), "compendium is not installed")
+	def test_compendium_search_returns_the_best_hits_up_to_the_limit(self):
+		hits = [("setup", "Setup", "…set up…"), ("billing", "Billing", "…"), ("faq", "FAQ", "…")]
+
+		with (
+			patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]),
+			patch("compendium.docs.normalize_locale", return_value="en"),
+			patch("compendium.search.search", return_value=hits) as search,
+		):
+			found = tools.search_compendium("how do I set up billing", limit=2)
+
+		self.assertEqual([hit["title"] for hit in found], ["Setup", "Billing"])
+		self.assertEqual(found[0]["snippet"], "…set up…")
+		self.assertEqual(found[0]["route"], "/app/docs/en/setup")
+		# a wider snippet than the Awesome Bar's, because the model picks from it
+		self.assertEqual(search.call_args.kwargs["snippet_tokens"], tools.COMPENDIUM_SNIPPET_TOKENS)
+
+	@unittest.skipUnless(importlib.util.find_spec("compendium"), "compendium is not installed")
+	def test_compendium_search_without_searchable_words_finds_nothing(self):
+		with (
+			patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]),
+			patch("compendium.docs.normalize_locale", return_value="en"),
+		):
+			self.assertEqual(tools.search_compendium("   "), [])
+
+	@unittest.skipUnless(importlib.util.find_spec("compendium"), "compendium is not installed")
+	def test_a_long_compendium_page_is_read_out_in_slices(self):
+		body = "x" * (tools.MAX_COMPENDIUM_PAGE_CHARS + 10)
+		page = frappe._dict(path="setup", title="Setup", body=body)
+
+		with (
+			patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]),
+			patch("compendium.docs.normalize_locale", return_value="en"),
+			patch("compendium.docs.get_page_record", return_value=page) as get_page_record,
+		):
+			first = tools.read_compendium_page("setup")
+			rest = tools.read_compendium_page("setup", offset=first["next_offset"])
+
+		self.assertEqual(len(first["content"]), tools.MAX_COMPENDIUM_PAGE_CHARS)
+		self.assertEqual(first["next_offset"], tools.MAX_COMPENDIUM_PAGE_CHARS)
+		self.assertEqual(len(rest["content"]), 10)
+		self.assertIsNone(rest["next_offset"])
+		self.assertEqual(rest["total_chars"], len(body))
+		# the body is read out here, so permission is checked here
+		self.assertTrue(all(call.kwargs["check_permission"] for call in get_page_record.call_args_list))
+
+	@unittest.skipUnless(importlib.util.find_spec("compendium"), "compendium is not installed")
+	def test_a_compendium_path_that_escapes_the_docs_folder_is_rejected(self):
+		with (
+			patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]),
+			patch("compendium.docs.normalize_locale", return_value="en"),
+			self.assertRaises(frappe.ValidationError),
+		):
+			tools.read_compendium_page("../../../etc/passwd")
 
 	def test_ask_mode_tools_exclude_all_write_proposals_and_host_mutation(self):
 		host_mutation_tools = {"write_file", "edit_file", "execute", "shell", "run_shell"}
@@ -897,6 +1116,45 @@ class UnitTestCodeTools(FrappeTestCase):
 		for (name, args), expected in cases:
 			with self.subTest(tool=name):
 				self.assertEqual(_tool_call_label(name, args), expected)
+
+	def test_source_code_calls_say_which_file_or_pattern_they_are_on(self):
+		cases = [
+			(
+				("grep", {"pattern": "on_submit", "path": "/source/hrms/hrms/hr"}),
+				'Searching for "on_submit" in hrms/hrms/hr',
+			),
+			(("grep", {"pattern": "working_time", "path": "/source"}), 'Searching for "working_time"'),
+			(
+				("grep", {"pattern": "working_time", "path": "/source", "glob": "**/*.json"}),
+				'Searching for "working_time" in **/*.json',
+			),
+			(
+				("grep", {"pattern": "submit", "path": "/source/frappe/frappe/model", "glob": "*.py"}),
+				'Searching for "submit" in frappe/frappe/model/*.py',
+			),
+			(
+				(
+					"grep",
+					{"pattern": "submit", "path": "/source/frappe/frappe/model/document.py", "glob": "*.py"},
+				),
+				'Searching for "submit" in frappe/frappe/model/document.py',
+			),
+			(("glob", {"pattern": "**/*.json", "path": "/source/erpnext/"}), "Finding **/*.json in erpnext"),
+			(
+				("read_file", {"file_path": "/source/frappe/model/document.py", "offset": 200, "limit": 50}),
+				"Reading frappe/model/document.py, lines 201-250",
+			),
+			(("read_file", {"file_path": "/source/frappe/hooks.py"}), "Reading frappe/hooks.py, lines 1-100"),
+			(("ls", {"path": "/source/"}), "Listing /"),
+			(("get_list", {"doctype": "ToDo"}), ""),
+		]
+		for (name, args), expected in cases:
+			with self.subTest(tool=name, args=args):
+				self.assertEqual(_tool_call_detail(name, _summarize_tool_args(args)), expected)
+
+	def test_a_long_search_pattern_is_trimmed_like_the_arguments(self):
+		detail = _tool_call_detail("grep", _summarize_tool_args({"pattern": "x" * 5000}))
+		self.assertLess(len(detail), TOOL_CALL_ARGS_LIMIT + 50)
 
 	def test_an_unmapped_tool_still_gets_a_readable_label(self):
 		self.assertEqual(_tool_call_label("some_new_tool", {}), "Some new tool")
