@@ -284,6 +284,69 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertEqual(model.anthropic_api_url, "https://example.test")
 		self.assertEqual(model.anthropic_api_key.get_secret_value(), "test-key")
 
+	def make_settings_with_ask_model(self) -> FakeSettings:
+		"""Opus for Agent mode, a separate Mistral model for Ask mode."""
+		settings = FakeSettings(
+			allow_code_search=False,
+			reasoning_effort="high",
+			passwords={"ask_api_key": "ask-key"},
+		)
+		settings.llm_provider = "anthropic"
+		settings.model = "claude-opus-test"
+		settings.ask_model_is_chat_model = 0
+		settings.ask_llm_provider = "mistralai"
+		settings.ask_model = "mistral-test"
+		settings.ask_base_url = ""
+		settings.ask_reasoning_effort = ""
+		return settings
+
+	def test_build_chat_model_uses_the_ask_mode_model_for_ask_runs(self):
+		model = build_chat_model(self.make_settings_with_ask_model(), mode="Ask")
+
+		self.assertEqual(type(model).__name__, "ChatMistralAI")
+		self.assertEqual(model.model, "mistral-test")
+		self.assertEqual(model.mistral_api_key.get_secret_value(), "ask-key")
+
+	def test_build_chat_model_keeps_the_chat_model_for_agent_runs(self):
+		model = build_chat_model(self.make_settings_with_ask_model(), mode="Agent")
+
+		self.assertEqual(type(model).__name__, "ChatAnthropic")
+		self.assertEqual(model.model, "claude-opus-test")
+		self.assertEqual(model.effort, "high")
+
+	def test_build_chat_model_keeps_the_chat_model_without_a_mode(self):
+		# The field agent passes no mode and writes into forms, like Agent mode.
+		model = build_chat_model(self.make_settings_with_ask_model())
+
+		self.assertEqual(model.model, "claude-opus-test")
+
+	def test_build_chat_model_uses_the_chat_model_for_ask_runs_when_same_as_chat(self):
+		settings = self.make_settings_with_ask_model()
+		settings.ask_model_is_chat_model = 1
+
+		model = build_chat_model(settings, mode="Ask")
+
+		self.assertEqual(model.model, "claude-opus-test")
+
+	def test_build_chat_model_passes_the_ask_mode_reasoning_effort(self):
+		settings = self.make_settings_with_ask_model()
+		settings.ask_llm_provider = "anthropic"
+		settings.ask_model = "claude-haiku-test"
+		settings.ask_reasoning_effort = "low"
+
+		model = build_chat_model(settings, mode="Ask")
+
+		self.assertEqual(model.model, "claude-haiku-test")
+		self.assertEqual(model.effort, "low")
+		self.assertEqual(model.anthropic_api_key.get_secret_value(), "ask-key")
+
+	def test_build_chat_model_requires_an_ask_mode_model_when_separate(self):
+		settings = self.make_settings_with_ask_model()
+		settings.ask_model = ""
+
+		with self.assertRaises(frappe.ValidationError):
+			build_chat_model(settings, mode="Ask")
+
 	def test_subagents_register_source_code_analyzer_only_when_code_search_enabled(self):
 		raw_code_tool_names = {"search_code", "read_code_file", "ls", "find", "grep"}
 

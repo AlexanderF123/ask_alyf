@@ -351,17 +351,44 @@ REASONING_EFFORT_ARGUMENTS = {
 GEMINI_THINKING_LEVELS = {"xhigh": "high", "max": "high"}
 
 
-def build_chat_model(settings) -> BaseChatModel:
-	"""Build the chat model configured in Ask ALYF Settings.
+# The mode whose model can differ from the Chat Model (see `uses_ask_model`).
+ASK_MODE = "Ask"
+
+
+def uses_ask_model(settings, mode: str | None) -> bool:
+	"""Whether this run takes the separate Ask Mode Model from the settings.
+
+	Only read-only Ask runs do; Agent mode and the field agent always use the
+	Chat Model, so the model that proposes writes stays the configured one.
+	"""
+	return mode == ASK_MODE and not cint(getattr(settings, "ask_model_is_chat_model", 1))
+
+
+def build_chat_model(settings, mode: str | None = None) -> BaseChatModel:
+	"""Build the chat model configured in Ask ALYF Settings for a run in `mode`.
 
 	No temperature: newer models (gpt-5.x, recent Claude) reject non-default values.
 	"""
-	provider = settings.llm_provider
+	if uses_ask_model(settings, mode):
+		provider = settings.ask_llm_provider
+		model = (settings.ask_model or "").strip()
+		if not model:
+			frappe.throw(_("Configure an Ask Mode Model in Ask ALYF Settings before sending messages."))
+		api_key = settings.get_password("ask_api_key", raise_exception=False)
+		base_url = settings.ask_base_url
+		reasoning_effort = settings.ask_reasoning_effort
+	else:
+		provider = settings.llm_provider
+		model = _get_model_name_from_settings(settings)
+		api_key = settings.get_password("api_key", raise_exception=False)
+		base_url = settings.base_url
+		reasoning_effort = settings.reasoning_effort
+
 	kwargs = {}
 	if provider == "openai":
 		kwargs["use_responses_api"] = True
 
-	reasoning_effort = (settings.reasoning_effort or "").strip()
+	reasoning_effort = (reasoning_effort or "").strip()
 	if provider == "google_genai":
 		reasoning_effort = GEMINI_THINKING_LEVELS.get(reasoning_effort, reasoning_effort)
 	if reasoning_effort and provider in REASONING_EFFORT_ARGUMENTS:
@@ -369,9 +396,9 @@ def build_chat_model(settings) -> BaseChatModel:
 
 	return init_settings_chat_model(
 		provider,
-		_get_model_name_from_settings(settings),
-		api_key=(settings.get_password("api_key", raise_exception=False) or "").strip(),
-		base_url=(settings.base_url or "").strip(),
+		model,
+		api_key=(api_key or "").strip(),
+		base_url=(base_url or "").strip(),
 		**kwargs,
 	)
 
@@ -426,7 +453,7 @@ class ask_alyfAgentRunner:
 		self.runtime = runtime
 		self.settings = tools.get_settings()
 		self.toolset = ask_alyfToolset(runtime, settings=self.settings)
-		self.model = build_chat_model(self.settings)
+		self.model = build_chat_model(self.settings, mode=runtime.mode)
 		_ensure_ask_alyf_harness_profile(self.model)
 		app_roots = tools.get_installed_app_roots() if self.settings.is_code_search_enabled() else {}
 		self.backend = build_ask_alyf_backend(app_roots)
