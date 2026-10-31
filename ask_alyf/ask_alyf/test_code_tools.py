@@ -364,6 +364,19 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertIn("Use `read_skill`", instructions)
 		self.assertIn("name: expense-guide | title: Expense Guide", instructions)
 
+	def test_build_instructions_state_todays_date(self):
+		runner = self.make_runner(allow_code_search=False)
+
+		with (
+			patch("ask_alyf.ask_alyf.agent.nowdate", return_value="2026-10-31"),
+			patch("ask_alyf.ask_alyf.agent.get_system_timezone", return_value="Europe/Berlin"),
+			patch("ask_alyf.ask_alyf.skill_utils.get_available_skill_summaries", return_value=[]),
+			patch("ask_alyf.ask_alyf.tools.get_excluded_doctypes", return_value=set()),
+		):
+			instructions = runner._build_instructions()
+
+		self.assertIn("Today is Saturday, 2026-10-31 (system time zone Europe/Berlin)", instructions)
+
 	def test_read_skill_returns_accessible_skill_content(self):
 		runtime = self.make_runtime(mode="Ask")
 		toolset = ask_alyfToolset(runtime)
