@@ -387,7 +387,7 @@ class ask_alyfToolset:
 		order_by: str | None = None,
 		limit: int = 20,
 		group_by: str | None = None,
-	) -> list[dict[str, Any]]:
+	) -> list[dict[str, Any]] | dict[str, Any]:
 		"""List documents with filters, fields, ordering, and optional grouping.
 
 		Args:
@@ -402,7 +402,9 @@ class ask_alyfToolset:
 			group_by: Optional SQL group by expression.
 
 		Returns:
-			A list of matching documents.
+			A list of matching documents. A result too large for the conversation
+			comes back as {"rows": [...], "truncated": true, "message": ...} with
+			only the leading rows; narrow the query instead of reading more.
 		"""
 		return tools.get_list(
 			doctype=doctype,
@@ -658,7 +660,7 @@ class ask_alyfToolset:
 		self.runtime.remember_attached_file(file_entry)
 		return file_entry
 
-	def run_read_only_sql(self, query: str) -> list[dict[str, Any]]:
+	def run_read_only_sql(self, query: str) -> list[dict[str, Any]] | dict[str, Any]:
 		"""Run one complete read-only SQL statement when the user is allowed to do so.
 
 		The query must include the statement keyword and all clauses, for example
@@ -669,7 +671,9 @@ class ask_alyfToolset:
 			query: One complete SELECT, WITH, SHOW, EXPLAIN, or DESCRIBE statement.
 
 		Returns:
-			The SQL result rows.
+			The SQL result rows. A result too large for the conversation comes back
+			as {"rows": [...], "truncated": true, "message": ...} with only the
+			leading rows; narrow the query instead of reading more.
 		"""
 		return tools.run_read_only_sql(query=query)
 
