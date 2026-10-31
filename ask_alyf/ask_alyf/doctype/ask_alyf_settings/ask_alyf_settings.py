@@ -95,7 +95,6 @@ class AskALYFSettings(Document):
 		reasoning_effort: DF.Literal["", "low", "medium", "high", "xhigh", "max"]
 		support_phone_number: DF.Phone | None
 		system_prompt: DF.Code | None
-		use_responses_api: DF.Check
 		vision_api_key: DF.Password | None
 		vision_base_url: DF.Data | None
 		vision_llm_provider: DF.Autocomplete | None

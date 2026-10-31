@@ -529,7 +529,10 @@ import { setupAwesomebarIntegration } from "./awesomebar";
 			if (before && before.parentNode !== this.messagesEl) {
 				before = null;
 			}
-			if (this.liveDraftEl.parentNode !== this.messagesEl || this.liveDraftEl.nextSibling !== before) {
+			if (
+				this.liveDraftEl.parentNode !== this.messagesEl ||
+				this.liveDraftEl.nextSibling !== before
+			) {
 				this.messagesEl.insertBefore(this.liveDraftEl, before);
 			}
 		}
