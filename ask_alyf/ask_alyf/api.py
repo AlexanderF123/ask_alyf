@@ -121,7 +121,7 @@ def get_ask_alyf_boot_payload() -> dict:
 		file_upload_enabled = bool(settings.allow_file_upload)
 		awesomebar_chat = normalize_awesomebar_chat_mode(settings.get("awesomebar_chat"))
 		assistant_name = (settings.get("assistant_name") or "").strip() or ASSISTANT_NAME
-		conversation_deletion_enabled = bool(settings.allow_conversation_deletion)
+		conversation_deletion_enabled = bool(settings.get("allow_conversation_deletion"))
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		configured = bool(api_key and (settings.model or "").strip())
 		support_phone_number = (settings.support_phone_number or "").strip()
