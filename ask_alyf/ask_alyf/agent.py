@@ -18,8 +18,9 @@ from frappe.utils import cint
 from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware, ToolErrorMiddleware, hook_config
 from langchain.agents.middleware.types import ToolCallRequest
+from langchain.chat_models import init_chat_model
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AnyMessage, HumanMessage, ToolMessage
-from langchain_openai import ChatOpenAI
 from langgraph.errors import GraphBubbleUp
 from langgraph.types import Command
 
@@ -289,36 +290,31 @@ class ToolCallLogMiddleware(AgentMiddleware):
 # Deep Agents exposes built-in filesystem write tools (``write_file``,
 # ``edit_file``) and a shell ``execute`` tool by default. Ask ALYF must never
 # let the model mutate the host filesystem or run shell commands directly, so
-# we register a provider-wide OpenAI harness profile that strips those tools
-# from every Deep Agents graph built from a ``ChatOpenAI`` model. Read-only
-# filesystem tools (``ls``, ``read_file``, ``glob``, ``grep``) remain available
-# and operate on the restricted composite VFS (workspace, source, attachments).
+# we register a provider-wide harness profile that strips those tools for the
+# configured model's provider. Read-only filesystem tools (``ls``,
+# ``read_file``, ``glob``, ``grep``) remain available and operate on the
+# restricted composite VFS (workspace, source, attachments).
 ASK_ALYF_EXCLUDED_TOOLS = frozenset({"write_file", "edit_file", "execute"})
-_ASK_ALYF_PROFILE_REGISTERED = False
+_ASK_ALYF_PROFILE_PROVIDERS: set[str] = set()
 _ASK_ALYF_PROFILE_LOCK = threading.Lock()
 
 
-def _ensure_ask_alyf_harness_profile() -> None:
-	"""Register the Ask ALYF harness profile once per process.
+def _ensure_ask_alyf_harness_profile(model: BaseChatModel) -> None:
+	"""Register the Ask ALYF harness profile once per provider and process.
 
-	Registration is additive and idempotent, but the check-then-set is guarded
-	by a lock so concurrent ``ask_alyfAgentRunner`` constructions (e.g. two
-	gunicorn threads or RQ jobs in one process) cannot both register.
+	Deep Agents matches profiles by the provider a model reports to LangSmith
+	(``ls_provider``), which is not always the ``init_chat_model`` provider key
+	(e.g. Bedrock reports ``amazon_bedrock``). So we register under the name the
+	model itself reports. The lock keeps concurrent runner constructions in one
+	process from registering twice.
 	"""
-	global _ASK_ALYF_PROFILE_REGISTERED
+	provider = model._get_ls_params()["ls_provider"]
 	with _ASK_ALYF_PROFILE_LOCK:
-		if _ASK_ALYF_PROFILE_REGISTERED:
+		if provider in _ASK_ALYF_PROFILE_PROVIDERS:
 			return
 		profile = HarnessProfile(excluded_tools=ASK_ALYF_EXCLUDED_TOOLS)
-		register_harness_profile("openai", profile)
-		_ASK_ALYF_PROFILE_REGISTERED = True
-
-
-def _get_api_key_from_settings(settings) -> str:
-	api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
-	if not api_key:
-		frappe.throw(_("Configure an API key in Ask ALYF Settings before sending messages."))
-	return api_key
+		register_harness_profile(provider, profile)
+		_ASK_ALYF_PROFILE_PROVIDERS.add(provider)
 
 
 def _get_model_name_from_settings(settings) -> str:
@@ -328,65 +324,68 @@ def _get_model_name_from_settings(settings) -> str:
 	return model_name
 
 
+def init_settings_chat_model(
+	provider: str, model: str, *, api_key: str | None, base_url: str | None, **kwargs
+) -> BaseChatModel:
+	"""Build a LangChain chat model for any ``init_chat_model`` provider.
+
+	Credentials are optional: some providers (Bedrock, Vertex AI, Ollama) read
+	them from the environment instead.
+	"""
+	if api_key:
+		kwargs["api_key"] = api_key
+	if base_url:
+		kwargs["base_url"] = base_url
+
+	return init_chat_model(model, model_provider=provider, **kwargs)
+
+
 def should_use_responses_api(settings) -> bool:
-	"""Decide whether the chat model talks to the OpenAI Responses API.
+	"""Decide whether an "openai" chat model talks to the Responses API.
 
-	OpenAI itself serves `/v1/responses`. Many OpenAI-compatible providers
-	(for example Anthropic's OpenAI-compatible endpoint) only serve
-	`/v1/chat/completions` and answer 404 otherwise, so compatible
-	providers opt in through the settings.
+	OpenAI itself serves `/v1/responses`. Many OpenAI-compatible endpoints
+	reached through a custom Base URL (for example Anthropic's) only serve
+	`/v1/chat/completions` and answer 404 otherwise, so they opt in through
+	the settings.
 	"""
-	provider = (getattr(settings, "llm_provider", "") or "").strip()
-	if provider == "OpenAI Compatible":
-		return bool(getattr(settings, "use_responses_api", 0))
-	return True
+	if not (getattr(settings, "base_url", "") or "").strip():
+		return True
+	return bool(getattr(settings, "use_responses_api", 0))
 
 
-# Model families that removed the sampling parameters. Sending `temperature`
-# to one of them fails the request with
-# "`temperature` is deprecated for this model." (Anthropic) or an equivalent
-# error from OpenAI's reasoning models, so it is left out for these.
-CHAT_TEMPERATURE = 0.2
+# The LangChain argument that takes the Reasoning Effort setting, per provider.
+# Providers missing here get no reasoning argument.
+REASONING_EFFORT_ARGUMENTS = {
+	"openai": "reasoning_effort",
+	"anthropic": "effort",
+	"google_genai": "thinking_level",
+}
 
-MODELS_WITHOUT_SAMPLING_PARAMS = (
-	"claude-fable-",
-	"claude-mythos-",
-	"claude-opus-5",
-	"claude-opus-4-7",
-	"claude-opus-4-8",
-	"claude-sonnet-5",
-	"gpt-5",
-	"o1",
-	"o3",
-	"o4",
-)
+# Gemini's thinking levels stop at "high".
+GEMINI_THINKING_LEVELS = {"xhigh": "high", "max": "high"}
 
 
-def supports_temperature(model_name: str) -> bool:
-	"""Whether the model accepts the `temperature` sampling parameter."""
-	name = (model_name or "").strip().lower()
-	return not name.startswith(MODELS_WITHOUT_SAMPLING_PARAMS)
+def build_chat_model(settings) -> BaseChatModel:
+	"""Build the chat model configured in Ask ALYF Settings.
 
-
-def build_chat_model(settings) -> ChatOpenAI:
-	"""Build a LangChain `ChatOpenAI` from Ask ALYF Settings values.
-
-	Supports OpenAI and OpenAI-compatible `base_url` configurations by
-	preserving the existing settings-driven model/api_key/base_url resolution.
-	Newer reasoning models reject `temperature`, so it is only sent to models
-	that still accept it.
+	No temperature: newer models (gpt-5.x, recent Claude) reject non-default values.
 	"""
-	model_name = _get_model_name_from_settings(settings)
-	kwargs: dict = {}
-	if supports_temperature(model_name):
-		kwargs["temperature"] = CHAT_TEMPERATURE
+	provider = settings.llm_provider
+	kwargs = {}
+	if provider == "openai":
+		kwargs["use_responses_api"] = should_use_responses_api(settings)
 
-	return ChatOpenAI(
-		model=model_name,
-		api_key=_get_api_key_from_settings(settings),
-		base_url=(settings.base_url or "").strip() or None,
-		use_responses_api=should_use_responses_api(settings),
-		reasoning_effort=(settings.reasoning_effort or "").strip() or None,
+	reasoning_effort = (settings.reasoning_effort or "").strip()
+	if provider == "google_genai":
+		reasoning_effort = GEMINI_THINKING_LEVELS.get(reasoning_effort, reasoning_effort)
+	if reasoning_effort and provider in REASONING_EFFORT_ARGUMENTS:
+		kwargs[REASONING_EFFORT_ARGUMENTS[provider]] = reasoning_effort
+
+	return init_settings_chat_model(
+		provider,
+		_get_model_name_from_settings(settings),
+		api_key=(settings.get_password("api_key", raise_exception=False) or "").strip(),
+		base_url=(settings.base_url or "").strip(),
 		**kwargs,
 	)
 
@@ -441,8 +440,8 @@ class ask_alyfAgentRunner:
 		self.runtime = runtime
 		self.settings = tools.get_settings()
 		self.toolset = ask_alyfToolset(runtime, settings=self.settings)
-		_ensure_ask_alyf_harness_profile()
 		self.model = build_chat_model(self.settings)
+		_ensure_ask_alyf_harness_profile(self.model)
 		app_roots = tools.get_installed_app_roots() if self.settings.is_code_search_enabled() else {}
 		self.backend = build_ask_alyf_backend(app_roots)
 		self.checkpointer = FrappeCheckpointSaver()
