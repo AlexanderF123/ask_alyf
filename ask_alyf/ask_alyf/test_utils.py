@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from frappe.tests import UnitTestCase
+from frappe.tests.utils import FrappeTestCase
 
 from ask_alyf.ask_alyf import utils
 from ask_alyf.ask_alyf.utils import (
@@ -13,7 +13,7 @@ from ask_alyf.ask_alyf.utils import (
 )
 
 
-class UnitTestAwesomebarChatMode(UnitTestCase):
+class UnitTestAwesomebarChatMode(FrappeTestCase):
 	def test_known_modes_are_kept(self):
 		for mode in (AWESOMEBAR_CHAT_DISABLED, AWESOMEBAR_CHAT_OFFER, AWESOMEBAR_CHAT_DEFAULT):
 			self.assertEqual(normalize_awesomebar_chat_mode(mode), mode)
@@ -26,7 +26,7 @@ class UnitTestAwesomebarChatMode(UnitTestCase):
 		self.assertEqual(normalize_awesomebar_chat_mode("  Offer in Results "), AWESOMEBAR_CHAT_OFFER)
 
 
-class UnitTestAssistantName(UnitTestCase):
+class UnitTestAssistantName(FrappeTestCase):
 	def test_configured_name_is_used(self):
 		with patch.object(utils.frappe.db, "get_single_value", return_value="  Frag mich  "):
 			self.assertEqual(get_assistant_name(), "Frag mich")

@@ -19,6 +19,10 @@ import frappe
 from frappe import _, client
 from frappe.utils import get_bench_path
 from frappe.utils.data import cint
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import HumanMessage
+
+from ask_alyf.ask_alyf.source_files import SourceTree
 
 CODE_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx", ".md", ".json", ".yml", ".yaml", ".toml"}
 READ_ONLY_SQL_RE = re.compile(r"^\s*(with|select|show|explain|describe|desc)\b", re.IGNORECASE)
@@ -57,6 +61,19 @@ VISION_MIME_TYPES = {
 }
 MAX_VISION_PAGES = 10
 VISION_DPI = 200
+# How much of a docs page one read returns. A longer page is read on in a
+# second call, from the offset the first one reported.
+MAX_COMPENDIUM_PAGE_CHARS = 6000
+# Row results above this size are cut before they reach the model. deepagents
+# moves tool results above ~20,000 tokens into a file, and the model then
+# spends extra rounds reading that file back in chunks. ~40,000 characters stay
+# well below that and still hold a few hundred narrow rows.
+MAX_TOOL_RESULT_CHARS = 40_000
+MAX_TOOL_RESULT_VALUE_CHARS = 1_000
+TRUNCATED_VALUE_SUFFIX = "… [truncated]"
+# Wider than the Awesome Bar's snippet: the model picks which page to read
+# from it, where a user picks from the title.
+COMPENDIUM_SNIPPET_TOKENS = 60
 DEFAULT_DOCUMENT_EXTRACTION_PROMPT = (
 	"Extract all structured data from this document. "
 	"Use clearly labeled fields and include all text, tables, amounts, dates, names, "
@@ -67,16 +84,6 @@ JSON_OBJECT_OUTPUT_INSTRUCTION = (
 	"Do not wrap the JSON in markdown fences. "
 	"Do not add explanatory prose before or after the JSON."
 )
-
-
-@dataclass(frozen=True)
-class VisionModelConfig:
-	"""Resolved provider settings for a document extraction request."""
-
-	provider_name: str
-	api_key: str
-	api_base: str | None
-	model_id: str
 
 
 def coerce_int(value: Any, default: int, *, minimum: int | None = None) -> int:
@@ -271,41 +278,10 @@ def iter_scoped_entries(
 	include_hidden: bool,
 ) -> list[Path]:
 	ensure_app_target_exists(app_root, target)
-	if target.is_file():
-		return [target]
-
-	results: list[Path] = []
-	real_app_root = app_root.resolve()
-	seen_paths = {target}
-	pending_paths = [target]
-
-	while pending_paths:
-		current_path = pending_paths.pop()
-		try:
-			children = sorted(current_path.iterdir(), key=lambda child: child.name.lower())
-		except Exception:
-			continue
-
-		for child in children:
-			resolved_child = child.resolve()
-			if resolved_child in seen_paths or not is_path_within(real_app_root, resolved_child):
-				continue
-			if not include_hidden and is_hidden_path(app_root, child):
-				continue
-
-			seen_paths.add(resolved_child)
-			results.append(resolved_child)
-			if recursive and resolved_child.is_dir():
-				pending_paths.append(resolved_child)
-
-	return results
+	return SourceTree(app_root, include_hidden=include_hidden).entries(target, recursive=recursive)
 
 
 def iter_scoped_files(app_root: Path, target: Path, include_hidden: bool = False) -> list[Path]:
-	if target.is_file():
-		ensure_app_target_exists(app_root, target)
-		return [target]
-
 	return [
 		entry
 		for entry in iter_scoped_entries(app_root, target, recursive=True, include_hidden=include_hidden)
@@ -338,10 +314,10 @@ def get_list(
 	order_by: str | None = None,
 	limit: int = 20,
 	group_by: str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[dict[str, Any]] | dict[str, Any]:
 	limit = coerce_int(limit, 20, minimum=1)
 	fields = coerce_field_list(fields)
-	return client.get_list(
+	rows = client.get_list(
 		doctype=doctype,
 		fields=fields,
 		filters=filters,
@@ -349,6 +325,49 @@ def get_list(
 		limit_page_length=limit,
 		group_by=group_by,
 	)
+	return limit_result_rows(
+		rows,
+		how_to_narrow=(
+			"Request fewer fields, add filters, use `get_count` or aggregate fields with "
+			"`group_by`, or page with a smaller `limit`."
+		),
+	)
+
+
+def limit_result_rows(
+	rows: list[dict[str, Any]], *, how_to_narrow: str
+) -> list[dict[str, Any]] | dict[str, Any]:
+	"""Keep a row result small enough to stay inline in the conversation.
+
+	Long text values are shortened. If the rows are still too large, only the
+	leading rows are kept and the result says so, together with how to ask a
+	narrower question. A result that fits is returned unchanged, as a list.
+	"""
+	kept: list[dict[str, Any]] = []
+	size = 0
+	for row in rows:
+		row = {key: shorten_result_value(value) for key, value in dict(row).items()}
+		size += len(json.dumps(row, default=str, ensure_ascii=False)) + 2
+		if size > MAX_TOOL_RESULT_CHARS and kept:
+			return {
+				"rows": kept,
+				"truncated": True,
+				"returned_rows": len(kept),
+				"total_rows": len(rows),
+				"message": (
+					f"Only the first {len(kept)} of {len(rows)} rows are shown because the full result is "
+					f"too large. {how_to_narrow}"
+				),
+			}
+		kept.append(row)
+
+	return kept
+
+
+def shorten_result_value(value: Any) -> Any:
+	if isinstance(value, str) and len(value) > MAX_TOOL_RESULT_VALUE_CHARS:
+		return value[: MAX_TOOL_RESULT_VALUE_CHARS - len(TRUNCATED_VALUE_SUFFIX)] + TRUNCATED_VALUE_SUFFIX
+	return value
 
 
 def get_count(doctype: str, filters: dict[str, Any] | list | None = None) -> int:
@@ -561,6 +580,8 @@ def ls(
 		iter_scoped_entries(app_root, target, recursive=bool(recursive), include_hidden=bool(include_hidden)),
 		key=to_bench_relative_path,
 	)
+	if target.is_file():
+		entries = [target]
 
 	return {
 		"app_name": app_name,
@@ -690,13 +711,13 @@ async def extract_document_data(file_id: str, extraction_prompt: str = "") -> di
 	if not images:
 		frappe.throw(_("Could not extract visual content from the file."))
 
-	model_config = _get_document_extraction_model_config(get_settings())
+	model = _build_document_extraction_model(get_settings())
 	content_parts = _build_document_extraction_content_parts(
 		_build_document_extraction_prompt(extraction_prompt),
 		images,
 	)
-	response = await _run_document_extraction_completion(model_config, content_parts)
-	extracted_data = _parse_json_object_text(_get_completion_message_content(response))
+	response = await model.ainvoke([HumanMessage(content=content_parts)])
+	extracted_data = _parse_json_object_text(response.text)
 	return _build_document_extraction_result(
 		file_doc=file_doc,
 		extracted_data=extracted_data,
@@ -758,42 +779,31 @@ def _build_file_reference_filters(
 	return filters
 
 
-def _get_document_extraction_model_config(settings) -> VisionModelConfig:
-	"""Resolve the vision-capable model configuration from settings."""
-	from ask_alyf.ask_alyf.doctype.ask_alyf_settings.ask_alyf_settings import get_any_llm_provider
+def _build_document_extraction_model(settings) -> BaseChatModel:
+	"""Build the vision-capable chat model configured in settings."""
+	from ask_alyf.ask_alyf.agent import init_settings_chat_model
 
 	if settings.vision_model_is_chat_model:
-		provider_label = settings.llm_provider
-		api_base = (settings.base_url or "").strip() or None
-		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
-		model_setting = (settings.model or "").strip()
+		provider = settings.llm_provider
+		base_url = settings.base_url
+		api_key = settings.get_password("api_key", raise_exception=False)
+		model = (settings.model or "").strip()
 	else:
-		provider_label = settings.vision_llm_provider
-		api_base = (settings.vision_base_url or "").strip() or None
-		api_key = (settings.get_password("vision_api_key", raise_exception=False) or "").strip()
-		model_setting = (settings.vision_model or "").strip()
+		provider = settings.vision_llm_provider
+		base_url = settings.vision_base_url
+		api_key = settings.get_password("vision_api_key", raise_exception=False)
+		model = (settings.vision_model or "").strip()
 
-	if not api_key:
-		frappe.throw(_("Configure a vision model API key in Ask ALYF Settings."))
-	if not model_setting:
+	if not model:
 		frappe.throw(_("Configure a vision model in Ask ALYF Settings."))
 
-	return VisionModelConfig(
-		provider_name=get_any_llm_provider(provider_label),
-		api_key=api_key,
-		api_base=api_base,
-		model_id=_normalize_any_llm_model_id(model_setting),
+	# Do not pass temperature: gpt-5.x (and similar) reject non-default values.
+	return init_settings_chat_model(
+		provider,
+		model,
+		api_key=(api_key or "").strip(),
+		base_url=(base_url or "").strip(),
 	)
-
-
-def _normalize_any_llm_model_id(model_setting: str) -> str:
-	"""Strip an optional provider prefix from an any-llm model setting."""
-	from any_llm import AnyLLM
-
-	try:
-		return AnyLLM.split_model_provider(model_setting)[1]
-	except ValueError:
-		return model_setting
 
 
 def _build_document_extraction_prompt(extraction_prompt: str) -> str:
@@ -822,40 +832,6 @@ def _build_vision_image_part(image: dict[str, str]) -> dict[str, Any]:
 			"detail": "high",
 		},
 	}
-
-
-async def _run_document_extraction_completion(
-	model_config: VisionModelConfig,
-	content_parts: list[dict[str, Any]],
-):
-	"""Execute the vision completion request that returns JSON."""
-	from any_llm import AnyLLM
-
-	client = AnyLLM.create(
-		provider=model_config.provider_name,
-		api_key=model_config.api_key,
-		api_base=model_config.api_base,
-	)
-	# Do not pass temperature: gpt-5.x (and similar) reject non-default values.
-	return await client.acompletion(
-		model=model_config.model_id,
-		messages=[{"role": "user", "content": content_parts}],
-		response_format={"type": "json_object"},
-	)
-
-
-def _get_completion_message_content(response: Any) -> Any:
-	"""Read the first completion message content or raise a user-facing error."""
-	choices = getattr(response, "choices", None)
-	if not isinstance(choices, list) or not choices:
-		frappe.throw(_("Document extraction returned no choices."))
-
-	message = getattr(choices[0], "message", None)
-	content = getattr(message, "content", None)
-	if content in (None, ""):
-		frappe.throw(_("Document extraction returned no content."))
-
-	return content
 
 
 def _build_document_extraction_result(
@@ -1026,7 +1002,7 @@ def get_print(
 	}
 
 
-def run_read_only_sql(query: str) -> list[dict[str, Any]]:
+def run_read_only_sql(query: str) -> list[dict[str, Any]] | dict[str, Any]:
 	roles = set(frappe.get_roles())
 	if frappe.session.user != "Administrator" and "System Manager" not in roles:
 		frappe.throw(_("Only Administrator and System Manager can run SQL queries."))
@@ -1037,7 +1013,12 @@ def run_read_only_sql(query: str) -> list[dict[str, Any]]:
 	if not READ_ONLY_SQL_RE.match(query) or FORBIDDEN_SQL_RE.search(query):
 		frappe.throw(_("Only read-only SQL statements are allowed."))
 
-	return frappe.db.sql(query, as_dict=True)
+	return limit_result_rows(
+		frappe.db.sql(query, as_dict=True),
+		how_to_narrow=(
+			"Select fewer columns, filter with WHERE, aggregate with GROUP BY, SUM or COUNT, or add a LIMIT."
+		),
+	)
 
 
 def get_app_version(app_name: str) -> str:
@@ -1096,6 +1077,62 @@ def read_github_releases(app_name: str, limit: int = 5) -> list[dict[str, Any]]:
 		}
 		for item in payload
 	]
+
+
+def get_compendium_locale() -> str:
+	"""The docs locale for this request, and the guard that Compendium is installed."""
+	if "compendium" not in frappe.get_installed_apps():
+		frappe.throw(_("The Compendium app is not installed."))
+
+	from compendium import docs
+
+	return docs.normalize_locale(frappe.local.lang or docs.DEFAULT_LANG)
+
+
+def search_compendium(query: str, limit: int = 10) -> list[dict[str, Any]]:
+	locale = get_compendium_locale()
+
+	from compendium import search
+
+	match_query = search.build_match_query(query)
+	if not match_query:
+		return []
+
+	limit = coerce_int(limit, 10, minimum=1)
+
+	# `search` returns only pages this user may read, best match first.
+	return [
+		{
+			"path": path,
+			"title": title,
+			"snippet": snippet,
+			"route": f"/app/docs/{locale}/{path}" if path else f"/app/docs/{locale}",
+		}
+		for path, title, snippet in search.search(
+			locale, match_query, snippet_tokens=COMPENDIUM_SNIPPET_TOKENS
+		)[:limit]
+	]
+
+
+def read_compendium_page(path: str, offset: int = 0) -> dict[str, Any]:
+	locale = get_compendium_locale()
+
+	from compendium import docs
+
+	# `normalize_path` rejects the traversal a model could put in `path`.
+	page = docs.get_page_record(docs.normalize_path(path), locale=locale, check_permission=True)
+	body = page.body or ""
+	offset = coerce_int(offset, 0, minimum=0)
+	content = body[offset : offset + MAX_COMPENDIUM_PAGE_CHARS]
+
+	return {
+		"path": page.path,
+		"title": page.title,
+		"content": content,
+		"offset": offset,
+		"next_offset": offset + len(content) if offset + len(content) < len(body) else None,
+		"total_chars": len(body),
+	}
 
 
 def read_documentation_page(app_name: str, relative_path: str = "") -> dict[str, Any]:

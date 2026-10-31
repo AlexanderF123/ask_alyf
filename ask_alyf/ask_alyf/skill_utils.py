@@ -16,10 +16,10 @@ def build_available_skills_instruction() -> str:
 	"""Build an instruction block describing the current user's available skills."""
 	available_skills = get_available_skill_summaries()
 	if not available_skills:
-		return "- No skills are available for the current user's roles."
+		return "- No Ask ALYF skills are available for the current user's roles."
 
 	lines = [
-		"- Skills available for the current user's roles. Use `read_skill` with the exact `name` before following one:",
+		"- Ask ALYF skills available for the current user's roles. Use `read_skill` with the exact `name` before following one:",
 	]
 	for skill in available_skills:
 		lines.append(f"  - name: {skill['name']} | title: {skill['title']}")

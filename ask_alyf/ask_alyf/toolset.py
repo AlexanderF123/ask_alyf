@@ -146,7 +146,7 @@ class ask_alyfRuntime:
 	run_id: str = ""
 	stop_requested: bool = False
 
-	def begin_tool_call(self, call_id: str, name: str, args: dict[str, Any], label: str):
+	def begin_tool_call(self, call_id: str, name: str, args: dict[str, Any], label: str, detail: str = ""):
 		"""Announce a tool call that is starting, and log it for the transcript.
 
 		Resuming an interrupt re-runs a whole tool node, so a call that was
@@ -154,7 +154,7 @@ class ask_alyfRuntime:
 		"""
 		step = self._find_tool_call(call_id)
 		if step is None:
-			step = {"call_id": call_id, "name": name, "args": args, "label": label}
+			step = {"call_id": call_id, "name": name, "args": args, "label": label, "detail": detail}
 			self.tool_calls.append(step)
 
 		step["status"] = "running"
@@ -387,7 +387,7 @@ class ask_alyfToolset:
 		order_by: str | None = None,
 		limit: int = 20,
 		group_by: str | None = None,
-	) -> list[dict[str, Any]]:
+	) -> list[dict[str, Any]] | dict[str, Any]:
 		"""List documents with filters, fields, ordering, and optional grouping.
 
 		Args:
@@ -402,7 +402,9 @@ class ask_alyfToolset:
 			group_by: Optional SQL group by expression.
 
 		Returns:
-			A list of matching documents.
+			A list of matching documents. A result too large for the conversation
+			comes back as {"rows": [...], "truncated": true, "message": ...} with
+			only the leading rows; narrow the query instead of reading more.
 		"""
 		return tools.get_list(
 			doctype=doctype,
@@ -658,7 +660,7 @@ class ask_alyfToolset:
 		self.runtime.remember_attached_file(file_entry)
 		return file_entry
 
-	def run_read_only_sql(self, query: str) -> list[dict[str, Any]]:
+	def run_read_only_sql(self, query: str) -> list[dict[str, Any]] | dict[str, Any]:
 		"""Run one complete read-only SQL statement when the user is allowed to do so.
 
 		The query must include the statement keyword and all clauses, for example
@@ -669,7 +671,9 @@ class ask_alyfToolset:
 			query: One complete SELECT, WITH, SHOW, EXPLAIN, or DESCRIBE statement.
 
 		Returns:
-			The SQL result rows.
+			The SQL result rows. A result too large for the conversation comes back
+			as {"rows": [...], "truncated": true, "message": ...} with only the
+			leading rows; narrow the query instead of reading more.
 		"""
 		return tools.run_read_only_sql(query=query)
 
@@ -707,6 +711,37 @@ class ask_alyfToolset:
 			A documentation payload containing the page content.
 		"""
 		return tools.read_documentation_page(app_name=app_name, relative_path=relative_path)
+
+	def search_compendium(self, query: str, limit: int = 10) -> list[dict[str, Any]]:
+		"""Search the documentation this site serves through the Compendium app.
+
+		Prefer this over `read_documentation_page` for how-to and configuration
+		questions: it searches the docs shipped with all installed apps. Read the
+		promising hits with `read_compendium_page`.
+
+		Args:
+			query: Free text to search for.
+			limit: Maximum number of hits to return.
+
+		Returns:
+			A list of hits, best match first, each with its path, title, a short
+			snippet, and the Desk route the page can be opened at.
+		"""
+		return tools.search_compendium(query=query, limit=limit)
+
+	def read_compendium_page(self, path: str, offset: int = 0) -> dict[str, Any]:
+		"""Read a documentation page found with `search_compendium`.
+
+		Args:
+			path: The page path as returned by `search_compendium`.
+			offset: Character offset to read from. Pass the `next_offset` of the
+				previous read to continue through a page that did not fit.
+
+		Returns:
+			The page title and a slice of its content, with the offset to continue
+			at in `next_offset` (None when the page ends here).
+		"""
+		return tools.read_compendium_page(path=path, offset=offset)
 
 	def read_skill(self, name: str) -> dict[str, str]:
 		"""Read the full content of an Ask ALYF skill available to the current user.

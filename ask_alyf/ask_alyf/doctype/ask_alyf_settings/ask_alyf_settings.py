@@ -1,3 +1,4 @@
+import json
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
 class ModelConfiguration(StrEnum):
 	CHAT = "chat"
 	VISION = "vision"
+	ASK = "ask"
 
 
 MODEL_CONFIG_FIELDS = {
@@ -33,9 +35,20 @@ MODEL_CONFIG_FIELDS = {
 		"base_url_field": "vision_base_url",
 		"api_key_field": "vision_api_key",
 	},
+	ModelConfiguration.ASK: {
+		"provider_field": "ask_llm_provider",
+		"base_url_field": "ask_base_url",
+		"api_key_field": "ask_api_key",
+	},
 }
 
 LITELLM_PROVIDER = "openai"
+
+# `init_chat_model` provider keys whose any-llm name differs (any-llm lists models).
+ANY_LLM_PROVIDER_NAMES = {
+	"google_genai": "gemini",
+	"mistralai": "mistral",
+}
 
 NON_TEXT_MODEL_PATTERNS = (
 	"audio",
@@ -70,23 +83,33 @@ class AskALYFSettings(Document):
 
 		allow_agent_mode: DF.Check
 		allow_code_search: DF.Check
+		allow_conversation_deletion: DF.Check
 		allow_field_agent: DF.Check
 		allow_file_upload: DF.Check
 		api_key: DF.Password | None
+		ask_api_key: DF.Password | None
+		ask_base_url: DF.Data | None
+		ask_llm_provider: DF.Autocomplete | None
+		ask_model: DF.Autocomplete | None
+		ask_model_is_chat_model: DF.Check
+		ask_reasoning_effort: DF.Literal["", "low", "medium", "high", "xhigh", "max"]
 		assistant_name: DF.Data | None
 		awesomebar_chat: DF.Literal["Disabled", "Offer in Results", "Default Action"]
 		base_url: DF.Data | None
+		enable_tracing: DF.Check
 		enabled: DF.Check
 		excluded_doctypes: DF.TableMultiSelect[AskALYFExcludedDocType]
-		llm_provider: DF.Literal["OpenAI", "OpenAI Compatible"]
+		langsmith_api_key: DF.Password | None
+		langsmith_endpoint: DF.Data | None
+		langsmith_project: DF.Data | None
+		llm_provider: DF.Autocomplete
 		model: DF.Autocomplete | None
 		reasoning_effort: DF.Literal["", "low", "medium", "high", "xhigh", "max"]
 		support_phone_number: DF.Phone | None
 		system_prompt: DF.Code | None
-		use_responses_api: DF.Check
 		vision_api_key: DF.Password | None
 		vision_base_url: DF.Data | None
-		vision_llm_provider: DF.Literal["OpenAI", "OpenAI Compatible"]
+		vision_llm_provider: DF.Autocomplete | None
 		vision_model: DF.Autocomplete | None
 		vision_model_is_chat_model: DF.Check
 	# end: auto-generated types
@@ -98,12 +121,17 @@ class AskALYFSettings(Document):
 		clear_boot_cache()
 
 	def validate(self):
+		self.validate_llm_providers()
 		validate_model_selection(
 			self.model,
 			ModelConfiguration.CHAT,
 			unsupported_message=_("The selected Chat Model ({0}) does not support function calling."),
 		)
-		warn_if_unsupported_reasoning_effort(self.model, self.get("reasoning_effort"))
+		# Only LangChain's OpenAI model data lists the supported reasoning levels.
+		if self.llm_provider == "openai":
+			warn_if_unsupported_reasoning_effort(self.model, self.get("reasoning_effort"))
+
+		self.validate_ask_model()
 
 		if self.vision_model_is_chat_model:
 			validate_model_selection(
@@ -120,6 +148,40 @@ class AskALYFSettings(Document):
 			ModelConfiguration.VISION,
 			unsupported_message=_("The selected Vision Model ({0}) does not support vision."),
 		)
+
+	def validate_ask_model(self):
+		if self.ask_model_is_chat_model:
+			return
+
+		validate_model_selection(
+			self.ask_model,
+			ModelConfiguration.ASK,
+			unsupported_message=_("The selected Ask Mode Model ({0}) does not support function calling."),
+		)
+		reasoning_effort = (self.get("ask_reasoning_effort") or "").strip()
+		if self.ask_llm_provider != "openai" or not self.ask_model or not reasoning_effort:
+			return
+
+		levels = get_langchain_reasoning_effort_levels(self.ask_model)
+		if levels is not None and reasoning_effort not in levels:
+			frappe.msgprint(
+				_("The selected Ask Mode Model ({0}) does not support Reasoning Effort ({1}).").format(
+					self.ask_model, reasoning_effort
+				),
+				indicator="orange",
+				alert=True,
+			)
+
+	def validate_llm_providers(self):
+		"""Autocomplete accepts free text, so check the value is a known provider."""
+		for fieldname in ("llm_provider", "vision_llm_provider", "ask_llm_provider"):
+			provider = self.get(fieldname)
+			if not provider:
+				continue
+
+			options = json.loads(self.meta.get_field(fieldname).options)
+			if provider not in {option["value"] for option in options}:
+				frappe.throw(_("Unsupported {0}: {1}").format(_(self.meta.get_label(fieldname)), provider))
 
 
 def clear_boot_cache() -> None:
@@ -153,15 +215,8 @@ def get_available_models(configuration: str = ModelConfiguration.CHAT) -> list[d
 		)
 		return []
 
-	if llm_provider == "OpenAI Compatible" and not base_url:
-		frappe.msgprint(
-			_("Please configure a Base URL first and save the settings, then we can fetch available models."),
-			alert=True,
-		)
-		return []
-
 	client = AnyLLM.create(
-		provider=get_any_llm_provider(llm_provider),
+		provider=ANY_LLM_PROVIDER_NAMES.get(llm_provider, llm_provider),
 		api_key=api_key,
 		api_base=base_url,
 	)
@@ -188,14 +243,6 @@ def parse_model_configuration(
 
 def get_model_config_fields(configuration: str | ModelConfiguration) -> dict[str, str]:
 	return MODEL_CONFIG_FIELDS[parse_model_configuration(configuration)]
-
-
-def get_any_llm_provider(llm_provider: str) -> str:
-	llm_provider = (llm_provider or "").strip()
-	if llm_provider in {"OpenAI", "OpenAI Compatible"}:
-		return "openai"
-
-	frappe.throw(_("Unsupported LLM provider: {0}").format(llm_provider))
 
 
 def normalize_api_key(api_key: str | None) -> str:
@@ -280,7 +327,7 @@ def is_litellm_mapped_model(model_id: str) -> bool:
 
 def has_required_capability(model_id: str, configuration: ModelConfiguration) -> bool:
 	match configuration:
-		case ModelConfiguration.CHAT:
+		case ModelConfiguration.CHAT | ModelConfiguration.ASK:
 			supported = supports_function_calling(model_id, custom_llm_provider=LITELLM_PROVIDER)
 		case ModelConfiguration.VISION:
 			supported = supports_vision(model_id, custom_llm_provider=LITELLM_PROVIDER)

@@ -3,6 +3,7 @@
 
 const CHAT_MODEL_CONFIGURATION = "chat";
 const VISION_MODEL_CONFIGURATION = "vision";
+const ASK_MODEL_CONFIGURATION = "ask";
 const VISION_PROVIDER_FIELDS = ["vision_llm_provider", "vision_base_url", "vision_api_key", "vision_model"];
 
 frappe.ui.form.on("Ask ALYF Settings", {
@@ -38,12 +39,42 @@ frappe.ui.form.on("Ask ALYF Settings", {
 	async vision_api_key(frm) {
 		await refresh_vision_model_options(frm);
 	},
+
+	async ask_model_is_chat_model(frm) {
+		await refresh_ask_model_options(frm);
+	},
+
+	async ask_llm_provider(frm) {
+		await refresh_ask_model_options(frm);
+	},
+
+	async ask_base_url(frm) {
+		await refresh_ask_model_options(frm);
+	},
+
+	async ask_api_key(frm) {
+		await refresh_ask_model_options(frm);
+	},
 });
 
 async function refresh_model_options(frm) {
 	toggle_vision_provider_fields(frm);
 	await refresh_chat_model_options(frm);
 	await refresh_vision_model_options(frm);
+	await refresh_ask_model_options(frm);
+}
+
+async function refresh_ask_model_options(frm) {
+	clear_model_options(frm, "ask_model");
+
+	if (frm.doc.ask_model_is_chat_model) {
+		return;
+	}
+
+	await load_model_options(frm, {
+		fieldname: "ask_model",
+		configuration: ASK_MODEL_CONFIGURATION,
+	});
 }
 
 async function refresh_chat_model_options(frm) {
@@ -108,18 +139,13 @@ function uses_chat_model_for_vision(frm) {
 }
 
 function is_model_configuration_ready(frm, configuration) {
-	const field_prefix = configuration === VISION_MODEL_CONFIGURATION ? "vision_" : "";
+	const field_prefix =
+		{
+			[VISION_MODEL_CONFIGURATION]: "vision_",
+			[ASK_MODEL_CONFIGURATION]: "ask_",
+		}[configuration] || "";
 	const llm_provider = (frm.doc[`${field_prefix}llm_provider`] || "").trim();
 	const api_key = (frm.doc[`${field_prefix}api_key`] || "").trim();
-	const base_url = (frm.doc[`${field_prefix}base_url`] || "").trim();
 
-	if (!llm_provider || !api_key) {
-		return false;
-	}
-
-	if (llm_provider === "OpenAI Compatible" && !base_url) {
-		return false;
-	}
-
-	return true;
+	return Boolean(llm_provider && api_key);
 }
