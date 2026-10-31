@@ -13,6 +13,7 @@ from rq.job import JobStatus
 
 from ask_alyf.ask_alyf import field_agent
 from ask_alyf.ask_alyf.agent import resume_operation, run_message
+from ask_alyf.ask_alyf.checkpointer import delete_checkpoints
 from ask_alyf.ask_alyf.tools import (
 	OPERATION_KIND_BACKEND,
 	OPERATION_KIND_FRONTEND,
@@ -109,6 +110,7 @@ def get_ask_alyf_boot_payload() -> dict:
 	file_upload_enabled = False
 	awesomebar_chat = AWESOMEBAR_CHAT_DISABLED
 	assistant_name = ASSISTANT_NAME
+	conversation_deletion_enabled = False
 	support_phone_number = ""
 	support_phone_uri = ""
 
@@ -119,6 +121,7 @@ def get_ask_alyf_boot_payload() -> dict:
 		file_upload_enabled = bool(settings.allow_file_upload)
 		awesomebar_chat = normalize_awesomebar_chat_mode(settings.get("awesomebar_chat"))
 		assistant_name = (settings.get("assistant_name") or "").strip() or ASSISTANT_NAME
+		conversation_deletion_enabled = bool(settings.allow_conversation_deletion)
 		api_key = (settings.get_password("api_key", raise_exception=False) or "").strip()
 		configured = bool(api_key and (settings.model or "").strip())
 		support_phone_number = (settings.support_phone_number or "").strip()
@@ -134,6 +137,7 @@ def get_ask_alyf_boot_payload() -> dict:
 		"file_upload_enabled": file_upload_enabled,
 		"awesomebar_chat": awesomebar_chat,
 		"assistant_name": assistant_name,
+		"conversation_deletion_enabled": conversation_deletion_enabled,
 		"support_phone_number": support_phone_number,
 		"support_phone_uri": support_phone_uri,
 		"default_mode": MODE_ASK,
@@ -344,7 +348,9 @@ def resume_pending_operation(
 			**decision,
 		)
 	except Exception:
-		frappe.log_error("Ask ALYF Action Follow-Up Error")
+		frappe.log_error(
+			"Ask ALYF Action Follow-Up Error", frappe.get_traceback()
+		)  # traceback intentionally without context
 		frappe.clear_messages()
 		return None
 
@@ -426,6 +432,27 @@ def _has_running_job(messages: list[dict]) -> bool:
 		if job_id:
 			return get_job_status(job_id) in PENDING_JOB_STATUSES
 	return False
+
+
+@frappe.whitelist(methods=["POST"])
+def delete_conversation(conversation: str) -> dict:
+	if not can_access_ask_alyf():
+		frappe.throw(_("You do not have access to Ask ALYF."))
+
+	if not get_settings().allow_conversation_deletion:
+		frappe.throw(_("Conversation deletion is not allowed."))
+
+	doc = frappe.get_doc("Ask ALYF Conversation", conversation, for_update=True)
+	doc.check_permission("delete")
+	if _has_running_job(get_messages(doc)):
+		frappe.throw(
+			_(
+				"{0} is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
+			).format(get_assistant_name())
+		)
+
+	doc.delete()
+	return {"success": True}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -534,6 +561,9 @@ def get_message_job_status(conversation: str, user_message_id: str, job_id: str)
 	if not can_access_ask_alyf():
 		frappe.throw(_("You do not have access to {0}.").format(get_assistant_name()))
 
+	if not frappe.db.exists("Ask ALYF Conversation", conversation):
+		return {"status": "conversation_not_found"}
+
 	doc = frappe.get_doc("Ask ALYF Conversation", conversation)
 	doc.check_permission("read")
 	messages = get_messages(doc)
@@ -628,7 +658,9 @@ def process_message_job(
 		attached_files = None
 		tool_calls = None
 	except Exception:
-		frappe.log_error("Ask ALYF Agent Error")
+		frappe.log_error(
+			"Ask ALYF Agent Error", frappe.get_traceback()
+		)  # traceback intentionally without context
 		frappe.clear_messages()
 		response = _("I hit an error while processing that request. Please try again.")
 		pending_operations = []
@@ -637,6 +669,11 @@ def process_message_job(
 		tool_calls = None
 	finally:
 		clear_stop_request(user_message_id or "")
+
+	if not frappe.db.exists("Ask ALYF Conversation", conversation_name):
+		clear_running_steps(conversation_name)
+		delete_checkpoints([conversation_name])
+		return
 
 	file_message = None
 	if isinstance(attached_files, list) and attached_files:

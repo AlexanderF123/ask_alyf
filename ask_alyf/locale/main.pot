@@ -18,8 +18,7 @@ msgstr ""
 
 #. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Settings'
 #. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Skill'
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-#: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
 msgid "Access"
 msgstr ""
 
@@ -63,8 +62,7 @@ msgstr ""
 msgid "Add child row action needs correction."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:612
-#: ask_alyf/public/js/ask_alyf.bundle.js:1032
+#: ask_alyf/public/js/ask_alyf.bundle.js:612 ask_alyf/public/js/ask_alyf.bundle.js:1032
 msgid "Agent"
 msgstr ""
 
@@ -139,8 +137,7 @@ msgstr ""
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-#: ask_alyf/workspace_sidebar/ask_alyf.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json ask_alyf/workspace_sidebar/ask_alyf.json
 msgid "Ask ALYF Settings"
 msgstr ""
 
@@ -152,10 +149,6 @@ msgstr ""
 #. Name of a role
 #: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
 msgid "Ask ALYF User"
-msgstr ""
-
-#: ask_alyf/public/js/ask_alyf.bundle.js:631
-msgid "{0} is an AI and can make mistakes, including with numbers and information about people."
 msgstr ""
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:779
@@ -174,8 +167,7 @@ msgstr ""
 msgid "At least one role is required."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:618
-#: ask_alyf/public/js/ask_alyf.bundle.js:620
+#: ask_alyf/public/js/ask_alyf.bundle.js:618 ask_alyf/public/js/ask_alyf.bundle.js:620
 msgid "Attach file"
 msgstr ""
 
@@ -195,9 +187,7 @@ msgstr ""
 msgid "Buying"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:571
-#: ask_alyf/public/js/ask_alyf.bundle.js:573
-#: ask_alyf/public/js/ask_alyf.bundle.js:989
+#: ask_alyf/public/js/ask_alyf.bundle.js:571 ask_alyf/public/js/ask_alyf.bundle.js:573 ask_alyf/public/js/ask_alyf.bundle.js:989
 msgid "Call support"
 msgstr ""
 
@@ -396,8 +386,7 @@ msgstr ""
 msgid "Current form is {0}, expected {1}."
 msgstr ""
 
-#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488
-#: ask_alyf/ask_alyf/tools.py:1491
+#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488 ask_alyf/ask_alyf/tools.py:1491
 msgid "Dataset values must be numeric."
 msgstr ""
 
@@ -577,8 +566,7 @@ msgstr ""
 msgid "Field updated."
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:1903
-#: ask_alyf/public/js/ask_alyf.bundle.js:1914
+#: ask_alyf/public/js/ask_alyf.bundle.js:1903 ask_alyf/public/js/ask_alyf.bundle.js:1914
 msgid "Field {0} does not exist on this form."
 msgstr ""
 
@@ -674,8 +662,7 @@ msgstr ""
 msgid "Generating print..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:661 ask_alyf/ask_alyf/api.py:728
-#: ask_alyf/ask_alyf/api.py:843
+#: ask_alyf/ask_alyf/api.py:661 ask_alyf/ask_alyf/api.py:728 ask_alyf/ask_alyf/api.py:843
 msgid "Generating response..."
 msgstr ""
 
@@ -797,8 +784,7 @@ msgstr ""
 msgid "Navigate to {0}"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:271 ask_alyf/ask_alyf/api.py:460
-#: ask_alyf/ask_alyf/api.py:486
+#: ask_alyf/ask_alyf/api.py:271 ask_alyf/ask_alyf/api.py:460 ask_alyf/ask_alyf/api.py:486
 msgid "New Conversation"
 msgstr ""
 
@@ -1059,8 +1045,7 @@ msgstr ""
 msgid "Reading skill..."
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:789 ask_alyf/ask_alyf/api.py:875
-#: ask_alyf/ask_alyf/api.py:904
+#: ask_alyf/ask_alyf/api.py:789 ask_alyf/ask_alyf/api.py:875 ask_alyf/ask_alyf/api.py:904
 msgid "Reason: {0}"
 msgstr ""
 
@@ -1392,8 +1377,7 @@ msgstr ""
 msgid "Vision Provider"
 msgstr ""
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:623
-#: ask_alyf/public/js/ask_alyf.bundle.js:625
+#: ask_alyf/public/js/ask_alyf.bundle.js:623 ask_alyf/public/js/ask_alyf.bundle.js:625
 msgid "Voice input"
 msgstr ""
 
@@ -1449,11 +1433,7 @@ msgstr ""
 msgid "Which users logged in today?"
 msgstr ""
 
-#: ask_alyf/ask_alyf/api.py:427 ask_alyf/ask_alyf/api.py:439
-#: ask_alyf/ask_alyf/api.py:456 ask_alyf/ask_alyf/api.py:476
-#: ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697
-#: ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941
-#: ask_alyf/ask_alyf/api.py:979
+#: ask_alyf/ask_alyf/api.py:427 ask_alyf/ask_alyf/api.py:439 ask_alyf/ask_alyf/api.py:456 ask_alyf/ask_alyf/api.py:476 ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697 ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941 ask_alyf/ask_alyf/api.py:979
 msgid "You do not have access to {0}."
 msgstr ""
 
@@ -1509,8 +1489,6 @@ msgstr ""
 #: ask_alyf/public/js/ask_alyf.bundle.js:1815
 msgid "{0} rows"
 msgstr ""
-
-
 
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Send to {0}: {1}"
@@ -1598,4 +1576,489 @@ msgstr ""
 
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "{0} is still working on the previous message. Please drop the document again when the answer is there."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:314
+msgid "1 step"
+msgstr ""
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:163
+msgid "Access to hidden paths is not allowed"
+msgstr ""
+
+#. Label of the allow_conversation_deletion (Check) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Allow Conversation Deletion"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:147
+msgid "Amending {0}"
+msgstr ""
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Ask ALYF Checkpoint"
+msgstr ""
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Ask ALYF Checkpoint Write"
+msgstr ""
+
+#. Title of the Module Onboarding 'Ask ALYF Onboarding'
+#: ask_alyf/ask_alyf/module_onboarding/ask_alyf_onboarding/ask_alyf_onboarding.json
+msgid "Ask ALYF Onboarding"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:132
+msgid "Asking the {0} specialist"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:153
+msgid "Attaching a file to {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:267
+msgid "Attachment name is required"
+msgstr ""
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:43
+msgid "Attachments are read-only"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:105
+msgid "Checking the {0} form"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:107
+msgid "Checking your permissions on {0}"
+msgstr ""
+
+#. Label of the checkpoint_data (Long Text) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Checkpoint Data (base64)"
+msgstr ""
+
+#. Label of the checkpoint_id (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the checkpoint_id (Data) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Checkpoint ID"
+msgstr ""
+
+#. Label of the checkpoint_ns (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the checkpoint_ns (Data) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Checkpoint Namespace"
+msgstr ""
+
+#. Label of the checkpoint_type (Data) field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Checkpoint Type"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:429
+msgid "Conversation deletion is not allowed."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1277
+msgid "Conversation not found. Please start a new conversation."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:583
+msgid "Copy as Markdown"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:775
+msgid "Could not complete the operation: {0}."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:734
+msgid "Could not render diagram."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:101
+msgid "Counting {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:139
+msgid "Creating several {0} records"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1818 ask_alyf/public/js/ask_alyf.bundle.js:1819
+msgid "Delete conversation"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1346
+msgid "Delete conversation '{0}'?"
+msgstr ""
+
+#: ask_alyf/ask_alyf/test_tool_error_middleware.py:84 ask_alyf/ask_alyf/test_tool_error_middleware.py:93
+msgid "DocType is excluded"
+msgstr ""
+
+#. Label of the enable_tracing (Check) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Enable Tracing"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1350
+msgid "Failed to delete conversation."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1949
+msgid "Failed to stop the run."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:166
+msgid "Filling in the open form"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:200
+msgid "Finding {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:200
+msgid "Finding {0} in {1}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:162
+msgid "Highlighting a field"
+msgstr ""
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:182
+msgid "Invalid regex pattern: {0}"
+msgstr ""
+
+#. Label of the langsmith_api_key (Password) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith API Key"
+msgstr ""
+
+#. Label of the langsmith_endpoint (Data) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith Endpoint"
+msgstr ""
+
+#. Label of the langsmith_project (Data) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith Project"
+msgstr ""
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:172 ask_alyf/ask_alyf/deep_agent_backend.py:278
+msgid "Line offset {0} exceeds file length"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:210
+msgid "Listing {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:111
+msgid "Looking up available reports"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:109
+msgid "Looking up what you can access"
+msgstr ""
+
+#. Label of the metadata_data (Long Text) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Metadata Data (base64)"
+msgstr ""
+
+#. Label of the metadata_type (Data) field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Metadata Type"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:660
+msgid "Next page"
+msgstr ""
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "One LangGraph checkpoint. Written by FrappeCheckpointSaver, not by users."
+msgstr ""
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "One pending write of a LangGraph checkpoint. Written by FrappeCheckpointSaver, not by users."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:160
+msgid "Opening a new {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:158
+msgid "Opening a page"
+msgstr ""
+
+#. Label of the parent_checkpoint_id (Data) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Parent Checkpoint ID"
+msgstr ""
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:165
+msgid "Path is not a file: {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:134
+msgid "Planning the next steps"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:659
+msgid "Previous page"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:164
+msgid "Preparing a chart"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:126
+msgid "Reading documentation"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:117
+msgid "Reading instructions"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:119
+msgid "Reading the attached document"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:103
+msgid "Reading {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:206
+msgid "Reading {0}, lines {1}-{2}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:98
+msgid "Reading {0} list"
+msgstr ""
+
+#. Label of the reasoning_effort (Select) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Reasoning Effort"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:151
+msgid "Renaming {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:115
+msgid "Running a database query"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:155
+msgid "Running {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:117
+msgid "Saving instructions"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:196
+msgid "Searching for \"{0}\""
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:194
+msgid "Searching for \"{0}\" in {1}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:127
+msgid "Searching the documentation"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:130
+msgid "Searching the source code"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:398
+msgid "Show all"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:691
+msgid "Sort by {0}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:686
+msgid "Sorted ascending by {0}"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:689
+msgid "Sorted descending by {0}"
+msgstr ""
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:39
+msgid "Source code is read-only"
+msgstr ""
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:160
+msgid "Source file path is required"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1910
+msgid "Stop this run"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:632
+msgid "Stopped. Send a message to pick up from here."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1931
+msgid "Stopping..."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:654
+msgid "Table pagination"
+msgstr ""
+
+#. Label of the task_path (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Task Path"
+msgstr ""
+
+#: ask_alyf/ask_alyf/toolset.py:307
+msgid "That confirmation did not match this operation. Propose it again on its own."
+msgstr ""
+
+#: ask_alyf/ask_alyf/tools.py:1079
+msgid "The Compendium app is not installed."
+msgstr ""
+
+#: ask_alyf/ask_alyf/toolset.py:325
+msgid "The action could not be completed."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:535 ask_alyf/ask_alyf/api.py:565
+msgid "The background job does not match this message."
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:533 ask_alyf/ask_alyf/api.py:561 ask_alyf/ask_alyf/api.py:587
+msgid "The message could not be found in this conversation."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:649
+msgid "The operation was completed, but the follow-up response could not be generated."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:246
+msgid "The selected Chat Model ({0}) does not support Reasoning Effort ({1})."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:242
+msgid "The selected Chat Model ({0}) does not support Reasoning Effort ({1}). Supported values: {2}."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:103
+msgid "The selected Chat Model ({0}) does not support function calling."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:111
+msgid "The selected Chat Model ({0}) does not support vision. Choose a vision-capable chat model or configure a separate vision model."
+msgstr ""
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:120
+msgid "The selected Vision Model ({0}) does not support vision."
+msgstr ""
+
+#: ask_alyf/ask_alyf/toolset.py:315
+msgid "The user rejected this operation."
+msgstr ""
+
+#. Label of the thread_id (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the thread_id (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Thread ID"
+msgstr ""
+
+#. Label of the tracing_tab (Tab Break) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Tracing"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:113
+msgid "Translating labels"
+msgstr ""
+
+#. Title of an Onboarding Step
+#: ask_alyf/ask_alyf/onboarding_step/update_ask_alyf_settings/update_ask_alyf_settings.json
+msgid "Update Ask ALYF Settings"
+msgstr ""
+
+#. Label of the value_data (Long Text) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Value Data (base64)"
+msgstr ""
+
+#. Label of the value_type (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Value Type"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py:367 ask_alyf/ask_alyf/api.py:379 ask_alyf/ask_alyf/api.py:396 ask_alyf/ask_alyf/api.py:426 ask_alyf/ask_alyf/api.py:452 ask_alyf/ask_alyf/api.py:520 ask_alyf/ask_alyf/api.py:544 ask_alyf/ask_alyf/api.py:723 ask_alyf/ask_alyf/api.py:791 ask_alyf/ask_alyf/api.py:896 ask_alyf/ask_alyf/api.py:1015 ask_alyf/ask_alyf/api.py:1053
+msgid "You do not have access to Ask ALYF."
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:155
+msgid "an action"
+msgstr ""
+
+#: ask_alyf/ask_alyf/agent.py:132
+msgid "assistant"
+msgstr ""
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "high"
+msgstr ""
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "low"
+msgstr ""
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "max"
+msgstr ""
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "medium"
+msgstr ""
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "xhigh"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:371
+msgid "{0} failed"
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:314
+msgid "{0} steps"
+msgstr ""
+
+#: ask_alyf/ask_alyf/api.py
+msgid "{0} is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
+msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "{0} uses AI and can make mistakes, including with numbers and information about people."
 msgstr ""

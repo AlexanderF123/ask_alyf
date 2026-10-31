@@ -10,18 +10,17 @@ msgstr ""
 "POT-Creation-Date: 2026-05-02 19:04+0053\n"
 "PO-Revision-Date: 2026-05-02 19:04+0053\n"
 "Last-Translator: hallo@alyf.de\n"
-"Language: es\n"
 "Language-Team: hallo@alyf.de\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
 #. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Settings'
 #. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Skill'
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-#: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
 msgid "Access"
 msgstr "Acceso"
 
@@ -68,8 +67,7 @@ msgstr "Añadir una fila a {0} en el formulario actual"
 msgid "Add child row action needs correction."
 msgstr "La acción de añadir fila secundaria necesita corrección."
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:612
-#: ask_alyf/public/js/ask_alyf.bundle.js:1032
+#: ask_alyf/public/js/ask_alyf.bundle.js:612 ask_alyf/public/js/ask_alyf.bundle.js:1032
 msgid "Agent"
 msgstr "Agente"
 
@@ -147,8 +145,7 @@ msgstr "Incorporación de Frage mich"
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-#: ask_alyf/workspace_sidebar/ask_alyf.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json ask_alyf/workspace_sidebar/ask_alyf.json
 msgid "Ask ALYF Settings"
 msgstr "Configuración de Frage mich"
 
@@ -161,10 +158,6 @@ msgstr "Habilidad de Frage mich"
 #: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
 msgid "Ask ALYF User"
 msgstr "Usuario de Frage mich"
-
-#: ask_alyf/public/js/ask_alyf.bundle.js:631
-msgid "{0} is an AI and can make mistakes, including with numbers and information about people."
-msgstr "{0} es una IA y puede cometer errores, incluso con números e información sobre personas."
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:779
 msgid "{0} is visible, but no API key/model is configured yet in Ask ALYF Settings."
@@ -182,8 +175,7 @@ msgstr "Pregunte sobre esta instancia de ERPNext"
 msgid "At least one role is required."
 msgstr "Se requiere al menos un rol."
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:618
-#: ask_alyf/public/js/ask_alyf.bundle.js:620
+#: ask_alyf/public/js/ask_alyf.bundle.js:618 ask_alyf/public/js/ask_alyf.bundle.js:620
 msgid "Attach file"
 msgstr "Adjuntar archivo"
 
@@ -204,9 +196,7 @@ msgstr "La propuesta de creación por lotes necesita corrección."
 msgid "Buying"
 msgstr "Compras"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:571
-#: ask_alyf/public/js/ask_alyf.bundle.js:573
-#: ask_alyf/public/js/ask_alyf.bundle.js:989
+#: ask_alyf/public/js/ask_alyf.bundle.js:571 ask_alyf/public/js/ask_alyf.bundle.js:573 ask_alyf/public/js/ask_alyf.bundle.js:989
 msgid "Call support"
 msgstr "Llamar a soporte"
 
@@ -419,8 +409,7 @@ msgstr "El documento actual es {0}, se esperaba {1}."
 msgid "Current form is {0}, expected {1}."
 msgstr "El formulario actual es {0}, se esperaba {1}."
 
-#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488
-#: ask_alyf/ask_alyf/tools.py:1491
+#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488 ask_alyf/ask_alyf/tools.py:1491
 msgid "Dataset values must be numeric."
 msgstr "Los valores del conjunto de datos deben ser numéricos."
 
@@ -608,8 +597,7 @@ msgstr "El Agent de campo no está habilitado."
 msgid "Field updated."
 msgstr "Campo actualizado."
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:1903
-#: ask_alyf/public/js/ask_alyf.bundle.js:1914
+#: ask_alyf/public/js/ask_alyf.bundle.js:1903 ask_alyf/public/js/ask_alyf.bundle.js:1914
 #, python-brace-format
 msgid "Field {0} does not exist on this form."
 msgstr "El campo {0} no existe en este formulario."
@@ -708,8 +696,7 @@ msgstr "Generar con IA"
 msgid "Generating print..."
 msgstr "Generando Impresión..."
 
-#: ask_alyf/ask_alyf/api.py:661 ask_alyf/ask_alyf/api.py:728
-#: ask_alyf/ask_alyf/api.py:843
+#: ask_alyf/ask_alyf/api.py:661 ask_alyf/ask_alyf/api.py:728 ask_alyf/ask_alyf/api.py:843
 msgid "Generating response..."
 msgstr "Generando respuesta..."
 
@@ -833,8 +820,7 @@ msgstr "Se encontraron varios archivos coincidentes. Proporcione reference_field
 msgid "Navigate to {0}"
 msgstr "Navegar a {0}"
 
-#: ask_alyf/ask_alyf/api.py:271 ask_alyf/ask_alyf/api.py:460
-#: ask_alyf/ask_alyf/api.py:486
+#: ask_alyf/ask_alyf/api.py:271 ask_alyf/ask_alyf/api.py:460 ask_alyf/ask_alyf/api.py:486
 msgid "New Conversation"
 msgstr "Nueva conversación"
 
@@ -1103,8 +1089,7 @@ msgstr "Leyendo el archivo..."
 msgid "Reading skill..."
 msgstr "Leyendo la skill..."
 
-#: ask_alyf/ask_alyf/api.py:789 ask_alyf/ask_alyf/api.py:875
-#: ask_alyf/ask_alyf/api.py:904
+#: ask_alyf/ask_alyf/api.py:789 ask_alyf/ask_alyf/api.py:875 ask_alyf/ask_alyf/api.py:904
 #, python-brace-format
 msgid "Reason: {0}"
 msgstr "Motivo: {0}"
@@ -1455,8 +1440,7 @@ msgstr "Modelo de Vision"
 msgid "Vision Provider"
 msgstr "Proveedor de Vision"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:623
-#: ask_alyf/public/js/ask_alyf.bundle.js:625
+#: ask_alyf/public/js/ask_alyf.bundle.js:623 ask_alyf/public/js/ask_alyf.bundle.js:625
 msgid "Voice input"
 msgstr "Entrada de voz"
 
@@ -1513,11 +1497,7 @@ msgstr "¿Qué tareas de proyecto están en atraso?"
 msgid "Which users logged in today?"
 msgstr "¿Qué usuarios iniciaron sesión hoy?"
 
-#: ask_alyf/ask_alyf/api.py:427 ask_alyf/ask_alyf/api.py:439
-#: ask_alyf/ask_alyf/api.py:456 ask_alyf/ask_alyf/api.py:476
-#: ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697
-#: ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941
-#: ask_alyf/ask_alyf/api.py:979
+#: ask_alyf/ask_alyf/api.py:427 ask_alyf/ask_alyf/api.py:439 ask_alyf/ask_alyf/api.py:456 ask_alyf/ask_alyf/api.py:476 ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697 ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941 ask_alyf/ask_alyf/api.py:979
 msgid "You do not have access to {0}."
 msgstr "No tiene acceso a {0}."
 
@@ -1579,8 +1559,6 @@ msgstr "{0} elementos"
 #, python-brace-format
 msgid "{0} rows"
 msgstr "{0} filas"
-
-
 
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Send to {0}: {1}"
@@ -1669,3 +1647,520 @@ msgstr ""
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "{0} is still working on the previous message. Please drop the document again when the answer is there."
 msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:314
+msgid "1 step"
+msgstr "1 paso"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:163
+msgid "Access to hidden paths is not allowed"
+msgstr "No se permite el acceso a rutas ocultas"
+
+#. Label of the allow_conversation_deletion (Check) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Allow Conversation Deletion"
+msgstr "Permitir eliminar conversaciones"
+
+#: ask_alyf/ask_alyf/agent.py:147
+#, python-brace-format
+msgid "Amending {0}"
+msgstr "Corrigiendo {0}"
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Ask ALYF Checkpoint"
+msgstr "Punto de control de Ask ALYF"
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Ask ALYF Checkpoint Write"
+msgstr "Escritura de punto de control de Ask ALYF"
+
+#. Title of the Module Onboarding 'Ask ALYF Onboarding'
+#: ask_alyf/ask_alyf/module_onboarding/ask_alyf_onboarding/ask_alyf_onboarding.json
+msgid "Ask ALYF Onboarding"
+msgstr "Incorporación de Ask ALYF"
+
+#: ask_alyf/ask_alyf/agent.py:132
+#, python-brace-format
+msgid "Asking the {0} specialist"
+msgstr "Consultando al especialista en {0}"
+
+#: ask_alyf/ask_alyf/agent.py:153
+#, python-brace-format
+msgid "Attaching a file to {0}"
+msgstr "Adjuntando un archivo a {0}"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:267
+msgid "Attachment name is required"
+msgstr "El nombre del adjunto es obligatorio"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:43
+msgid "Attachments are read-only"
+msgstr "Los adjuntos son de solo lectura"
+
+#: ask_alyf/ask_alyf/agent.py:105
+#, python-brace-format
+msgid "Checking the {0} form"
+msgstr "Comprobando el formulario {0}"
+
+#: ask_alyf/ask_alyf/agent.py:107
+#, python-brace-format
+msgid "Checking your permissions on {0}"
+msgstr "Comprobando sus permisos sobre {0}"
+
+#. Label of the checkpoint_data (Long Text) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Checkpoint Data (base64)"
+msgstr "Datos del punto de control (base64)"
+
+#. Label of the checkpoint_id (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the checkpoint_id (Data) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Checkpoint ID"
+msgstr "ID del punto de control"
+
+#. Label of the checkpoint_ns (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the checkpoint_ns (Data) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Checkpoint Namespace"
+msgstr "Espacio de nombres del punto de control"
+
+#. Label of the checkpoint_type (Data) field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Checkpoint Type"
+msgstr "Tipo de punto de control"
+
+#: ask_alyf/ask_alyf/api.py:429
+msgid "Conversation deletion is not allowed."
+msgstr "No se permite eliminar conversaciones."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1277
+msgid "Conversation not found. Please start a new conversation."
+msgstr "Conversación no encontrada. Inicie una nueva conversación."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:583
+msgid "Copy as Markdown"
+msgstr "Copiar como Markdown"
+
+#: ask_alyf/ask_alyf/api.py:775
+#, python-brace-format
+msgid "Could not complete the operation: {0}."
+msgstr "No se pudo completar la operación: {0}."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:734
+msgid "Could not render diagram."
+msgstr "No se pudo mostrar el diagrama."
+
+#: ask_alyf/ask_alyf/agent.py:101
+#, python-brace-format
+msgid "Counting {0}"
+msgstr "Contando {0}"
+
+#: ask_alyf/ask_alyf/agent.py:139
+#, python-brace-format
+msgid "Creating several {0} records"
+msgstr "Creando varios registros de {0}"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1818 ask_alyf/public/js/ask_alyf.bundle.js:1819
+msgid "Delete conversation"
+msgstr "Eliminar conversación"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1346
+msgid "Delete conversation '{0}'?"
+msgstr "¿Eliminar la conversación '{0}'?"
+
+#: ask_alyf/ask_alyf/test_tool_error_middleware.py:84 ask_alyf/ask_alyf/test_tool_error_middleware.py:93
+msgid "DocType is excluded"
+msgstr "El Doctype está excluido"
+
+#. Label of the enable_tracing (Check) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Enable Tracing"
+msgstr "Activar trazas"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1350
+msgid "Failed to delete conversation."
+msgstr "No se pudo eliminar la conversación."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1949
+msgid "Failed to stop the run."
+msgstr "No se pudo detener la ejecución."
+
+#: ask_alyf/ask_alyf/agent.py:166
+msgid "Filling in the open form"
+msgstr "Rellenando el formulario abierto"
+
+#: ask_alyf/ask_alyf/agent.py:200
+#, python-brace-format
+msgid "Finding {0}"
+msgstr "Buscando archivos {0}"
+
+#: ask_alyf/ask_alyf/agent.py:200
+#, python-brace-format
+msgid "Finding {0} in {1}"
+msgstr "Buscando archivos {0} en {1}"
+
+#: ask_alyf/ask_alyf/agent.py:162
+msgid "Highlighting a field"
+msgstr "Resaltando un campo"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:182
+#, python-brace-format
+msgid "Invalid regex pattern: {0}"
+msgstr "Patrón de regex inválido: {0}"
+
+#. Label of the langsmith_api_key (Password) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith API Key"
+msgstr "Clave de API de LangSmith"
+
+#. Label of the langsmith_endpoint (Data) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith Endpoint"
+msgstr "Endpoint de LangSmith"
+
+#. Label of the langsmith_project (Data) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith Project"
+msgstr "Proyecto de LangSmith"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:172 ask_alyf/ask_alyf/deep_agent_backend.py:278
+#, python-brace-format
+msgid "Line offset {0} exceeds file length"
+msgstr "El desplazamiento de línea {0} supera la longitud del archivo"
+
+#: ask_alyf/ask_alyf/agent.py:210
+#, python-brace-format
+msgid "Listing {0}"
+msgstr "Listando {0}"
+
+#: ask_alyf/ask_alyf/agent.py:111
+msgid "Looking up available reports"
+msgstr "Buscando los informes disponibles"
+
+#: ask_alyf/ask_alyf/agent.py:109
+msgid "Looking up what you can access"
+msgstr "Buscando a qué puede acceder"
+
+#. Label of the metadata_data (Long Text) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Metadata Data (base64)"
+msgstr "Datos de metadatos (base64)"
+
+#. Label of the metadata_type (Data) field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Metadata Type"
+msgstr "Tipo de metadatos"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:660
+msgid "Next page"
+msgstr "Página siguiente"
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "One LangGraph checkpoint. Written by FrappeCheckpointSaver, not by users."
+msgstr "Un punto de control de LangGraph. Lo escribe FrappeCheckpointSaver, no los usuarios."
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "One pending write of a LangGraph checkpoint. Written by FrappeCheckpointSaver, not by users."
+msgstr "Una escritura pendiente de un punto de control de LangGraph. La escribe FrappeCheckpointSaver, no los usuarios."
+
+#: ask_alyf/ask_alyf/agent.py:160
+#, python-brace-format
+msgid "Opening a new {0}"
+msgstr "Abriendo un nuevo {0}"
+
+#: ask_alyf/ask_alyf/agent.py:158
+msgid "Opening a page"
+msgstr "Abriendo una página"
+
+#. Label of the parent_checkpoint_id (Data) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Parent Checkpoint ID"
+msgstr "ID del punto de control principal"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:165
+#, python-brace-format
+msgid "Path is not a file: {0}"
+msgstr "La ruta no es un archivo: {0}"
+
+#: ask_alyf/ask_alyf/agent.py:134
+msgid "Planning the next steps"
+msgstr "Planificando los siguientes pasos"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:659
+msgid "Previous page"
+msgstr "Página anterior"
+
+#: ask_alyf/ask_alyf/agent.py:164
+msgid "Preparing a chart"
+msgstr "Preparando un gráfico"
+
+#: ask_alyf/ask_alyf/agent.py:126
+msgid "Reading documentation"
+msgstr "Leyendo la documentación"
+
+#: ask_alyf/ask_alyf/agent.py:117
+msgid "Reading instructions"
+msgstr "Leyendo las instrucciones"
+
+#: ask_alyf/ask_alyf/agent.py:119
+msgid "Reading the attached document"
+msgstr "Leyendo el documento adjunto"
+
+#: ask_alyf/ask_alyf/agent.py:103
+#, python-brace-format
+msgid "Reading {0}"
+msgstr "Leyendo {0}"
+
+#: ask_alyf/ask_alyf/agent.py:206
+#, python-brace-format
+msgid "Reading {0}, lines {1}-{2}"
+msgstr "Leyendo {0}, líneas {1}-{2}"
+
+#: ask_alyf/ask_alyf/agent.py:98
+#, python-brace-format
+msgid "Reading {0} list"
+msgstr "Leyendo la lista de {0}"
+
+#. Label of the reasoning_effort (Select) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Reasoning Effort"
+msgstr "Esfuerzo de razonamiento"
+
+#: ask_alyf/ask_alyf/agent.py:151
+#, python-brace-format
+msgid "Renaming {0}"
+msgstr "Renombrando {0}"
+
+#: ask_alyf/ask_alyf/agent.py:115
+msgid "Running a database query"
+msgstr "Ejecutando una consulta de base de datos"
+
+#: ask_alyf/ask_alyf/agent.py:155
+#, python-brace-format
+msgid "Running {0}"
+msgstr "Ejecutando {0}"
+
+#: ask_alyf/ask_alyf/agent.py:117
+msgid "Saving instructions"
+msgstr "Guardando las instrucciones"
+
+#: ask_alyf/ask_alyf/agent.py:196
+#, python-brace-format
+msgid "Searching for \"{0}\""
+msgstr "Buscando \"{0}\""
+
+#: ask_alyf/ask_alyf/agent.py:194
+#, python-brace-format
+msgid "Searching for \"{0}\" in {1}"
+msgstr "Buscando \"{0}\" en {1}"
+
+#: ask_alyf/ask_alyf/agent.py:127
+msgid "Searching the documentation"
+msgstr "Buscando en la documentación"
+
+#: ask_alyf/ask_alyf/agent.py:130
+msgid "Searching the source code"
+msgstr "Buscando en el código fuente"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:398
+msgid "Show all"
+msgstr "Mostrar todo"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:691
+#, python-brace-format
+msgid "Sort by {0}"
+msgstr "Ordenar por {0}"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:686
+#, python-brace-format
+msgid "Sorted ascending by {0}"
+msgstr "Ordenado ascendente por {0}"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:689
+#, python-brace-format
+msgid "Sorted descending by {0}"
+msgstr "Ordenado descendente por {0}"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:39
+msgid "Source code is read-only"
+msgstr "El código fuente es de solo lectura"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:160
+msgid "Source file path is required"
+msgstr "La ruta del archivo de origen es obligatoria"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1910
+msgid "Stop this run"
+msgstr "Detener esta ejecución"
+
+#: ask_alyf/ask_alyf/api.py:632
+msgid "Stopped. Send a message to pick up from here."
+msgstr "Detenido. Envíe un mensaje para continuar desde aquí."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1931
+msgid "Stopping..."
+msgstr "Deteniendo..."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:654
+msgid "Table pagination"
+msgstr "Paginación de tabla"
+
+#. Label of the task_path (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Task Path"
+msgstr "Ruta de la tarea"
+
+#: ask_alyf/ask_alyf/toolset.py:307
+msgid "That confirmation did not match this operation. Propose it again on its own."
+msgstr "Esa confirmación no coincidió con esta operación. Propóngala de nuevo por separado."
+
+#: ask_alyf/ask_alyf/tools.py:1079
+msgid "The Compendium app is not installed."
+msgstr "La aplicación Compendium no está instalada."
+
+#: ask_alyf/ask_alyf/toolset.py:325
+msgid "The action could not be completed."
+msgstr "No se pudo completar la acción."
+
+#: ask_alyf/ask_alyf/api.py:535 ask_alyf/ask_alyf/api.py:565
+msgid "The background job does not match this message."
+msgstr "El trabajo en segundo plano no corresponde a este mensaje."
+
+#: ask_alyf/ask_alyf/api.py:533 ask_alyf/ask_alyf/api.py:561 ask_alyf/ask_alyf/api.py:587
+msgid "The message could not be found in this conversation."
+msgstr "No se encontró el mensaje en esta conversación."
+
+#: ask_alyf/ask_alyf/agent.py:649
+msgid "The operation was completed, but the follow-up response could not be generated."
+msgstr "La operación se completó, pero no se pudo generar la respuesta de seguimiento."
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:246
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support Reasoning Effort ({1})."
+msgstr "El Modelo de chat seleccionado ({0}) no admite el Esfuerzo de razonamiento ({1})."
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:242
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support Reasoning Effort ({1}). Supported values: {2}."
+msgstr "El Modelo de chat seleccionado ({0}) no admite el Esfuerzo de razonamiento ({1}). Valores compatibles: {2}."
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:103
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support function calling."
+msgstr "El Modelo de chat seleccionado ({0}) no admite llamadas a funciones."
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:111
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support vision. Choose a vision-capable chat model or configure a separate vision model."
+msgstr "El Modelo de chat seleccionado ({0}) no admite visión. Elija un modelo de chat con capacidad de visión o configure un modelo de visión aparte."
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:120
+#, python-brace-format
+msgid "The selected Vision Model ({0}) does not support vision."
+msgstr "El modelo de visión seleccionado ({0}) no admite visión."
+
+#: ask_alyf/ask_alyf/toolset.py:315
+msgid "The user rejected this operation."
+msgstr "El usuario rechazó esta operación."
+
+#. Label of the thread_id (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the thread_id (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Thread ID"
+msgstr "ID de hilo"
+
+#. Label of the tracing_tab (Tab Break) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Tracing"
+msgstr "Trazas"
+
+#: ask_alyf/ask_alyf/agent.py:113
+msgid "Translating labels"
+msgstr "Traduciendo etiquetas"
+
+#. Title of an Onboarding Step
+#: ask_alyf/ask_alyf/onboarding_step/update_ask_alyf_settings/update_ask_alyf_settings.json
+msgid "Update Ask ALYF Settings"
+msgstr "Actualizar configuración de Ask ALYF"
+
+#. Label of the value_data (Long Text) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Value Data (base64)"
+msgstr "Datos del valor (base64)"
+
+#. Label of the value_type (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Value Type"
+msgstr "Tipo de valor"
+
+#: ask_alyf/ask_alyf/api.py:367 ask_alyf/ask_alyf/api.py:379 ask_alyf/ask_alyf/api.py:396 ask_alyf/ask_alyf/api.py:426 ask_alyf/ask_alyf/api.py:452 ask_alyf/ask_alyf/api.py:520 ask_alyf/ask_alyf/api.py:544 ask_alyf/ask_alyf/api.py:723 ask_alyf/ask_alyf/api.py:791 ask_alyf/ask_alyf/api.py:896 ask_alyf/ask_alyf/api.py:1015 ask_alyf/ask_alyf/api.py:1053
+msgid "You do not have access to Ask ALYF."
+msgstr "No tiene acceso a Ask ALYF."
+
+#: ask_alyf/ask_alyf/agent.py:155
+msgid "an action"
+msgstr "una acción"
+
+#: ask_alyf/ask_alyf/agent.py:132
+msgid "assistant"
+msgstr "asistente"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "high"
+msgstr "Alto"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "low"
+msgstr "Bajo"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "max"
+msgstr "Máximo"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "medium"
+msgstr "Medio"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "xhigh"
+msgstr "Muy alto"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:371
+#, python-brace-format
+msgid "{0} failed"
+msgstr "{0} fallidos"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:314
+#, python-brace-format
+msgid "{0} steps"
+msgstr "{0} pasos"
+
+#: ask_alyf/ask_alyf/api.py
+msgid "{0} is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
+msgstr "{0} todavía está trabajando en un mensaje en esta conversación. Deténgalo o espere a que termine antes de eliminar."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "{0} uses AI and can make mistakes, including with numbers and information about people."
+msgstr "{0} utiliza IA y puede cometer errores, incluso en números e información sobre personas."

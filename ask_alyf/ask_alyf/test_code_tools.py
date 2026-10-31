@@ -1,12 +1,14 @@
 import asyncio
 import contextlib
 import contextvars
+import importlib.util
 import itertools
 import threading
+import unittest
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import frappe
 from frappe.tests import UnitTestCase
@@ -23,10 +25,12 @@ from langgraph.errors import GraphInterrupt
 from ask_alyf.ask_alyf import tools
 from ask_alyf.ask_alyf.agent import (
 	ASK_ALYF_EXCLUDED_TOOLS,
+	TOOL_CALL_ARGS_LIMIT,
+	_summarize_tool_args,
+	_tool_call_detail,
 	_tool_call_label,
 	ask_alyfAgentRunner,
 	build_chat_model,
-	supports_temperature,
 )
 from ask_alyf.ask_alyf.history import history_item_to_native_message
 from ask_alyf.ask_alyf.toolset import (
@@ -45,25 +49,31 @@ class FakeSettings(SimpleNamespace):
 		*,
 		allow_code_search: bool,
 		reasoning_effort: str = "",
-		llm_provider: str = "OpenAI",
 		use_responses_api: int = 0,
-		model: str = "gpt-test",
+		enable_tracing: int = 0,
+		langsmith_endpoint: str = "",
+		langsmith_project: str = "",
+		passwords: dict[str, str] | None = None,
 	):
 		super().__init__(
 			allow_code_search=allow_code_search,
 			system_prompt="",
-			model=model,
-			llm_provider=llm_provider,
+			model="gpt-test",
+			llm_provider="openai",
 			base_url="",
 			reasoning_effort=reasoning_effort,
 			use_responses_api=use_responses_api,
+			enable_tracing=enable_tracing,
+			langsmith_endpoint=langsmith_endpoint,
+			langsmith_project=langsmith_project,
 		)
+		self._passwords = {"api_key": "test-key", **(passwords or {})}
 
 	def is_code_search_enabled(self) -> bool:
 		return bool(self.allow_code_search)
 
-	def get_password(self, _fieldname, raise_exception=False):
-		return "test-key"
+	def get_password(self, fieldname, raise_exception=False):
+		return self._passwords.get(fieldname) or ""
 
 
 class FakeCheckpointer:
@@ -158,39 +168,139 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertTrue(model.use_responses_api)
 		self.assertIsNone(model.reasoning_effort)
 
-	def test_build_chat_model_uses_chat_completions_for_compatible_providers_by_default(self):
-		model = build_chat_model(FakeSettings(allow_code_search=False, llm_provider="OpenAI Compatible"))
+	def test_build_chat_model_uses_chat_completions_for_compatible_endpoints_by_default(self):
+		settings = FakeSettings(allow_code_search=False)
+		settings.base_url = "https://example.test/v1/"
+
+		model = build_chat_model(settings)
 
 		self.assertFalse(model.use_responses_api)
 
-	def test_build_chat_model_lets_compatible_providers_opt_into_responses_api(self):
-		model = build_chat_model(
-			FakeSettings(allow_code_search=False, llm_provider="OpenAI Compatible", use_responses_api=1)
-		)
+	def test_build_chat_model_lets_compatible_endpoints_opt_into_responses_api(self):
+		settings = FakeSettings(allow_code_search=False, use_responses_api=1)
+		settings.base_url = "https://example.test/v1/"
+
+		model = build_chat_model(settings)
 
 		self.assertTrue(model.use_responses_api)
-
-	def test_build_chat_model_sends_temperature_to_models_that_accept_it(self):
-		model = build_chat_model(FakeSettings(allow_code_search=False, model="gpt-4o"))
-
-		self.assertEqual(model.temperature, 0.2)
-
-	def test_build_chat_model_omits_temperature_for_models_that_reject_it(self):
-		model = build_chat_model(FakeSettings(allow_code_search=False, model="claude-sonnet-5"))
-
-		self.assertIsNone(model.temperature)
-
-	def test_supports_temperature_knows_the_current_model_families(self):
-		for model in ("gpt-4o", "claude-sonnet-4-6", "claude-opus-4-6", ""):
-			self.assertTrue(supports_temperature(model), model)
-
-		for model in ("claude-sonnet-5", "claude-opus-5", "claude-fable-5-1", "GPT-5", "o3-mini"):
-			self.assertFalse(supports_temperature(model), model)
 
 	def test_build_chat_model_passes_reasoning_effort_when_set(self):
 		model = build_chat_model(FakeSettings(allow_code_search=False, reasoning_effort="high"))
 
 		self.assertEqual(model.reasoning_effort, "high")
+
+	def run_document_extraction(self, settings) -> tuple[dict[str, Any], MagicMock]:
+		"""Run `extract_document_data` with the file and the provider mocked out."""
+		model = MagicMock()
+		model.ainvoke = AsyncMock(return_value=AIMessage(content='```json\n{"supplier": "ACME"}\n```'))
+		file_doc = SimpleNamespace(name="FILE-0001", file_name="invoice.pdf", get_full_path=lambda: "")
+		images = [{"mime_type": "image/png", "data": "AAAA"}]
+
+		with (
+			patch.object(tools, "get_settings", return_value=settings),
+			patch.object(tools, "_get_accessible_file_doc", return_value=file_doc),
+			patch.object(tools, "_file_to_base64_images", return_value=(images, 1)),
+			patch("ask_alyf.ask_alyf.agent.init_chat_model", return_value=model) as init_model,
+		):
+			result = asyncio.run(tools.extract_document_data("FILE-0001", "Extract the supplier."))
+
+		[messages] = model.ainvoke.call_args.args
+		[message] = messages
+		self.assertIsInstance(message, HumanMessage)
+		text_part, image_part = message.content
+		self.assertIn("Extract the supplier.", text_part["text"])
+		self.assertEqual(image_part["image_url"]["url"], "data:image/png;base64,AAAA")
+		self.assertEqual(result["extracted_data"], {"supplier": "ACME"})
+		self.assertEqual(result["file_id"], "FILE-0001")
+		return result, init_model
+
+	def test_document_extraction_uses_chat_model_when_shared(self):
+		settings = FakeSettings(allow_code_search=False, passwords={"vision_api_key": "vision-key"})
+		settings.vision_model_is_chat_model = 1
+		settings.llm_provider = "anthropic"
+		settings.model = "claude-test"
+		settings.base_url = "https://chat.example.test"
+
+		_result, init_model = self.run_document_extraction(settings)
+
+		init_model.assert_called_once_with(
+			"claude-test",
+			model_provider="anthropic",
+			api_key="test-key",
+			base_url="https://chat.example.test",
+		)
+
+	def test_document_extraction_uses_separate_vision_model(self):
+		settings = FakeSettings(allow_code_search=False, passwords={"vision_api_key": "vision-key"})
+		settings.vision_model_is_chat_model = 0
+		settings.vision_llm_provider = "google_genai"
+		settings.vision_model = "gemini-test"
+		settings.vision_base_url = ""
+
+		_result, init_model = self.run_document_extraction(settings)
+
+		init_model.assert_called_once_with("gemini-test", model_provider="google_genai", api_key="vision-key")
+
+	def build_model_with_reasoning_effort(self, provider: str, model: str, reasoning_effort: str):
+		settings = FakeSettings(allow_code_search=False, reasoning_effort=reasoning_effort)
+		settings.llm_provider = provider
+		settings.model = model
+		return build_chat_model(settings)
+
+	def test_build_chat_model_passes_reasoning_effort_as_anthropic_effort(self):
+		model = self.build_model_with_reasoning_effort("anthropic", "claude-test", "max")
+
+		payload = model._get_request_payload([HumanMessage(content="hi")])
+		self.assertEqual(payload["output_config"], {"effort": "max"})
+		self.assertNotIn("reasoning_effort", payload)
+
+	def test_build_chat_model_passes_reasoning_effort_as_gemini_thinking_level(self):
+		self.assertEqual(
+			self.build_model_with_reasoning_effort("google_genai", "gemini-test", "low").thinking_level,
+			"low",
+		)
+		# Gemini has no level above "high".
+		for reasoning_effort in ("xhigh", "max"):
+			self.assertEqual(
+				self.build_model_with_reasoning_effort(
+					"google_genai", "gemini-test", reasoning_effort
+				).thinking_level,
+				"high",
+			)
+
+	def test_build_chat_model_skips_reasoning_effort_for_unmapped_providers(self):
+		model = self.build_model_with_reasoning_effort("deepseek", "deepseek-test", "high")
+
+		self.assertIsNone(model.reasoning_effort)
+
+	def test_build_chat_model_leaves_reasoning_effort_unset_when_blank(self):
+		model = self.build_model_with_reasoning_effort("anthropic", "claude-test", "")
+
+		self.assertIsNone(model.effort)
+
+	def test_build_chat_model_leaves_temperature_to_the_provider(self):
+		# Newer Anthropic models reject any temperature with a 400 error.
+		settings = FakeSettings(allow_code_search=False)
+		settings.llm_provider = "anthropic"
+		settings.model = "claude-test"
+
+		model = build_chat_model(settings)
+
+		self.assertIsNone(model.temperature)
+		self.assertNotIn("temperature", model._get_request_payload([HumanMessage(content="hi")]))
+
+	def test_build_chat_model_uses_configured_provider(self):
+		settings = FakeSettings(allow_code_search=False, reasoning_effort="high")
+		settings.llm_provider = "anthropic"
+		settings.model = "claude-test"
+		settings.base_url = "https://example.test"
+
+		model = build_chat_model(settings)
+
+		self.assertEqual(type(model).__name__, "ChatAnthropic")
+		self.assertEqual(model.model, "claude-test")
+		self.assertEqual(model.anthropic_api_url, "https://example.test")
+		self.assertEqual(model.anthropic_api_key.get_secret_value(), "test-key")
 
 	def test_subagents_register_source_code_analyzer_only_when_code_search_enabled(self):
 		raw_code_tool_names = {"search_code", "read_code_file", "ls", "find", "grep"}
@@ -562,16 +672,27 @@ class UnitTestCodeTools(UnitTestCase):
 		planner = next(sub for sub in runner._build_subagents() if sub["name"] == "document-planner")
 		self.assertIs(planner["response_format"], DocumentPlannerResult)
 
-	def test_harness_profile_excludes_write_edit_execute(self):
+	def test_harness_profile_excludes_write_edit_execute_for_any_provider(self):
+		# The same lookup `create_deep_agent` does for a pre-built model.
+		from deepagents.profiles.harness.harness_profiles import _harness_profile_for_model
+
 		from ask_alyf.ask_alyf.agent import _ensure_ask_alyf_harness_profile
 
 		self.assertEqual(
 			ASK_ALYF_EXCLUDED_TOOLS,
 			frozenset({"write_file", "edit_file", "execute"}),
 		)
-		# Registration is idempotent and safe to call repeatedly.
-		_ensure_ask_alyf_harness_profile()
-		_ensure_ask_alyf_harness_profile()
+		for provider, model_name in (("openai", "gpt-test"), ("anthropic", "claude-test")):
+			settings = FakeSettings(allow_code_search=False)
+			settings.llm_provider = provider
+			settings.model = model_name
+			model = build_chat_model(settings)
+			# Registration is idempotent and safe to call repeatedly.
+			_ensure_ask_alyf_harness_profile(model)
+			_ensure_ask_alyf_harness_profile(model)
+
+			profile = _harness_profile_for_model(model, None)
+			self.assertTrue(ASK_ALYF_EXCLUDED_TOOLS <= profile.excluded_tools, provider)
 
 	def test_build_permissions_denies_write_everywhere(self):
 		from deepagents import FilesystemPermission
@@ -700,6 +821,143 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertEqual(seen["config"]["configurable"]["thread_id"], "TEST-CONVERSATION")
 		self.assertEqual(runner.checkpointer.flush_count, 1)
 
+	def test_run_graph_does_not_trace_when_tracing_is_disabled(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=0,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
+
+		with patch("langsmith.client.Client") as Client:
+			runner._run_graph({"messages": []})
+
+		Client.assert_not_called()
+
+	def test_run_graph_does_not_trace_without_langsmith_key(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+		)
+		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
+
+		with patch("langsmith.client.Client") as Client:
+			runner._run_graph({"messages": []})
+
+		Client.assert_not_called()
+
+	def test_run_graph_traces_to_langsmith_when_configured(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf-prod",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
+
+		with (
+			patch("langsmith.client.Client") as Client,
+			patch("langsmith.run_helpers.tracing_context", return_value=contextlib.nullcontext()) as tracing,
+		):
+			result = runner._run_graph({"messages": []})
+
+		Client.assert_called_once_with(
+			api_key="ls-test-key",
+			api_url="https://eu.api.smith.langchain.com",
+		)
+		tracing.assert_called_once_with(
+			enabled=True,
+			client=Client.return_value,
+			project_name="ask-alyf-prod",
+			metadata={"conversation": "TEST-CONVERSATION", "mode": "Ask"},
+		)
+		Client.return_value.flush.assert_called_once()
+		self.assertEqual(result["response"], "Done.")
+
+	def test_run_graph_flushes_langsmith_when_invoke_fails(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+
+		def boom(_input, config=None):
+			raise RuntimeError("provider down")
+
+		runner.agent = self.make_agent(boom)
+
+		with (
+			patch("langsmith.client.Client") as Client,
+			patch("langsmith.run_helpers.tracing_context", return_value=contextlib.nullcontext()),
+			self.assertRaisesRegex(RuntimeError, "provider down"),
+		):
+			runner._run_graph({"messages": []})
+
+		Client.return_value.flush.assert_called_once()
+		self.assertEqual(runner.checkpointer.flush_count, 1)
+
+	def test_run_graph_keeps_the_result_when_langsmith_flush_fails(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+		runner.agent = self.make_agent(lambda _input, config=None: {"messages": [AIMessage(content="Done.")]})
+
+		with (
+			patch("langsmith.client.Client") as Client,
+			patch("langsmith.run_helpers.tracing_context", return_value=contextlib.nullcontext()),
+			patch("ask_alyf.ask_alyf.agent.frappe.log_error") as log_error,
+		):
+			Client.return_value.flush.side_effect = RuntimeError("langsmith down")
+			result = runner._run_graph({"messages": []})
+
+		self.assertEqual(result["response"], "Done.")
+		log_error.assert_called_once()
+		self.assertEqual(log_error.call_args.args[0], "Ask ALYF LangSmith Tracing Error")
+		self.assertIn("RuntimeError: langsmith down", log_error.call_args.args[1])
+		self.assertEqual(runner.checkpointer.flush_count, 1)
+
+	def test_run_graph_keeps_the_invoke_error_when_langsmith_flush_also_fails(self):
+		runner = self.make_runner(allow_code_search=False)
+		runner.settings = FakeSettings(
+			allow_code_search=False,
+			enable_tracing=1,
+			langsmith_endpoint="https://eu.api.smith.langchain.com",
+			langsmith_project="ask-alyf",
+			passwords={"langsmith_api_key": "ls-test-key"},
+		)
+
+		def boom(_input, config=None):
+			raise RuntimeError("provider down")
+
+		runner.agent = self.make_agent(boom)
+
+		with (
+			patch("langsmith.client.Client") as Client,
+			patch("langsmith.run_helpers.tracing_context", return_value=contextlib.nullcontext()),
+			patch("ask_alyf.ask_alyf.agent.frappe.log_error"),
+			self.assertRaisesRegex(RuntimeError, "provider down"),
+		):
+			Client.return_value.flush.side_effect = RuntimeError("langsmith down")
+			runner._run_graph({"messages": []})
+
+		self.assertEqual(runner.checkpointer.flush_count, 1)
+
 	def test_resume_reports_a_committed_operation_when_follow_up_fails(self):
 		runner = self.make_runner(allow_code_search=False, mode="Agent")
 		runner.runtime.backend_operation_committed = True
@@ -728,7 +986,9 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertEqual(runner.checkpointer.deleted_threads, ["TEST-CONVERSATION"])
 		savepoint.assert_called_once_with("ask_alyf_operation_resume")
 		rollback.assert_called_once_with(save_point="ask_alyf_operation_resume")
-		log_error.assert_called_once_with("Ask ALYF Action Follow-Up Error")
+		log_error.assert_called_once()
+		self.assertEqual(log_error.call_args.args[0], "Ask ALYF Action Follow-Up Error")
+		self.assertIn("RuntimeError: boom", log_error.call_args.args[1])
 		clear_messages.assert_called_once_with()
 
 	def test_resume_still_raises_when_the_operation_did_not_commit(self):
@@ -796,6 +1056,73 @@ class UnitTestCodeTools(UnitTestCase):
 		self.assertTrue(proposal_tools.issubset(agent_tool_names))
 		# No host filesystem, shell, or direct execution capability leaks in.
 		self.assertFalse(host_mutation_tools.intersection(agent_tool_names))
+
+	def test_compendium_tools_are_registered_only_when_the_app_is_installed(self):
+		compendium_tools = {"search_compendium", "read_compendium_page"}
+		runner = self.make_runner(allow_code_search=False)
+
+		with patch("frappe.get_installed_apps", return_value=["frappe"]):
+			names = {tool.__name__ for tool in runner._build_tools()}
+			self.assertFalse(compendium_tools.intersection(names))
+
+		with patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]):
+			names = {tool.__name__ for tool in runner._build_tools()}
+			self.assertTrue(compendium_tools.issubset(names))
+
+	@unittest.skipUnless(importlib.util.find_spec("compendium"), "compendium is not installed")
+	def test_compendium_search_returns_the_best_hits_up_to_the_limit(self):
+		hits = [("setup", "Setup", "…set up…"), ("billing", "Billing", "…"), ("faq", "FAQ", "…")]
+
+		with (
+			patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]),
+			patch("compendium.docs.normalize_locale", return_value="en"),
+			patch("compendium.search.search", return_value=hits) as search,
+		):
+			found = tools.search_compendium("how do I set up billing", limit=2)
+
+		self.assertEqual([hit["title"] for hit in found], ["Setup", "Billing"])
+		self.assertEqual(found[0]["snippet"], "…set up…")
+		self.assertEqual(found[0]["route"], "/app/docs/en/setup")
+		# a wider snippet than the Awesome Bar's, because the model picks from it
+		self.assertEqual(search.call_args.kwargs["snippet_tokens"], tools.COMPENDIUM_SNIPPET_TOKENS)
+
+	@unittest.skipUnless(importlib.util.find_spec("compendium"), "compendium is not installed")
+	def test_compendium_search_without_searchable_words_finds_nothing(self):
+		with (
+			patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]),
+			patch("compendium.docs.normalize_locale", return_value="en"),
+		):
+			self.assertEqual(tools.search_compendium("   "), [])
+
+	@unittest.skipUnless(importlib.util.find_spec("compendium"), "compendium is not installed")
+	def test_a_long_compendium_page_is_read_out_in_slices(self):
+		body = "x" * (tools.MAX_COMPENDIUM_PAGE_CHARS + 10)
+		page = frappe._dict(path="setup", title="Setup", body=body)
+
+		with (
+			patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]),
+			patch("compendium.docs.normalize_locale", return_value="en"),
+			patch("compendium.docs.get_page_record", return_value=page) as get_page_record,
+		):
+			first = tools.read_compendium_page("setup")
+			rest = tools.read_compendium_page("setup", offset=first["next_offset"])
+
+		self.assertEqual(len(first["content"]), tools.MAX_COMPENDIUM_PAGE_CHARS)
+		self.assertEqual(first["next_offset"], tools.MAX_COMPENDIUM_PAGE_CHARS)
+		self.assertEqual(len(rest["content"]), 10)
+		self.assertIsNone(rest["next_offset"])
+		self.assertEqual(rest["total_chars"], len(body))
+		# the body is read out here, so permission is checked here
+		self.assertTrue(all(call.kwargs["check_permission"] for call in get_page_record.call_args_list))
+
+	@unittest.skipUnless(importlib.util.find_spec("compendium"), "compendium is not installed")
+	def test_a_compendium_path_that_escapes_the_docs_folder_is_rejected(self):
+		with (
+			patch("frappe.get_installed_apps", return_value=["frappe", "compendium"]),
+			patch("compendium.docs.normalize_locale", return_value="en"),
+			self.assertRaises(frappe.ValidationError),
+		):
+			tools.read_compendium_page("../../../etc/passwd")
 
 	def test_ask_mode_tools_exclude_all_write_proposals_and_host_mutation(self):
 		host_mutation_tools = {"write_file", "edit_file", "execute", "shell", "run_shell"}
@@ -897,6 +1224,45 @@ class UnitTestCodeTools(UnitTestCase):
 		for (name, args), expected in cases:
 			with self.subTest(tool=name):
 				self.assertEqual(_tool_call_label(name, args), expected)
+
+	def test_source_code_calls_say_which_file_or_pattern_they_are_on(self):
+		cases = [
+			(
+				("grep", {"pattern": "on_submit", "path": "/source/hrms/hrms/hr"}),
+				'Searching for "on_submit" in hrms/hrms/hr',
+			),
+			(("grep", {"pattern": "working_time", "path": "/source"}), 'Searching for "working_time"'),
+			(
+				("grep", {"pattern": "working_time", "path": "/source", "glob": "**/*.json"}),
+				'Searching for "working_time" in **/*.json',
+			),
+			(
+				("grep", {"pattern": "submit", "path": "/source/frappe/frappe/model", "glob": "*.py"}),
+				'Searching for "submit" in frappe/frappe/model/*.py',
+			),
+			(
+				(
+					"grep",
+					{"pattern": "submit", "path": "/source/frappe/frappe/model/document.py", "glob": "*.py"},
+				),
+				'Searching for "submit" in frappe/frappe/model/document.py',
+			),
+			(("glob", {"pattern": "**/*.json", "path": "/source/erpnext/"}), "Finding **/*.json in erpnext"),
+			(
+				("read_file", {"file_path": "/source/frappe/model/document.py", "offset": 200, "limit": 50}),
+				"Reading frappe/model/document.py, lines 201-250",
+			),
+			(("read_file", {"file_path": "/source/frappe/hooks.py"}), "Reading frappe/hooks.py, lines 1-100"),
+			(("ls", {"path": "/source/"}), "Listing /"),
+			(("get_list", {"doctype": "ToDo"}), ""),
+		]
+		for (name, args), expected in cases:
+			with self.subTest(tool=name, args=args):
+				self.assertEqual(_tool_call_detail(name, _summarize_tool_args(args)), expected)
+
+	def test_a_long_search_pattern_is_trimmed_like_the_arguments(self):
+		detail = _tool_call_detail("grep", _summarize_tool_args({"pattern": "x" * 5000}))
+		self.assertLess(len(detail), TOOL_CALL_ARGS_LIMIT + 50)
 
 	def test_an_unmapped_tool_still_gets_a_readable_label(self):
 		self.assertEqual(_tool_call_label("some_new_tool", {}), "Some new tool")

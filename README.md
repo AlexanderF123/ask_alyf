@@ -6,6 +6,8 @@ Ask ALYF adds an assistant to ERPNext so users can ask questions, find informati
 
 It is built for teams that already use ERPNext and want a practical assistant inside their existing system, not a separate chat product with a separate permission model.
 
+[![Ask ALYF: Tutorial and Review on YouTube](./assets/ask_alyf_video_thumbnail.jpg)](https://youtu.be/hDqQaanfPKE)
+
 ## What You Can Do
 
 Use Ask ALYF to:
@@ -146,10 +148,13 @@ Common settings include:
 - _Allow Field Agent_
 - _Excluded DocTypes_
 - separate vision model settings, if document and image extraction should use a different model
+- _Enable Tracing_, _LangSmith API Key_, _LangSmith Endpoint_, and _LangSmith Project_
 
 _System Prompt_ is added on top of the built-in instructions, not instead of them. Ask ALYF already tells the assistant how to behave, which tools to use, and how to respect permissions. Put only company-specific context here, such as your company name, the language to answer in, or conventions the assistant cannot read from the data. For step-by-step procedures, write a skill instead of adding it to the system prompt, so the instructions load only when they are relevant and only for the roles that need them.
 
 Ask ALYF chat requires the [OpenAI Responses API](https://developers.openai.com/api/reference/resources/responses). OpenAI-compatible _Base URLs_ must implement `POST /v1/responses`. Providers that support only Chat Completions are not supported for chat.
+
+When _Enable Tracing_ is on, Ask ALYF sends traces of agent runs to [LangSmith](https://smith.langchain.com). Traces include prompts, tool calls, and answers. They go to the _LangSmith Endpoint_ and _LangSmith Project_ you set. Leave tracing off if this data must stay on your site.
 
 ## Conversation History
 
@@ -198,6 +203,7 @@ Optional tools:
 
 - `run_read_only_sql` runs read-only SQL for Administrator and System Manager users
 - `get_app_version`, `read_github_releases`, and `read_documentation_page` help answer app and documentation questions
+- `search_compendium` and `read_compendium_page` are registered only when the **Compendium** app is installed. They search the docs of all installed apps and read out the pages the user may read
 
 ### Subagents
 
@@ -264,29 +270,6 @@ bench get-app $URL_OF_THIS_REPO --branch develop
 bench install-app ask_alyf
 ```
 
-## Cursor Cloud Agents
-
-This repository includes a Cursor cloud-agent setup in `.cursor/` for bootstrapping a self-contained Frappe bench on the remote machine.
-
-To use it:
-
-1. Open the `ask_alyf` repository itself in Cursor, not your local bench root.
-2. Rebuild the cloud-agent environment so Cursor picks up `.cursor/environment.json`.
-3. Let the agent finish the initial install. It creates a bench in `$HOME/frappe-bench`, starts MariaDB and Redis, creates a default site, and soft-links the checked-out repo into the bench.
-
-Useful variables in `.cursor/install.sh`:
-
-- `REPO_NAME` defaults to `ask_alyf` and is used for the bench app path and default site name.
-- `SITE_NAME` overrides the default site, which otherwise becomes `<repo-name>.localhost`.
-- `BENCH_ROOT` overrides the bench location.
-- `FRAPPE_BRANCH` lets you pin a different Frappe branch.
-
-Troubleshooting:
-
-- If you change `.cursor/Dockerfile`, `.cursor/install.sh`, or dependency versions, rebuild the environment so Cursor refreshes the cached setup.
-- If the standalone `start` hook is skipped by Cursor, the `bench` terminal still runs `.cursor/start.sh` before `bench start`.
-- If setup fails during `bench init` or `bench build`, check the environment build logs first, then the `bench` terminal output.
-
 ## Contributing
 
 This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
@@ -303,6 +286,25 @@ Pre-commit is configured to use:
 - prettier
 - pyupgrade
 
+### Source search
+
+Source searches skip `node_modules`, `__pycache__`, `public/dist`, `public/frontend/assets`, and source maps.
+They also honor each app's `.gitignore` files, including nested rules, without requiring Git metadata.
+File discovery skips symlinks.
+
+Search uses ripgrep (`rg`) when available, with a Python fallback for missing tools, failed commands, and incompatible regular expressions.
+Both paths use the same file selection rules and limit each matching line to 300 characters.
+Frappe Cloud installs ripgrep through `pyproject.toml`. On other hosts, install it with the system package manager to enable native search.
+
+Run the optional benchmark from the bench directory against a test site with Ask ALYF installed:
+
+```bash
+ASK_ALYF_BENCHMARK_SOURCE_GREP=1 bench --site test_site run-tests \
+  --module ask_alyf.ask_alyf.test_source_grep --test test_installed_app_search_timings
+```
+
+The benchmark reports file counts and search times for native search and the Python fallback. It has no timing assertions.
+
 ## CI
 
 This app can use GitHub Actions for CI. The configured workflows are:
@@ -314,7 +316,7 @@ This app can use GitHub Actions for CI. The configured workflows are:
 
 Ask ALYF is self-hosted. The published source code does not send usage data, analytics, or chat contents to the maintainers of this project.
 
-The app calls the LLM and related providers you configure. Text, context, and uploaded documents may be processed by those providers under their privacy policies and terms. See [PRIVACY.md](PRIVACY.md).
+The app calls the LLM and related providers you configure. Text, context, and uploaded documents may be processed by those providers under their privacy policies and terms. If you enable LangSmith tracing, traces of agent runs also go to LangSmith. See [PRIVACY.md](PRIVACY.md).
 
 ## License
 

@@ -10,18 +10,17 @@ msgstr ""
 "POT-Creation-Date: 2026-05-02 19:04+0053\n"
 "PO-Revision-Date: 2026-05-02 19:04+0053\n"
 "Last-Translator: hallo@alyf.de\n"
-"Language: bn\n"
 "Language-Team: hallo@alyf.de\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: bn\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
 #. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Settings'
 #. Label of the access_tab (Tab Break) field in DocType 'Ask ALYF Skill'
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-#: ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json ask_alyf/ask_alyf/doctype/ask_alyf_skill/ask_alyf_skill.json
 msgid "Access"
 msgstr "অ্যাক্সেস"
 
@@ -68,8 +67,7 @@ msgstr "বর্তমান ফর্মে {0}-এ একটি সারি 
 msgid "Add child row action needs correction."
 msgstr "চাইল্ড সারি যোগ করার অ্যাকশনের সংশোধন প্রয়োজন।"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:612
-#: ask_alyf/public/js/ask_alyf.bundle.js:1032
+#: ask_alyf/public/js/ask_alyf.bundle.js:612 ask_alyf/public/js/ask_alyf.bundle.js:1032
 msgid "Agent"
 msgstr "এজেন্ট"
 
@@ -147,8 +145,7 @@ msgstr "Frage mich অনবোর্ডিং"
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
-#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
-#: ask_alyf/workspace_sidebar/ask_alyf.json
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json ask_alyf/workspace_sidebar/ask_alyf.json
 msgid "Ask ALYF Settings"
 msgstr "Frage mich সেটিংস"
 
@@ -161,10 +158,6 @@ msgstr "Frage mich দক্ষতা"
 #: ask_alyf/ask_alyf/doctype/ask_alyf_conversation/ask_alyf_conversation.json
 msgid "Ask ALYF User"
 msgstr "Frage mich ব্যবহারকারী"
-
-#: ask_alyf/public/js/ask_alyf.bundle.js:631
-msgid "{0} is an AI and can make mistakes, including with numbers and information about people."
-msgstr "{0} একটি AI এবং সংখ্যা এবং ব্যক্তিদের সম্পর্কে তথ্য সহ ভুল করতে পারে।"
 
 #: ask_alyf/public/js/ask_alyf.bundle.js:779
 msgid "{0} is visible, but no API key/model is configured yet in Ask ALYF Settings."
@@ -182,8 +175,7 @@ msgstr "এই ERPNext ইনস্ট্যান্স সম্পর্ক�
 msgid "At least one role is required."
 msgstr "কমপক্ষে একটি ভূমিকা আবশ্যক।"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:618
-#: ask_alyf/public/js/ask_alyf.bundle.js:620
+#: ask_alyf/public/js/ask_alyf.bundle.js:618 ask_alyf/public/js/ask_alyf.bundle.js:620
 msgid "Attach file"
 msgstr "ফাইল সংযুক্ত করুন"
 
@@ -204,9 +196,7 @@ msgstr "ব্যাচ তৈরির প্রস্তাব সংশোধ
 msgid "Buying"
 msgstr "ক্রয়"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:571
-#: ask_alyf/public/js/ask_alyf.bundle.js:573
-#: ask_alyf/public/js/ask_alyf.bundle.js:989
+#: ask_alyf/public/js/ask_alyf.bundle.js:571 ask_alyf/public/js/ask_alyf.bundle.js:573 ask_alyf/public/js/ask_alyf.bundle.js:989
 msgid "Call support"
 msgstr "সাপোর্টে কল করুন"
 
@@ -419,8 +409,7 @@ msgstr "বর্তমান নথি হল {0}, প্রত্যাশি�
 msgid "Current form is {0}, expected {1}."
 msgstr "বর্তমান ফর্ম হল {0}, প্রত্যাশিত {1}।"
 
-#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488
-#: ask_alyf/ask_alyf/tools.py:1491
+#: ask_alyf/ask_alyf/tools.py:1485 ask_alyf/ask_alyf/tools.py:1488 ask_alyf/ask_alyf/tools.py:1491
 msgid "Dataset values must be numeric."
 msgstr "ডেটাসেটের মান অবশ্যই সংখ্যাসূচক হতে হবে।"
 
@@ -608,8 +597,7 @@ msgstr "ফিল্ড Agent সক্ষম নয়।"
 msgid "Field updated."
 msgstr "ফিল্ড আপডেট করা হয়েছে।"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:1903
-#: ask_alyf/public/js/ask_alyf.bundle.js:1914
+#: ask_alyf/public/js/ask_alyf.bundle.js:1903 ask_alyf/public/js/ask_alyf.bundle.js:1914
 #, python-brace-format
 msgid "Field {0} does not exist on this form."
 msgstr "এই ফর্মে {0} ফিল্ড বিদ্যমান নেই।"
@@ -708,8 +696,7 @@ msgstr "AI দিয়ে তৈরি করুন"
 msgid "Generating print..."
 msgstr "প্রিন্ট তৈরি করা হচ্ছে..."
 
-#: ask_alyf/ask_alyf/api.py:661 ask_alyf/ask_alyf/api.py:728
-#: ask_alyf/ask_alyf/api.py:843
+#: ask_alyf/ask_alyf/api.py:661 ask_alyf/ask_alyf/api.py:728 ask_alyf/ask_alyf/api.py:843
 msgid "Generating response..."
 msgstr "প্রতিক্রিয়া তৈরি করা হচ্ছে..."
 
@@ -833,8 +820,7 @@ msgstr "একাধিক মিলে যাওয়া ফাইল পা�
 msgid "Navigate to {0}"
 msgstr "{0}-এ নেভিগেট করুন"
 
-#: ask_alyf/ask_alyf/api.py:271 ask_alyf/ask_alyf/api.py:460
-#: ask_alyf/ask_alyf/api.py:486
+#: ask_alyf/ask_alyf/api.py:271 ask_alyf/ask_alyf/api.py:460 ask_alyf/ask_alyf/api.py:486
 msgid "New Conversation"
 msgstr "নতুন কথোপকথন"
 
@@ -1103,8 +1089,7 @@ msgstr "ফাইল পড়া হচ্ছে..."
 msgid "Reading skill..."
 msgstr "স্কিল পড়া হচ্ছে..."
 
-#: ask_alyf/ask_alyf/api.py:789 ask_alyf/ask_alyf/api.py:875
-#: ask_alyf/ask_alyf/api.py:904
+#: ask_alyf/ask_alyf/api.py:789 ask_alyf/ask_alyf/api.py:875 ask_alyf/ask_alyf/api.py:904
 #, python-brace-format
 msgid "Reason: {0}"
 msgstr "কারণ: {0}"
@@ -1455,8 +1440,7 @@ msgstr "Vision মডেল"
 msgid "Vision Provider"
 msgstr "Vision প্রদানকারী"
 
-#: ask_alyf/public/js/ask_alyf.bundle.js:623
-#: ask_alyf/public/js/ask_alyf.bundle.js:625
+#: ask_alyf/public/js/ask_alyf.bundle.js:623 ask_alyf/public/js/ask_alyf.bundle.js:625
 msgid "Voice input"
 msgstr "ভয়েস ইনপুট"
 
@@ -1513,11 +1497,7 @@ msgstr "কোন প্রকল্পের কাজগুলি অতির
 msgid "Which users logged in today?"
 msgstr "আজ কোন ব্যবহারকারীরা লগ ইন করেছেন?"
 
-#: ask_alyf/ask_alyf/api.py:427 ask_alyf/ask_alyf/api.py:439
-#: ask_alyf/ask_alyf/api.py:456 ask_alyf/ask_alyf/api.py:476
-#: ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697
-#: ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941
-#: ask_alyf/ask_alyf/api.py:979
+#: ask_alyf/ask_alyf/api.py:427 ask_alyf/ask_alyf/api.py:439 ask_alyf/ask_alyf/api.py:456 ask_alyf/ask_alyf/api.py:476 ask_alyf/ask_alyf/api.py:608 ask_alyf/ask_alyf/api.py:697 ask_alyf/ask_alyf/api.py:814 ask_alyf/ask_alyf/api.py:941 ask_alyf/ask_alyf/api.py:979
 msgid "You do not have access to {0}."
 msgstr "{0}-এ আপনার অ্যাক্সেস নেই।"
 
@@ -1579,8 +1559,6 @@ msgstr "{0} আইটেম"
 #, python-brace-format
 msgid "{0} rows"
 msgstr "{0} সারি"
-
-
 
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "Send to {0}: {1}"
@@ -1669,3 +1647,520 @@ msgstr ""
 #: ask_alyf/public/js/ask_alyf.bundle.js
 msgid "{0} is still working on the previous message. Please drop the document again when the answer is there."
 msgstr ""
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:314
+msgid "1 step"
+msgstr "১টি ধাপ"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:163
+msgid "Access to hidden paths is not allowed"
+msgstr "লুকানো পাথে অ্যাক্সেস অনুমোদিত নয়"
+
+#. Label of the allow_conversation_deletion (Check) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Allow Conversation Deletion"
+msgstr "কথোপকথন মুছে ফেলার অনুমতি দিন"
+
+#: ask_alyf/ask_alyf/agent.py:147
+#, python-brace-format
+msgid "Amending {0}"
+msgstr "{0} সংশোধন করা হচ্ছে"
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Ask ALYF Checkpoint"
+msgstr "Ask ALYF চেকপয়েন্ট"
+
+#. Name of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Ask ALYF Checkpoint Write"
+msgstr "Ask ALYF চেকপয়েন্ট রাইট"
+
+#. Title of the Module Onboarding 'Ask ALYF Onboarding'
+#: ask_alyf/ask_alyf/module_onboarding/ask_alyf_onboarding/ask_alyf_onboarding.json
+msgid "Ask ALYF Onboarding"
+msgstr "Ask ALYF অনবোর্ডিং"
+
+#: ask_alyf/ask_alyf/agent.py:132
+#, python-brace-format
+msgid "Asking the {0} specialist"
+msgstr "{0} বিশেষজ্ঞকে জিজ্ঞাসা করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:153
+#, python-brace-format
+msgid "Attaching a file to {0}"
+msgstr "{0}-এ একটি ফাইল সংযুক্ত করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:267
+msgid "Attachment name is required"
+msgstr "সংযুক্তির নাম আবশ্যক"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:43
+msgid "Attachments are read-only"
+msgstr "সংযুক্তিগুলি কেবল-পাঠযোগ্য"
+
+#: ask_alyf/ask_alyf/agent.py:105
+#, python-brace-format
+msgid "Checking the {0} form"
+msgstr "{0} ফর্ম পরীক্ষা করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:107
+#, python-brace-format
+msgid "Checking your permissions on {0}"
+msgstr "{0}-এ আপনার অনুমতি পরীক্ষা করা হচ্ছে"
+
+#. Label of the checkpoint_data (Long Text) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Checkpoint Data (base64)"
+msgstr "চেকপয়েন্ট ডেটা (base64)"
+
+#. Label of the checkpoint_id (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the checkpoint_id (Data) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Checkpoint ID"
+msgstr "চেকপয়েন্ট আইডি"
+
+#. Label of the checkpoint_ns (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the checkpoint_ns (Data) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Checkpoint Namespace"
+msgstr "চেকপয়েন্ট নেমস্পেস"
+
+#. Label of the checkpoint_type (Data) field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Checkpoint Type"
+msgstr "চেকপয়েন্ট টাইপ"
+
+#: ask_alyf/ask_alyf/api.py:429
+msgid "Conversation deletion is not allowed."
+msgstr "কথোপকথন মুছে ফেলার অনুমতি নেই।"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1277
+msgid "Conversation not found. Please start a new conversation."
+msgstr "কথোপকথন পাওয়া যায়নি। অনুগ্রহ করে একটি নতুন কথোপকথন শুরু করুন।"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:583
+msgid "Copy as Markdown"
+msgstr "Markdown হিসেবে কপি করুন"
+
+#: ask_alyf/ask_alyf/api.py:775
+#, python-brace-format
+msgid "Could not complete the operation: {0}."
+msgstr "অপারেশন সম্পন্ন করা যায়নি: {0}।"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:734
+msgid "Could not render diagram."
+msgstr "ডায়াগ্রাম রেন্ডার করা যায়নি।"
+
+#: ask_alyf/ask_alyf/agent.py:101
+#, python-brace-format
+msgid "Counting {0}"
+msgstr "{0} গণনা করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:139
+#, python-brace-format
+msgid "Creating several {0} records"
+msgstr "একাধিক {0} রেকর্ড তৈরি করা হচ্ছে"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1818 ask_alyf/public/js/ask_alyf.bundle.js:1819
+msgid "Delete conversation"
+msgstr "কথোপকথন মুছুন"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1346
+msgid "Delete conversation '{0}'?"
+msgstr "কথোপকথন '{0}' মুছে ফেলা হবে?"
+
+#: ask_alyf/ask_alyf/test_tool_error_middleware.py:84 ask_alyf/ask_alyf/test_tool_error_middleware.py:93
+msgid "DocType is excluded"
+msgstr "DocType বাদ দেওয়া হয়েছে"
+
+#. Label of the enable_tracing (Check) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Enable Tracing"
+msgstr "ট্রেসিং সক্ষম করুন"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1350
+msgid "Failed to delete conversation."
+msgstr "কথোপকথন মুছতে ব্যর্থ হয়েছে।"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1949
+msgid "Failed to stop the run."
+msgstr "রান বন্ধ করা যায়নি।"
+
+#: ask_alyf/ask_alyf/agent.py:166
+msgid "Filling in the open form"
+msgstr "খোলা ফর্মটি পূরণ করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:200
+#, python-brace-format
+msgid "Finding {0}"
+msgstr "{0} ফাইল খোঁজা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:200
+#, python-brace-format
+msgid "Finding {0} in {1}"
+msgstr "{1}-এ {0} ফাইল খোঁজা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:162
+msgid "Highlighting a field"
+msgstr "একটি ফিল্ড হাইলাইট করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:182
+#, python-brace-format
+msgid "Invalid regex pattern: {0}"
+msgstr "অবৈধ regex প্যাটার্ন: {0}"
+
+#. Label of the langsmith_api_key (Password) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith API Key"
+msgstr "LangSmith API কী"
+
+#. Label of the langsmith_endpoint (Data) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith Endpoint"
+msgstr "LangSmith এন্ডপয়েন্ট"
+
+#. Label of the langsmith_project (Data) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "LangSmith Project"
+msgstr "LangSmith প্রকল্প"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:172 ask_alyf/ask_alyf/deep_agent_backend.py:278
+#, python-brace-format
+msgid "Line offset {0} exceeds file length"
+msgstr "লাইন অফসেট {0} ফাইলের দৈর্ঘ্য অতিক্রম করেছে"
+
+#: ask_alyf/ask_alyf/agent.py:210
+#, python-brace-format
+msgid "Listing {0}"
+msgstr "{0} তালিকাভুক্ত করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:111
+msgid "Looking up available reports"
+msgstr "উপলব্ধ রিপোর্ট খোঁজা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:109
+msgid "Looking up what you can access"
+msgstr "আপনি কী অ্যাক্সেস করতে পারেন তা খোঁজা হচ্ছে"
+
+#. Label of the metadata_data (Long Text) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Metadata Data (base64)"
+msgstr "মেটাডেটা ডেটা (base64)"
+
+#. Label of the metadata_type (Data) field in DocType 'Ask ALYF Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Metadata Type"
+msgstr "মেটাডেটা টাইপ"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:660
+msgid "Next page"
+msgstr "পরবর্তী পৃষ্ঠা"
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "One LangGraph checkpoint. Written by FrappeCheckpointSaver, not by users."
+msgstr "একটি একক LangGraph চেকপয়েন্ট। এটি FrappeCheckpointSaver দ্বারা লেখা হয়, ব্যবহারকারীদের দ্বারা নয়।"
+
+#. Description of a DocType
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "One pending write of a LangGraph checkpoint. Written by FrappeCheckpointSaver, not by users."
+msgstr "একটি LangGraph চেকপয়েন্টের একটি মুলতুবি রাইট। এটি FrappeCheckpointSaver দ্বারা লেখা হয়, ব্যবহারকারীদের দ্বারা নয়।"
+
+#: ask_alyf/ask_alyf/agent.py:160
+#, python-brace-format
+msgid "Opening a new {0}"
+msgstr "একটি নতুন {0} খোলা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:158
+msgid "Opening a page"
+msgstr "একটি পৃষ্ঠা খোলা হচ্ছে"
+
+#. Label of the parent_checkpoint_id (Data) field in DocType 'Ask ALYF
+#. Checkpoint'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json
+msgid "Parent Checkpoint ID"
+msgstr "প্যারেন্ট চেকপয়েন্ট ID"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:165
+#, python-brace-format
+msgid "Path is not a file: {0}"
+msgstr "পাথটি একটি ফাইল নয়: {0}"
+
+#: ask_alyf/ask_alyf/agent.py:134
+msgid "Planning the next steps"
+msgstr "পরবর্তী পদক্ষেপগুলির পরিকল্পনা করা হচ্ছে"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:659
+msgid "Previous page"
+msgstr "পূর্ববর্তী পৃষ্ঠা"
+
+#: ask_alyf/ask_alyf/agent.py:164
+msgid "Preparing a chart"
+msgstr "একটি চার্ট প্রস্তুত করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:126
+msgid "Reading documentation"
+msgstr "ডকুমেন্টেশন পড়া হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:117
+msgid "Reading instructions"
+msgstr "নির্দেশাবলী পড়া হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:119
+msgid "Reading the attached document"
+msgstr "সংযুক্ত নথি পড়া হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:103
+#, python-brace-format
+msgid "Reading {0}"
+msgstr "{0} পড়া হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:206
+#, python-brace-format
+msgid "Reading {0}, lines {1}-{2}"
+msgstr "{0}-এর {1}-{2} লাইন পড়া হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:98
+#, python-brace-format
+msgid "Reading {0} list"
+msgstr "{0} তালিকা পড়া হচ্ছে"
+
+#. Label of the reasoning_effort (Select) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Reasoning Effort"
+msgstr "রিজনিং প্রচেষ্টা"
+
+#: ask_alyf/ask_alyf/agent.py:151
+#, python-brace-format
+msgid "Renaming {0}"
+msgstr "{0} পুনঃনামকরণ করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:115
+msgid "Running a database query"
+msgstr "একটি ডেটাবেস ক্যোয়ারি চালানো হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:155
+#, python-brace-format
+msgid "Running {0}"
+msgstr "{0} চালানো হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:117
+msgid "Saving instructions"
+msgstr "নির্দেশাবলী সংরক্ষণ করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:196
+#, python-brace-format
+msgid "Searching for \"{0}\""
+msgstr "\"{0}\" খোঁজা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:194
+#, python-brace-format
+msgid "Searching for \"{0}\" in {1}"
+msgstr "{1}-এ \"{0}\" খোঁজা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:127
+msgid "Searching the documentation"
+msgstr "ডকুমেন্টেশনে অনুসন্ধান করা হচ্ছে"
+
+#: ask_alyf/ask_alyf/agent.py:130
+msgid "Searching the source code"
+msgstr "সোর্স কোডে অনুসন্ধান করা হচ্ছে"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:398
+msgid "Show all"
+msgstr "সব দেখান"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:691
+#, python-brace-format
+msgid "Sort by {0}"
+msgstr "{0} অনুযায়ী সাজান"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:686
+#, python-brace-format
+msgid "Sorted ascending by {0}"
+msgstr "{0} অনুযায়ী আরোহী ক্রম"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:689
+#, python-brace-format
+msgid "Sorted descending by {0}"
+msgstr "{0} অনুযায়ী অবরোহী ক্রম"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:39
+msgid "Source code is read-only"
+msgstr "সোর্স কোড কেবল-পাঠযোগ্য"
+
+#: ask_alyf/ask_alyf/deep_agent_backend.py:160
+msgid "Source file path is required"
+msgstr "সোর্স ফাইলের পাথ আবশ্যক"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1910
+msgid "Stop this run"
+msgstr "এই রানটি থামান"
+
+#: ask_alyf/ask_alyf/api.py:632
+msgid "Stopped. Send a message to pick up from here."
+msgstr "থামানো হয়েছে। এখান থেকে চালিয়ে যেতে একটি বার্তা পাঠান।"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:1931
+msgid "Stopping..."
+msgstr "থামানো হচ্ছে..."
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:654
+msgid "Table pagination"
+msgstr "টেবিল পৃষ্ঠাঙ্কন"
+
+#. Label of the task_path (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Task Path"
+msgstr "টাস্ক পাথ"
+
+#: ask_alyf/ask_alyf/toolset.py:307
+msgid "That confirmation did not match this operation. Propose it again on its own."
+msgstr "সেই নিশ্চিতকরণটি এই অপারেশনের সাথে মেলেনি। এটি আলাদাভাবে আবার প্রস্তাব করুন।"
+
+#: ask_alyf/ask_alyf/tools.py:1079
+msgid "The Compendium app is not installed."
+msgstr "Compendium অ্যাপটি ইনস্টল করা নেই।"
+
+#: ask_alyf/ask_alyf/toolset.py:325
+msgid "The action could not be completed."
+msgstr "অ্যাকশনটি সম্পন্ন করা যায়নি।"
+
+#: ask_alyf/ask_alyf/api.py:535 ask_alyf/ask_alyf/api.py:565
+msgid "The background job does not match this message."
+msgstr "ব্যাকগ্রাউন্ড জবটি এই মেসেজের সাথে মেলে না।"
+
+#: ask_alyf/ask_alyf/api.py:533 ask_alyf/ask_alyf/api.py:561 ask_alyf/ask_alyf/api.py:587
+msgid "The message could not be found in this conversation."
+msgstr "এই কথোপকথনে মেসেজটি খুঁজে পাওয়া যায়নি।"
+
+#: ask_alyf/ask_alyf/agent.py:649
+msgid "The operation was completed, but the follow-up response could not be generated."
+msgstr "অপারেশনটি সম্পন্ন হয়েছে, তবে ফলো-আপ রেসপন্স তৈরি করা যায়নি।"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:246
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support Reasoning Effort ({1})."
+msgstr "নির্বাচিত চ্যাট মডেল ({0}) রিজনিং এফোর্ট ({1}) সমর্থন করে না।"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:242
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support Reasoning Effort ({1}). Supported values: {2}."
+msgstr "নির্বাচিত চ্যাট মডেল ({0}) রিজনিং এফোর্ট ({1}) সমর্থন করে না। সমর্থিত মান: {2}।"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:103
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support function calling."
+msgstr "নির্বাচিত চ্যাট মডেল ({0}) ফাংশন কলিং সমর্থন করে না।"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:111
+#, python-brace-format
+msgid "The selected Chat Model ({0}) does not support vision. Choose a vision-capable chat model or configure a separate vision model."
+msgstr "নির্বাচিত চ্যাট মডেল ({0}) ভিশন সমর্থন করে না। ভিশন-সক্ষম একটি চ্যাট মডেল বেছে নিন অথবা একটি পৃথক ভিশন মডেল কনফিগার করুন।"
+
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.py:120
+#, python-brace-format
+msgid "The selected Vision Model ({0}) does not support vision."
+msgstr "নির্বাচিত ভিশন মডেল ({0}) ভিশন সমর্থন করে না।"
+
+#: ask_alyf/ask_alyf/toolset.py:315
+msgid "The user rejected this operation."
+msgstr "ব্যবহারকারী এই অপারেশনটি প্রত্যাখ্যান করেছেন।"
+
+#. Label of the thread_id (Data) field in DocType 'Ask ALYF Checkpoint'
+#. Label of the thread_id (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint/ask_alyf_checkpoint.json ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Thread ID"
+msgstr "থ্রেড আইডি"
+
+#. Label of the tracing_tab (Tab Break) field in DocType 'Ask ALYF Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "Tracing"
+msgstr "ট্রেসিং"
+
+#: ask_alyf/ask_alyf/agent.py:113
+msgid "Translating labels"
+msgstr "লেবেল অনুবাদ করা হচ্ছে"
+
+#. Title of an Onboarding Step
+#: ask_alyf/ask_alyf/onboarding_step/update_ask_alyf_settings/update_ask_alyf_settings.json
+msgid "Update Ask ALYF Settings"
+msgstr "Ask ALYF সেটিংস আপডেট করুন"
+
+#. Label of the value_data (Long Text) field in DocType 'Ask ALYF Checkpoint
+#. Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Value Data (base64)"
+msgstr "মান ডেটা (base64)"
+
+#. Label of the value_type (Data) field in DocType 'Ask ALYF Checkpoint Write'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_checkpoint_write/ask_alyf_checkpoint_write.json
+msgid "Value Type"
+msgstr "মানের ধরন"
+
+#: ask_alyf/ask_alyf/api.py:367 ask_alyf/ask_alyf/api.py:379 ask_alyf/ask_alyf/api.py:396 ask_alyf/ask_alyf/api.py:426 ask_alyf/ask_alyf/api.py:452 ask_alyf/ask_alyf/api.py:520 ask_alyf/ask_alyf/api.py:544 ask_alyf/ask_alyf/api.py:723 ask_alyf/ask_alyf/api.py:791 ask_alyf/ask_alyf/api.py:896 ask_alyf/ask_alyf/api.py:1015 ask_alyf/ask_alyf/api.py:1053
+msgid "You do not have access to Ask ALYF."
+msgstr "Ask ALYF-এ আপনার অ্যাক্সেস নেই।"
+
+#: ask_alyf/ask_alyf/agent.py:155
+msgid "an action"
+msgstr "একটি অ্যাকশন"
+
+#: ask_alyf/ask_alyf/agent.py:132
+msgid "assistant"
+msgstr "অ্যাসিস্ট্যান্ট"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "high"
+msgstr "উচ্চ"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "low"
+msgstr "নিম্ন"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "max"
+msgstr "সর্বোচ্চ"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "medium"
+msgstr "মাঝারি"
+
+#. Option for the 'Reasoning Effort' (Select) field in DocType 'Ask ALYF
+#. Settings'
+#: ask_alyf/ask_alyf/doctype/ask_alyf_settings/ask_alyf_settings.json
+msgid "xhigh"
+msgstr "অতি উচ্চ"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:371
+#, python-brace-format
+msgid "{0} failed"
+msgstr "{0}টি ব্যর্থ"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js:314
+#, python-brace-format
+msgid "{0} steps"
+msgstr "{0}টি ধাপ"
+
+#: ask_alyf/ask_alyf/api.py
+msgid "{0} is still working on a message in this conversation. Stop it or wait for it to finish before deleting."
+msgstr "{0} এই কথোপকথনে একটি বার্তা নিয়ে এখনও কাজ করছে। মুছে ফেলার আগে এটি থামান অথবা শেষ হওয়ার জন্য অপেক্ষা করুন।"
+
+#: ask_alyf/public/js/ask_alyf.bundle.js
+msgid "{0} uses AI and can make mistakes, including with numbers and information about people."
+msgstr "{0} AI ব্যবহার করে এবং ভুল করতে পারে, যার মধ্যে সংখ্যা এবং ব্যক্তিদের সম্পর্কে তথ্য অন্তর্ভুক্ত।"

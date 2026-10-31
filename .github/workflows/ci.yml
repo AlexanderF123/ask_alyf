@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - develop
+    paths-ignore:
+      - "**/locale/main.pot"
   pull_request:
+    paths-ignore:
+      - "**/locale/main.pot"
 
 concurrency:
   group: develop-ask_alyf-${{ github.event.number }}
@@ -75,10 +79,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Install MariaDB Client
+      - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt-get install mariadb-client
+          sudo apt-get install mariadb-client ripgrep
 
       - name: Setup
         run: |

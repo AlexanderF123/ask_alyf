@@ -140,13 +140,15 @@ def run_field_agent(
 		in_private_frappe_context(getattr(toolset, method_name)) for method_name in FIELD_AGENT_TOOLS
 	]
 
-	model = build_chat_model(settings, temperature=0.1)
+	model = build_chat_model(settings)
 	agent = build_stateless_agent(model, tool_defs, system_prompt=instructions)
 
 	try:
 		result = agent.invoke({"messages": [{"role": "user", "content": prompt}]})
 	except Exception:
-		frappe.log_error("Ask ALYF Field Agent Error")
+		frappe.log_error(
+			"Ask ALYF Field Agent Error", frappe.get_traceback()
+		)  # traceback intentionally without context
 		raise
 
 	result_messages = result.get("messages") if isinstance(result, dict) else None
