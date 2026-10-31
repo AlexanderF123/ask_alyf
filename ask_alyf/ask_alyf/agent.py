@@ -14,7 +14,7 @@ from deepagents import (
 )
 from deepagents.middleware.filesystem import DEFAULT_READ_LIMIT
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, get_system_timezone, getdate, nowdate
 from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware, ToolErrorMiddleware, hook_config
 from langchain.agents.middleware.types import ToolCallRequest
@@ -435,6 +435,21 @@ def _langsmith_tracing(settings, *, metadata: dict[str, Any]) -> Generator[None]
 # --- Deep Agents coordinator --------------------------------------------------
 
 
+def build_current_date_instruction() -> str:
+	"""Tell the model today's date, so it does not spend a tool call to look it up.
+
+	Only the date, not the time: the system prompt is part of the cached
+	prompt prefix, and a value that changes every minute would defeat the
+	cache between the model calls of one turn and the turns of one day.
+	"""
+	today = getdate(nowdate())
+	return (
+		f"- Today is {today.strftime('%A')}, {today.isoformat()} "
+		f"(system time zone {get_system_timezone()}). Use this date for relative periods such as "
+		'"today", "this month" or "last year"; do not query the database for the current date.'
+	)
+
+
 class ask_alyfAgentRunner:
 	def __init__(self, runtime: ask_alyfRuntime):
 		self.runtime = runtime
@@ -503,6 +518,7 @@ Always follow these rules:
 - If conversation history includes stored document extraction data, reuse it for follow-up questions instead of re-running extraction unless the user asks for a fresh read.
 - If a file tool returns a truncation warning, tell the user clearly that only part of the file was processed.
 {available_skills_instruction}
+{build_current_date_instruction()}
 
 - Current request context (includes `user_roles` for non-Administrator users):
 {context}
