@@ -3,6 +3,7 @@ import contextlib
 import contextvars
 import importlib.util
 import itertools
+import json
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -492,6 +493,45 @@ class UnitTestCodeTools(UnitTestCase):
 			group_by=None,
 		)
 		self.assertEqual(result, [])
+
+	def test_get_list_returns_a_result_that_fits_unchanged(self):
+		rows = [{"name": f"ITEM-{index}"} for index in range(50)]
+		with patch("ask_alyf.ask_alyf.tools.client.get_list", return_value=rows):
+			result = tools.get_list("Item", fields="name", limit=50)
+
+		self.assertEqual(result, rows)
+
+	def test_get_list_cuts_a_result_too_large_for_the_conversation(self):
+		rows = [{"name": f"ITEM-{index}", "description": "x" * 900} for index in range(200)]
+		with patch("ask_alyf.ask_alyf.tools.client.get_list", return_value=rows):
+			result = tools.get_list("Item", fields="name,description", limit=200)
+
+		self.assertTrue(result["truncated"])
+		self.assertEqual(result["total_rows"], 200)
+		self.assertEqual(result["returned_rows"], len(result["rows"]))
+		self.assertLess(result["returned_rows"], 200)
+		self.assertEqual(result["rows"][0], rows[0])
+		self.assertIn(f"first {result['returned_rows']} of 200 rows", result["message"])
+		self.assertLessEqual(len(json.dumps(result["rows"])), tools.MAX_TOOL_RESULT_CHARS)
+
+	def test_run_read_only_sql_cuts_a_result_too_large_for_the_conversation(self):
+		rows = [frappe._dict(name=f"SINV-{index}", remarks="y" * 900) for index in range(200)]
+		with (
+			patch("ask_alyf.ask_alyf.tools.frappe.get_roles", return_value=["System Manager"]),
+			patch("ask_alyf.ask_alyf.tools.frappe.db.sql", return_value=rows),
+		):
+			result = tools.run_read_only_sql("SELECT name, remarks FROM `tabSales Invoice`")
+
+		self.assertTrue(result["truncated"])
+		self.assertIn("GROUP BY", result["message"])
+
+	def test_long_values_are_shortened_in_row_results(self):
+		result = tools.limit_result_rows([{"notes": "z" * 5000, "qty": 3}], how_to_narrow="")
+
+		[row] = result
+		self.assertEqual(len(row["notes"]), tools.MAX_TOOL_RESULT_VALUE_CHARS)
+		self.assertTrue(row["notes"].endswith(tools.TRUNCATED_VALUE_SUFFIX))
+		self.assertEqual(row["qty"], 3)
 
 	def test_get_list_preserves_aggregate_field_dict(self):
 		fields = [{"SUM": "grand_total", "as": "total"}]
