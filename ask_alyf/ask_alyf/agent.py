@@ -25,6 +25,7 @@ from langgraph.errors import GraphBubbleUp
 from langgraph.types import Command
 
 from ask_alyf.ask_alyf import tools
+from ask_alyf.ask_alyf.answer_stream import AnswerDraftPublisher, invoke_streaming
 from ask_alyf.ask_alyf.checkpointer import FrappeCheckpointSaver
 from ask_alyf.ask_alyf.deep_agent_backend import build_ask_alyf_backend
 from ask_alyf.ask_alyf.history import history_item_to_native_message
@@ -733,7 +734,9 @@ Mode awareness and behavior:
 				"mode": self.runtime.mode,
 			},
 		):
-			return self.agent.invoke(payload, config=self.thread_config)
+			# Streamed, so the chat can show the answer while it is written.
+			publisher = AnswerDraftPublisher(self.runtime.conversation_name)
+			return invoke_streaming(self.agent, payload, self.thread_config, publisher)
 
 	def resume(self, call_id: str, status: str, **decision: Any) -> dict[str, Any]:
 		"""Continue a run that paused on a proposal, with the user's decision."""
